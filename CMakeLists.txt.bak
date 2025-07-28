@@ -1,0 +1,23 @@
+project("ModelLifeMana")
+
+cmake_minimum_required(VERSION 4.0)
+#����ͷ�ļ���λ��
+include_directories(
+    "include"
+    "C:/Program Files/MySQL/MySQL Server 8.0/include"
+)
+
+#指定链接库的路径
+link_directories("C:/Program Files/MySQL/MySQL Server 8.0/lib")
+
+#������ļ���Χ
+file(GLOB SOURCES "src/*.cpp")
+
+#�����ļ�
+add_executable(ModelLifeManager ${SOURCES})
+
+#����ļ���λ��
+set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+
+#指定需要链接的具体的库
+target_link_libraries(ModelLifeManager libmysql)

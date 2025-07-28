@@ -1,0 +1,12 @@
+[
+  {
+    "name": "MinGW GCC",
+    "compilers": {
+      "C": "C:/MinGW/bin/gcc.exe",
+      "CXX": "C:/MinGW/bin/g++.exe"
+    },
+    "preferredGenerator": {
+      "name": "MinGW Makefiles"
+    }
+  }
+]
