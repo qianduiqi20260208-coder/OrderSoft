@@ -1,0 +1,253 @@
+-- 命令行进入sql之后，执行下面这条语句
+-- drop DATABASE model_life_manager;
+-- CREATE DATABASE IF NOT EXISTS model_life_manager DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+-- cd C:\Users\18493\Desktop\模型生命周期管理
+-- 命令行进入sql之后，退出sql之后再执行下面这条语句
+-- mysql -uroot -p model_life_manager < create_table.sql
+-- mysql -uroot -p
+
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS model (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    ata_code VARCHAR(64) UNIQUE,
+    model_name VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS model_version (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    model VARCHAR(64) NOT NULL,
+    version VARCHAR(64) NOT NULL,
+    FOREIGN KEY (model) REFERENCES model(ata_code)
+);
+
+CREATE TABLE IF NOT EXISTS user (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username BIGINT(64) NOT NULL UNIQUE, -- 工号
+    password VARCHAR(255) NOT NULL,
+    real_name VARCHAR(64),
+    role ENUM('SuperUser','模型工程师','软件工程师','访客') DEFAULT '访客',
+    is_approver BOOLEAN DEFAULT FALSE,
+    model_id BIGINT, -- 当前负责模型
+    email VARCHAR(128),
+    phone VARCHAR(32),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME,
+    online_status BOOLEAN DEFAULT FALSE,
+    last_model_used BIGINT,
+    FOREIGN KEY (model_id) REFERENCES model(id)
+);
+
+CREATE TABLE IF NOT EXISTS user_model (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username BIGINT NOT NULL,
+    model VARCHAR(64) NOT NULL,
+    FOREIGN KEY (username) REFERENCES user(username),
+	FOREIGN KEY (model) REFERENCES model(ata_code)
+);
+
+CREATE TABLE IF NOT EXISTS work_order (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    creator_id BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    type ENUM('问题复现','版本迭代','直接封装+发送','交付发送','功能开发','其他') NOT NULL,
+    model VARCHAR(64),
+    model_version_id BIGINT,
+    status ENUM('待审批','待分发','进行中','已完成','已退回') DEFAULT '待审批',
+    approver_id BIGINT,
+    priority ENUM('紧急','一般') DEFAULT NULL,
+    dispatcher_id BIGINT,
+    approved_at DATETIME DEFAULT NULL,
+    task_priority ENUM('紧急','一般') DEFAULT NULL,
+    dispatched_at DATETIME DEFAULT NULL,
+    completed_at DATETIME DEFAULT NULL,
+	reject_reason TEXT,
+    FOREIGN KEY (creator_id) REFERENCES user(username),
+    FOREIGN KEY (model) REFERENCES model(ata_code),
+    FOREIGN KEY (model_version_id) REFERENCES model_version(id),
+    FOREIGN KEY (approver_id) REFERENCES user(username),
+    FOREIGN KEY (dispatcher_id) REFERENCES user(username)
+);
+
+CREATE TABLE IF NOT EXISTS work_order_executor (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    executor_id BIGINT NOT NULL,
+    transferred_at DATETIME DEFAULT NULL,
+    transfer_reason TEXT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
+    FOREIGN KEY (executor_id) REFERENCES user(username)
+);
+
+CREATE TABLE IF NOT EXISTS issue_reproduction (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    coordination_id VARCHAR(64),
+    description TEXT,
+    reference_file TEXT,
+    phenomenon TEXT,
+    remarks TEXT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+);
+
+CREATE TABLE IF NOT EXISTS version_iteration (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+	
+    coordination_id VARCHAR(64),
+    update_content TEXT,
+    packaging_requirements TEXT,
+    interface_changed BOOLEAN,
+	
+    new_model_version_id BIGINT,
+    remarks TEXT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
+	FOREIGN KEY (new_model_version_id) REFERENCES model_version(id)
+);
+
+CREATE TABLE IF NOT EXISTS function_development (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    description_create TEXT,
+    description_completed TEXT,
+    model_id BIGINT,
+    model_version_id BIGINT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
+    FOREIGN KEY (model_id) REFERENCES model(id),
+    FOREIGN KEY (model_version_id) REFERENCES model_version(id)
+);
+
+
+CREATE TABLE IF NOT EXISTS other_work_order (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    description TEXT,
+    remarks TEXT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+);
+
+CREATE TABLE IF NOT EXISTS operation_log (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id         BIGINT,                       -- 操作人
+    operation_type  VARCHAR(20),                  -- 操作类型：insert/update/delete
+    table_name      VARCHAR(64),                  -- 操作的表名
+    record_id       BIGINT,                       -- 操作的主键ID（或复合键描述）
+    content_before  TEXT,                         -- 修改/删除前内容（json）
+    content_after   TEXT,                         -- 修改/新增后内容（json）
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (user_id) REFERENCES user(username)
+);
+
+CREATE TABLE IF NOT EXISTS encryption_key (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    shell_number VARCHAR(64) UNIQUE,
+    shell_serial_number VARCHAR(64),
+    remarks TEXT,
+    status ENUM('出库', '入库', '损坏', '丢失') DEFAULT '入库'
+);
+
+CREATE TABLE IF NOT EXISTS product_authorization (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    encryption_key VARCHAR(64),
+    authorization_code VARCHAR(64),  -- 授权ID，如2025071010
+    encryption_type ENUM('本地锁', '网络锁', '软锁授权'),
+    start_date DATE,
+    end_date DATE,
+    authorization_status ENUM('未授权', '授权中', '已过期') DEFAULT '未授权',
+    remarks TEXT,
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+);
+
+CREATE TABLE IF NOT EXISTS customer_info (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    customer_name VARCHAR(128) NOT NULL UNIQUE,
+    device_type ENUM('lab', 'IPT', 'FTD', 'FFS'),
+    computer_remarks TEXT,
+    product_authorization_id BIGINT,
+    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id)
+);
+
+CREATE TABLE IF NOT EXISTS encryption_key_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    encryption_key VARCHAR(64) NOT NULL,
+    in_storage_time DATETIME,
+    out_storage_time DATETIME,
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+);
+
+
+CREATE TABLE IF NOT EXISTS model_encryption_authorization (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    model_version_id BIGINT NOT NULL,
+    product_authorization_id BIGINT NOT NULL,
+    FOREIGN KEY (model_version_id) REFERENCES model_version(id),
+    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id)
+);
+
+CREATE TABLE IF NOT EXISTS delivery_send (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    target_customer VARCHAR(128),
+    validated_by_cae BOOLEAN,
+    sensitive_info TEXT,
+	is_encrypted BOOLEAN,
+	shell_code VARCHAR(64),
+    authorization_id BIGINT,
+    remarks TEXT,
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
+	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name),
+	FOREIGN KEY (shell_code) REFERENCES encryption_key(shell_number),
+	FOREIGN KEY (authorization_id) REFERENCES product_authorization(id)
+);
+
+CREATE TABLE IF NOT EXISTS package_send (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+	
+    work_order_id BIGINT NOT NULL,
+    coordination_id VARCHAR(64),
+    update_content TEXT,
+    packaging_requirements TEXT,
+    interface_changed BOOLEAN,
+    target_customer VARCHAR(128),
+    validated_by_cae BOOLEAN,
+    sensitive_info TEXT,
+	
+	new_model_version_id BIGINT,                             -- 升级后模型版本
+    is_encrypted BOOLEAN DEFAULT FALSE,                      -- 是否加密
+    encryption_key VARCHAR(64),                                -- 外壳号（加密锁）
+    product_authorization_id BIGINT,                         -- 授权ID
+    remarks TEXT,
+    
+    FOREIGN KEY (new_model_version_id) REFERENCES model_version(id),
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
+    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id),
+	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name),
+		
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+);
+
+CREATE TABLE issue_reproduction_attachment (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '附件ID',
+    
+    ticket_id BIGINT NOT NULL COMMENT '关联的工单ID',
+    
+    file_path VARCHAR(255) NOT NULL COMMENT '文件保存路径（相对路径）',
+    
+    file_name VARCHAR(255) NOT NULL COMMENT '文件原始名称',
+    
+    upload_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '附件上传时间',
+    FOREIGN KEY (ticket_id) REFERENCES work_order(id)
+
+);
+
+CREATE TABLE IF NOT EXISTS user_multi_role (
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT,              -- 主键
+    user_id       BIGINT NOT NULL,                                -- 对应用户工号
+    role          ENUM('SuperUser','模型工程师','软件工程师','访客','null') NOT NULL DEFAULT 'null' COMMENT '系统角色',
+    flow_role     ENUM('审批人','分发人','执行人','观察者')        NOT NULL COMMENT '在某条流程中的身份',
+    work_order_id BIGINT,                                -- 关联工单
+
+    FOREIGN KEY (user_id)       REFERENCES user(username),
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+);
