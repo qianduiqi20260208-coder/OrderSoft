@@ -35,6 +35,17 @@ struct User {
     std::string lastLoginTime; // 最后登录时间
     bool isOnline; // 是否在线
     int lastUsedModel; // 最后使用的模型
+
+    //工单流程中的身份
+    std::vector<std::string> flowRoleVec;
+};
+
+struct TicketExecutor {
+    int id;
+    int ticketId;
+    std::vector<std::string> executor;
+    std::vector<std::string> timestamp;
+    std::vector<std::string> reason;
 };
 
 struct Ticket {
@@ -47,14 +58,14 @@ struct Ticket {
     std::string status; // 工单状态
     int approverId; // 审批人ID
     std::string priorityHint; // 参考优先级
-    int distributorId; // 分发人ID
-    int executorId; // 执行人ID
+    int distributorId{-1}; // 分发人ID
+    int executorId{-1}; // 执行人ID 分发工单时指定的执行人ID
     std::string approvedTime; // 审批时间
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间
     std::string completedTime; // 完成时间
     std::string rejectReason; // 拒绝原因
-
+    TicketExecutor executor;//流转工单时对应的执行人们
     // 多态序列化接口,与前端定义的变量对应
     virtual nlohmann::json to_json() const {
         nlohmann::json j;
@@ -250,13 +261,7 @@ struct TicketOther :public Ticket{
 };
 
 
-struct TicketExecutor {
-    int id;
-    int ticketId;
-    int userId;
-    std::string timestamp;
-    std::string reason;
-};
+
 
 
 

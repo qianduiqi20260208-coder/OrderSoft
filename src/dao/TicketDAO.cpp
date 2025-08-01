@@ -4,6 +4,8 @@
 #include <sstream>
 #include <memory>
 #include "DBConnectionManager.h"
+#include "UserDAO.h"
+#include <set>
 
 TicketDAO::TicketDAO(MYSQL *ms):mysql(ms)
 {
@@ -149,7 +151,7 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
     }
 
     //删除自己在流程中的位置
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d ;",ticket.id,ticket.executorId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '执行人' ;",ticket.id,ticket.executorId);	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:completeConcreteTicket 删除user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -195,6 +197,8 @@ bool TicketDAO::saveUploadFile(const TicketReproduce &ticket)
 	}
     return true;
 }
+
+
 
 bool TicketDAO::createTicket(Ticket &ticket)
 {
@@ -265,24 +269,37 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
     }
 
     //修改工单状态
-    snprintf(sql, SQL_MAX, "update work_order set status = '待分发', approved_at = NOW(),priority = '%s',dispatcher_id = %d where id = %d;", ticket.priorityHint.c_str(),ticket.distributorId,ticket.id);
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-		printf("[error] function:createTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
-    //记录另一个人的待办
-    snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'分发人',%d);",ticket.distributorId,ticket.id);	
-	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-	if (ret) {
-		printf("[error] function:createTicket 插入user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
+    //看优先级变量里是否有数据，没有数据表示拒绝，拒绝的话需要填写拒绝原因
+    if(ticket.priorityHint == "")
+    {
+        snprintf(sql, SQL_MAX, "update work_order set status = '已退回',reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:createTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+    }else{
+        snprintf(sql, SQL_MAX, "update work_order set status = '待分发', approved_at = NOW(),priority = '%s',dispatcher_id = %d where id = %d;", ticket.priorityHint.c_str(),ticket.distributorId,ticket.id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:createTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+
+        //记录另一个人的待办
+        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'分发人',%d);",ticket.distributorId,ticket.id);	
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:createTicket 插入user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+    }
 
     //删除自己在流程中的位置
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d ;",ticket.id,ticket.approverId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '审批人' ;",ticket.id,ticket.approverId);	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:createTicket 删除user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
@@ -339,7 +356,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
 	}
 
     //删除自己在流程中的位置
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d ;",ticket.id,ticket.distributorId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '分发人' ;",ticket.id,ticket.distributorId);	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:dispatchTicket 删除user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -378,6 +395,341 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
 	}
 
     return completeConcreteTicket(ticket);
+}
+
+std::vector<std::shared_ptr<Ticket>> TicketDAO::ticketList(int offset, int count)
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {std::shared_ptr<Ticket>()};
+    }
+
+    std::vector<std::shared_ptr<Ticket>> retVec;
+
+    snprintf(sql, SQL_MAX, "select * from work_order order by id desc limit %d,%d;",offset,count);
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:ticketList() 查询work_order表失败！失败原因：%s\n", mysql_error(mysql));
+        return {std::shared_ptr<Ticket>()};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        std::shared_ptr<Ticket> tmp;
+        //判断工单的类型
+        if(std::string(row[3]) == "问题复现")
+        {
+            tmp = std::make_shared<TicketReproduce>();
+        }else if(std::string(row[3]) == "版本迭代")
+        {   
+            tmp = std::make_shared<TicketVersion>();
+        }else if(std::string(row[3]) == "直接封装+发送")
+        {
+            tmp = std::make_shared<TicketPackage>();
+        }else if(std::string(row[3]) == "交付发送")
+        {
+            tmp = std::make_shared<TicketDelivery>();
+        }else if(std::string(row[3]) == "功能开发")
+        {
+            tmp = std::make_shared<TicketFeature>();
+        }else if(std::string(row[3]) == "其他")
+        {
+            tmp = std::make_shared<TicketOther>();
+        }
+        //封装一些共有的信息
+        tmp->id = atoi(row[0]);
+        tmp->creatorId = atoi(row[1]);
+        tmp->createTime = row[2];
+        tmp->ticketType = row[3];
+        tmp->model = row[4];
+        tmp->modelVersion = row[5];
+        tmp->status = row[6];
+        tmp->approverId = atoi(row[7]);
+
+        tmp->priorityHint = (row[8]?row[8]:"");
+        tmp->distributorId = atoi(row[9]?row[9]:"-1");
+        tmp->approvedTime = row[10]?row[10]:"";
+        tmp->priorityTask = row[11]?row[11]:"";
+        tmp->distributedTime = row[12]?row[12]:"";
+        tmp->completedTime = row[13]?row[13]:"";
+        tmp->rejectReason = row[14]?row[14]:"";
+
+        //查询模型版本
+        if(tmp->modelVersion !="")
+            tmp->modelVersion = UserDAO::queryModelVersion(stoi(tmp->modelVersion));
+        //封装工单执行人
+        tmp->executor = UserDAO::queryTicketExecutor(tmp->id);
+        
+        //封装一些私有的信息
+        concreteTicketList(tmp->id,tmp,retVec);
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
+std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std::map<std::string, std::string> filter)
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {std::shared_ptr<Ticket>()};
+    }
+    
+    std::vector<std::shared_ptr<Ticket>> retVec;
+
+    std::stringstream ss;
+    ss<<"select * from work_order where ";
+    bool first = true;
+    //根据类型的不同进行不同的处理
+    std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id"};
+
+    for(auto ele: filter)
+    {
+        if(!first) ss<<" and ";
+        if(intSet.find(ele.first) !=intSet.end())
+        {
+            ss<<ele.first<<" = "<<ele.second;
+        }else{
+            ss<<ele.first<<" = '"<<ele.second<<"'";
+        }
+        first = false;
+    }
+
+    ss<<" order by id desc;";
+    printf("sql:%s\n", ss.str().c_str());
+    ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
+    
+    if (ret) {
+        printf("[error] function:selectOrderByCondition() 查询work_order表失败！失败原因：%s\n", mysql_error(mysql));
+        return {std::shared_ptr<Ticket>()};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        std::shared_ptr<Ticket> tmp;
+        //判断工单的类型
+        if(std::string(row[3]) == "问题复现")
+        {
+            tmp = std::make_shared<TicketReproduce>();
+        }else if(std::string(row[3]) == "版本迭代")
+        {   
+            tmp = std::make_shared<TicketVersion>();
+        }else if(std::string(row[3]) == "直接封装+发送")
+        {
+            tmp = std::make_shared<TicketPackage>();
+        }else if(std::string(row[3]) == "交付发送")
+        {
+            tmp = std::make_shared<TicketDelivery>();
+        }else if(std::string(row[3]) == "功能开发")
+        {
+            tmp = std::make_shared<TicketFeature>();
+        }else if(std::string(row[3]) == "其他")
+        {
+            tmp = std::make_shared<TicketOther>();
+        }
+        //封装一些共有的信息
+        tmp->id = atoi(row[0]);
+        tmp->creatorId = atoi(row[1]);
+        tmp->createTime = row[2];
+        tmp->ticketType = row[3];
+        tmp->model = row[4];
+        tmp->modelVersion = row[5];
+        tmp->status = row[6];
+        tmp->approverId = atoi(row[7]);
+
+        tmp->priorityHint = (row[8]?row[8]:"");
+        tmp->distributorId = atoi(row[9]?row[9]:"-1");
+        tmp->approvedTime = row[10]?row[10]:"";
+        tmp->priorityTask = row[11]?row[11]:"";
+        tmp->distributedTime = row[12]?row[12]:"";
+        tmp->completedTime = row[13]?row[13]:"";
+        tmp->rejectReason = row[14]?row[14]:"";
+
+        //查询模型版本
+        if(tmp->modelVersion !="")
+            tmp->modelVersion = UserDAO::queryModelVersion(stoi(tmp->modelVersion));
+        //封装工单执行人
+        tmp->executor = UserDAO::queryTicketExecutor(tmp->id);
+        
+        //封装一些私有的信息
+        concreteTicketList(tmp->id,tmp,retVec);
+    }
+    
+    return retVec;
+}
+
+void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> vecElement,std::vector<std::shared_ptr<Ticket>> & retVec)
+{
+    //判断具体工单的类型
+    if(vecElement->ticketType == "问题复现")
+    {
+        auto tmp = std::static_pointer_cast<TicketReproduce>(vecElement);
+        snprintf(sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询issue_reproduction表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = (row[2]?row[2]:"");
+            tmp->content = (row[3]?row[3]:"");
+            tmp->phenomenon = (row[5]?row[5]:"");
+            tmp->remark = (row[6]?row[6]:"");
+        }
+        mysql_free_result(res);
+
+        //查询附件的信息(文件上传)
+        UserDAO::downloadAttachment(tmp);
+        retVec.push_back(tmp);
+    }else if(vecElement->ticketType == "版本迭代"){
+
+        auto tmp = std::static_pointer_cast<TicketVersion>(vecElement);
+        snprintf(sql, SQL_MAX, "select * from version_iteration where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询version_iteration表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = (row[2]?row[2]:"");
+            tmp->updateNote = (row[3]?row[3]:"");
+            tmp->packRequirement = (row[4]?row[4]:"");
+            tmp->interfaceChanged = atoi((row[5]?row[5]:"-1"));
+            tmp->newModelVersion = row[6]?row[6]:"";
+            tmp->remark = (row[7]?row[7]:"");
+        }
+        mysql_free_result(res);
+        if(tmp->newModelVersion !="")
+            tmp->newModelVersion = UserDAO::queryModelVersion(stoi(tmp->newModelVersion));
+
+        retVec.push_back(tmp);
+    }else if(vecElement->ticketType == "直接封装+发送"){
+        auto tmp = std::static_pointer_cast<TicketPackage>(vecElement);
+
+        snprintf(sql, SQL_MAX, "select * from package_send where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询package_send表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = (row[2]?row[2]:"");
+            tmp->updateNote = (row[3]?row[3]:"");
+            tmp->packRequirement = (row[4]?row[4]:"");
+            tmp->interfaceChanged = atoi((row[5]?row[5]:"-1"));
+            tmp->targetClient = (row[6]?row[6]:"");
+            tmp->validatedByCAE = atoi((row[7]?row[7]:"-1"));
+            tmp->sensitiveInfo = (row[8]?row[8]:"");
+
+            tmp->newModelVersion = row[9]?row[9]:"";
+            tmp->encrypted = atoi((row[10]?row[10]:"-1"));
+            tmp->dongle =  row[11]?row[11]:"";
+            tmp->license =  row[12]?row[12]:"";
+            tmp->remark = (row[13]?row[13]:"");
+        }
+        mysql_free_result(res);
+        if(tmp->newModelVersion !="")
+            tmp->newModelVersion = UserDAO::queryModelVersion(stoi(tmp->newModelVersion));
+        if(tmp->license != "")
+            tmp->license = UserDAO::queryProductAuthorization(stoi(tmp->license));
+        retVec.push_back(tmp);
+    }else if(vecElement->ticketType == "交付发送"){
+        auto tmp = std::static_pointer_cast<TicketDelivery>(vecElement);
+        snprintf(sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询delivery_send表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->targetClient = (row[2]?row[2]:"");
+            tmp->validatedByCAE = atoi((row[3]?row[3]:"-1"));
+            tmp->sensitiveInfo = (row[4]?row[4]:"");
+
+            tmp->encrypted = atoi((row[5]?row[5]:"-1"));
+            tmp->dongleId =  (row[6]?row[6]:"");
+            tmp->licenseId =  (row[7]?row[7]:"");
+            tmp->remark = (row[8]?row[8]:"");
+        }
+        //查找产品授权ID的sql
+        if(tmp->licenseId != "")
+            tmp->licenseId = UserDAO::queryProductAuthorization(stoi(tmp->licenseId));
+
+        mysql_free_result(res);
+        retVec.push_back(tmp);
+    }else if(vecElement->ticketType == "功能开发"){
+        auto tmp = std::static_pointer_cast<TicketFeature>(vecElement);
+        snprintf(sql, SQL_MAX, "select * from function_development where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询function_development表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->featureInit = (row[2]?row[2]:"");
+            tmp->featureFinal = (row[3]?row[3]:"");
+        }
+        mysql_free_result(res);
+        retVec.push_back(tmp);
+    }else if(vecElement->ticketType == "其他"){
+        auto tmp = std::static_pointer_cast<TicketOther>(vecElement);
+        snprintf(sql, SQL_MAX, "select * from other_work_order where work_order_id = %d;",tmp->Ticket::id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:concreteTicketList() 查询other_work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            retVec.push_back(std::shared_ptr<Ticket>());
+            return;
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        if(row = mysql_fetch_row(res))
+        {
+            tmp->description= (row[2]?row[2]:"");
+            tmp->remark = (row[3]?row[3]:"");
+        }
+        mysql_free_result(res);
+        retVec.push_back(tmp);
+    }
+
+}
+
+bool TicketDAO::orderTransfer(const TicketExecutor &executor)
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return false;
+    }
+
+    snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1],executor.reason[0].c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        std::cout<<"[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n";
+        return false;
+    }
+    return true;
 }
 
 TicketDAO::~TicketDAO()

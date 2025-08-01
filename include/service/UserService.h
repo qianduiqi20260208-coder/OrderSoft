@@ -14,6 +14,9 @@ public:
     User getUserByJobNumber(int jobNumber)override;
     std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)override;
 
+    //获取工单中的角色
+    std::map<std::string,std::vector<int>> getOrderRole() override;
+
     /**
      * @brief 用户登录
      * @param account 用户账号

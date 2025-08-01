@@ -23,6 +23,16 @@ std::vector<std::shared_ptr<Ticket>> UserService::getUserOrder(int jobNumber)
     return ret;
 }
 
+std::map<std::string, std::vector<int>> UserService::getOrderRole()
+{
+    std::map<std::string, std::vector<int>> retMap;
+    retMap["审批人"] = userDAO_->getOrderApprover();
+    retMap["分发人"] = userDAO_->getOrderDispatcher();
+    retMap["执行人"] = userDAO_->getOrderExecutor();
+
+    return retMap;
+}
+
 // 用户登录，校验账号和密码，成功则返回用户信息的JSON对象，否则返回std::nullopt
 std::optional<nlohmann::json> UserService::login(const std::string& account, const std::string& password) {
     // auto userOpt = dao_.getUserByAccount(account);

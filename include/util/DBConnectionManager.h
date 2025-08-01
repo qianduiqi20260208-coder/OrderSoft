@@ -5,7 +5,7 @@
 class DBConnectionManager
 {
 public:
-    static bool getConnection(MYSQL* mysql);
+    static bool getConnection(MYSQL*& mysql);
     static bool ensureConnected(MYSQL* mysql);
     static void closeConnection(MYSQL* mysql);
 };

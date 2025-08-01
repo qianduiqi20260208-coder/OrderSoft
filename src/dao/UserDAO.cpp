@@ -54,7 +54,7 @@ std::vector<User> UserDAO::getUser()
         user.responsibleModel = userModelVec;
         mysql_free_result(res);
 
-        // 查出用户角色
+        // 查出用户身份
         snprintf(sql, SQL_MAX, "select role from user_multi_role where user_id=%d;",user.jobNumber);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
@@ -68,6 +68,22 @@ std::vector<User> UserDAO::getUser()
             userRoleVec.push_back(std::string(row[0]));
         }
         user.roleVec = userRoleVec;
+        mysql_free_result(res);
+
+        // 查出工单流程中的角色
+        snprintf(sql, SQL_MAX, "select flow_role from user_multi_role where user_id = %d and role = 'null'  and work_order_id is null ;",user.jobNumber);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUser() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+            return {};
+        }
+        res = mysql_store_result(mysql);
+        std::vector<std::string> flowRoleVec;
+        while(row = mysql_fetch_row(res))
+        {
+            flowRoleVec.push_back(std::string(row[0]));
+        }
+        user.flowRoleVec = flowRoleVec;
         mysql_free_result(res);
 
         userVec.push_back(user);
@@ -93,7 +109,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     std::vector<int> ticketID;
 
     //查询用户所需要处理的全部工单ID
-    snprintf(sql, SQL_MAX, "select work_order_id from user_multi_role where user_id = %d and role = 'null';",jobNumber);
+    snprintf(sql, SQL_MAX, "select work_order_id from user_multi_role where user_id = %d and role = 'null' and work_order_id is not null;",jobNumber);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getUserOrder() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -119,7 +135,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         if(i<ticketID.size()-1)
             ss<<",";
     }
-    ss<<");";
+    ss<<") order by id desc;";
     snprintf(sql, SQL_MAX, ss.str().c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     printf("getUserOrder() sql:%s\n",sql);
@@ -130,151 +146,8 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     res = mysql_store_result(mysql);
     while(row = mysql_fetch_row(res))
     {
-        std::shared_ptr<Ticket> sp;
-
-        //查询各自的表
-        if(std::string(row[3]) == "问题复现")
-        {
-            std::shared_ptr<TicketReproduce> tmp = std::make_shared<TicketReproduce>();
-
-            snprintf(sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询issue_reproduction表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            //保存ticketId的值，用来下载附件
-            tmp->ticketId = atoi(row[0]);
-
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->coordinationId = row[2];
-                tmp->content = row[3];
-            }
-            mysql_free_result(res);
-            //保存需要下载的附件本体 另外加上对于下载失败的处理
-            if(!downloadAttachment(tmp))
-            {
-                return {std::shared_ptr<Ticket>()};
-            }else{
-                sp = tmp;
-            }
-
-        }else if(std::string(row[3]) == "版本迭代")
-        {
-            std::shared_ptr<TicketVersion> tmp = std::make_shared<TicketVersion>();
-
-            snprintf(sql, SQL_MAX, "select * from version_iteration where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询version_iteration表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->coordinationId = row[2];
-                tmp->updateNote = row[3];
-                tmp->packRequirement = row[4];
-                tmp->interfaceChanged = atoi(row[5]);
-            }
-            mysql_free_result(res);
-
-            sp = tmp;
-
-        }else if(std::string(row[3]) == "直接封装+发送")
-        {
-            std::shared_ptr<TicketPackage> tmp = std::make_shared<TicketPackage>();
-
-            snprintf(sql, SQL_MAX, "select * from package_send where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询package_send表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->coordinationId = row[2];
-                tmp->updateNote = row[3];
-                tmp->packRequirement = row[4];
-                tmp->interfaceChanged = atoi(row[5]);
-                tmp->targetClient = atoi(row[6]);
-                tmp->validatedByCAE =atoi(row[7]);
-                tmp->sensitiveInfo = row[8];
-
-            }
-            mysql_free_result(res);
-
-            sp = tmp;
-        }else if(std::string(row[3]) == "交付发送")
-        {
-            std::shared_ptr<TicketDelivery> tmp = std::make_shared<TicketDelivery>();
-
-            snprintf(sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询delivery_send表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->targetClient = atoi(row[2]);
-                tmp->validatedByCAE = atoi(row[3]);
-                tmp->sensitiveInfo = row[4];
-
-            }
-            mysql_free_result(res);
-
-            sp = tmp;
-        }else if(std::string(row[3]) == "功能开发")
-        {
-            std::shared_ptr<TicketFeature> tmp = std::make_shared<TicketFeature>();
-
-            snprintf(sql, SQL_MAX, "select * from function_development where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询function_development表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->featureInit = row[2];
-                
-            }
-            mysql_free_result(res);
-
-            sp = tmp;
-        }else if(std::string(row[3]) == "其他")
-        {
-            std::shared_ptr<TicketOther> tmp = std::make_shared<TicketOther>();
-
-            snprintf(sql, SQL_MAX, "select * from other_work_order where work_order_id = %d;",atoi(row[0]));
-            int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-            if (ret) {
-                printf("[error] function:getUserOrder() 查询other_work_order表失败！失败原因：%s\n", mysql_error(mysql));
-                return {std::shared_ptr<Ticket>()};
-            }
-            MYSQL_RES* res = mysql_store_result(mysql);
-            MYSQL_ROW row;
-            while(row = mysql_fetch_row(res))
-            {
-                tmp->description = row[2];
-                
-            }
-            mysql_free_result(res);
-
-            sp = tmp;
-        }
-
+        std::shared_ptr<Ticket> sp = getUserConcreteOrder(row[3],atoi(row[0]));
+        
         //通用的插入代码
         {
             sp->id = atoi(row[0]);
@@ -292,11 +165,98 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
             sp->distributedTime = (row[12] == nullptr?"":row[12]);
         }
 
-
+        //查询模型版本
+        if(sp->modelVersion != "")
+            sp->modelVersion = queryModelVersion(stoi(sp->modelVersion));
+        
+        //封装执行人信息
+        sp->executor = queryTicketExecutor(sp->id);
         userTicketVec.push_back(sp);
     }
     mysql_free_result(res); 
     return userTicketVec;
+}
+
+std::vector<int> UserDAO::getOrderApprover()
+{
+    std::vector<int> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {INT_MAX};
+    }
+    
+    // 查出用户身份
+    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '审批人';");
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderApprover() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    std::vector<std::string> userRoleVec;
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
+std::vector<int> UserDAO::getOrderDispatcher()
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {INT_MAX};
+    }
+
+    std::vector<int> retVec;
+
+    // 查出用户身份
+    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '分发人';");
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderDispatcher() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    std::vector<std::string> userRoleVec;
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
+std::vector<int> UserDAO::getOrderExecutor()
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {INT_MAX};
+    }
+    std::vector<int> retVec;
+
+    // 查出用户身份
+    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '执行人';");
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderExecutor() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    std::vector<std::string> userRoleVec;
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    return retVec;
 }
 
 UserDAO::~UserDAO()
@@ -304,15 +264,168 @@ UserDAO::~UserDAO()
     DBConnectionManager::closeConnection(mysql);
 }
 
+std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, int workOrderId)
+{
+    std::shared_ptr<Ticket> sp;
+    //查询各自的表
+    if(ticketType == "问题复现")
+    {
+        std::shared_ptr<TicketReproduce> tmp = std::make_shared<TicketReproduce>();
+
+        snprintf(sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询issue_reproduction表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        //保存ticketId的值，用来下载附件
+        tmp->ticketId = workOrderId;
+
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = row[2];
+            tmp->content = row[3];
+        }
+        mysql_free_result(res);
+        //保存需要下载的附件本体 另外加上对于下载失败的处理
+        if(!downloadAttachment(tmp))
+        {
+            return {std::shared_ptr<Ticket>()};
+        }else{
+            sp = tmp;
+        }
+
+    }else if(ticketType == "版本迭代")
+    {
+        std::shared_ptr<TicketVersion> tmp = std::make_shared<TicketVersion>();
+
+        snprintf(sql, SQL_MAX, "select * from version_iteration where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询version_iteration表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = row[2];
+            tmp->updateNote = row[3];
+            tmp->packRequirement = row[4];
+            tmp->interfaceChanged = atoi(row[5]);
+        }
+        mysql_free_result(res);
+
+        sp = tmp;
+
+    }else if(ticketType == "直接封装+发送")
+    {
+        std::shared_ptr<TicketPackage> tmp = std::make_shared<TicketPackage>();
+
+        snprintf(sql, SQL_MAX, "select * from package_send where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询package_send表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->coordinationId = row[2];
+            tmp->updateNote = row[3];
+            tmp->packRequirement = row[4];
+            tmp->interfaceChanged = atoi(row[5]);
+            tmp->targetClient = atoi(row[6]);
+            tmp->validatedByCAE =atoi(row[7]);
+            tmp->sensitiveInfo = row[8];
+
+
+        }
+        mysql_free_result(res);
+
+        sp = tmp;
+    }else if(ticketType == "交付发送")
+    {
+        std::shared_ptr<TicketDelivery> tmp = std::make_shared<TicketDelivery>();
+
+        snprintf(sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询delivery_send表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->targetClient = atoi(row[2]);
+            tmp->validatedByCAE = atoi(row[3]);
+            tmp->sensitiveInfo = row[4];
+
+        }
+        mysql_free_result(res);
+
+        sp = tmp;
+    }else if(ticketType == "功能开发")
+    {
+        std::shared_ptr<TicketFeature> tmp = std::make_shared<TicketFeature>();
+
+        snprintf(sql, SQL_MAX, "select * from function_development where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询function_development表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->featureInit = row[2];
+            
+        }
+        mysql_free_result(res);
+
+        sp = tmp;
+    }else if(ticketType == "其他")
+    {
+        std::shared_ptr<TicketOther> tmp = std::make_shared<TicketOther>();
+
+        snprintf(sql, SQL_MAX, "select * from other_work_order where work_order_id = %d;",workOrderId);
+        int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:getUserOrder() 查询other_work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            return {std::shared_ptr<Ticket>()};
+        }
+        MYSQL_RES* res = mysql_store_result(mysql);
+        MYSQL_ROW row;
+        while(row = mysql_fetch_row(res))
+        {
+            tmp->description = row[2];
+            
+        }
+        mysql_free_result(res);
+
+        sp = tmp;
+    }
+    return sp;
+}
+
 bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
 {
     //保存文件
     IniReader config;
+    MYSQL* mysql;
+    DBConnectionManager::getConnection(mysql);
+    char sql[SQL_MAX];	
+
     if (!config.load("../../config/config.ini")) { 
         printf("无法读取 config.ini 文件\n");
         return false;
     }
-
+    
     //查找附件文件的相对路径
     snprintf(sql, SQL_MAX, "select file_path,file_name from issue_reproduction_attachment where ticket_id = %d;",tmp->ticketId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
@@ -324,8 +437,12 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
     MYSQL_ROW row;
     std::string relativePath;
     row = mysql_fetch_row(res);
-    relativePath = row[0];
-    tmp->attachment.fileName = row[1];
+
+    if(row)
+    {
+        relativePath = (row[0]?row[0]:"");
+        tmp->attachment.fileName = (row[1]?row[1]:"");
+    }
 
     mysql_free_result(res);
 
@@ -344,5 +461,97 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
     ifs.read(&content[0],size);
     ifs.close();
     tmp->attachment.file = std::move(content);
+
+    DBConnectionManager::closeConnection(mysql);
     return true;
+}
+
+std::string UserDAO::queryModelVersion(int modelVersionId)
+{
+    MYSQL* mysql;
+    char sql[SQL_MAX];	
+    DBConnectionManager::getConnection(mysql);
+    std::string retStr;
+
+    snprintf(sql, SQL_MAX, "select version from model_version where id = %d;",modelVersionId);
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:queryModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        return "error";
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    while(row = mysql_fetch_row(res))
+    {
+        retStr = (row[0]?row[0]:"");
+    }
+    mysql_free_result(res);
+
+    DBConnectionManager::closeConnection(mysql);
+
+    return retStr;
+}
+
+TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
+{
+    MYSQL* mysql;
+    char sql[SQL_MAX];	
+    DBConnectionManager::getConnection(mysql);
+    TicketExecutor executor;
+
+    snprintf(sql, SQL_MAX, "select * from work_order_executor where work_order_id = %d order by id desc;",workOrderId);
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:queryTicketExecutor() 查询work_order_executor表失败！失败原因：%s\n", mysql_error(mysql));
+        executor.id = -1;
+        return executor;
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    while(row = mysql_fetch_row(res))
+    {
+        if(row[2])
+            executor.executor.push_back(row[2]);
+        else
+            executor.executor.push_back("");
+        if(row[4])
+            executor.reason.push_back(row[4]);
+        else
+            executor.reason.push_back("");
+        if(row[3])
+            executor.timestamp.push_back(row[3]);
+        else
+            executor.timestamp.push_back("");
+
+    }
+    mysql_free_result(res);
+
+    DBConnectionManager::closeConnection(mysql);
+    return executor;
+}
+
+std::string UserDAO::queryProductAuthorization(int productAuthorizationId)
+{
+    MYSQL* mysql;
+    char sql[SQL_MAX];	
+    DBConnectionManager::getConnection(mysql);
+    std::string retStr;
+
+    snprintf(sql, SQL_MAX, "select authorization_code from product_authorization where id = %d;",productAuthorizationId);
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:queryProductAuthorization() 查询authorization_code表失败！失败原因：%s\n", mysql_error(mysql));
+        return "error";
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    while(row = mysql_fetch_row(res))
+    {
+        retStr = (row[0]?row[0]:"");
+    }
+    mysql_free_result(res);
+
+    DBConnectionManager::closeConnection(mysql);
+
+    return retStr;
 }

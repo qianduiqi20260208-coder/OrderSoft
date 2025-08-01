@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 
-bool DBConnectionManager::getConnection(MYSQL* mysql)
+bool DBConnectionManager::getConnection(MYSQL*& mysql)
 {
     //从ini文件里读出数据库配置
     IniReader config;
@@ -18,10 +18,14 @@ bool DBConnectionManager::getConnection(MYSQL* mysql)
     std::string dbName = config.getString("database", "database");
 
 	// 1.初始化数据库句柄
-	mysql_init(mysql);
+	mysql = mysql_init(NULL);
+    if (!mysql) {
+        printf("[error] function:getConnection mysql初始化失败！\n");
+        return false;
+    }
 
 	// 2.设置字符编码
-	mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "gbk");
+	//mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "gbk");
 
 	// 3.连接数据库
 	MYSQL *ret = mysql_real_connect(mysql, dbHost.c_str(), dbUser.c_str(), dbPass.c_str(), dbName.c_str(), dbPort, NULL, 0);
