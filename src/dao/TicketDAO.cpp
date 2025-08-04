@@ -469,7 +469,7 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::ticketList(int offset, int count
     return retVec;
 }
 
-std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std::map<std::string, std::string> filter)
+std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std::map<std::string, std::string> filter,int offset, int count)
 {
     //检查数据库连接状态
     if(!DBConnectionManager::ensureConnected(mysql))
@@ -480,11 +480,15 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std
     std::vector<std::shared_ptr<Ticket>> retVec;
 
     std::stringstream ss;
-    ss<<"select * from work_order where ";
+    ss<<"select * from work_order ";
     bool first = true;
     //根据类型的不同进行不同的处理
     std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id"};
 
+    if(!filter.empty())
+    {
+        ss<<"where ";
+    }
     for(auto ele: filter)
     {
         if(!first) ss<<" and ";
@@ -497,7 +501,9 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std
         first = false;
     }
 
-    ss<<" order by id desc;";
+    ss<<" order by id desc limit "<<offset<<","<<count<<";";
+
+
     printf("sql:%s\n", ss.str().c_str());
     ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
     
@@ -723,7 +729,7 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
         return false;
     }
 
-    snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1],executor.reason[0].c_str());
+    snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1].c_str(),executor.reason[0].c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         std::cout<<"[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n";

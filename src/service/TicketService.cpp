@@ -34,9 +34,11 @@ std::vector<std::shared_ptr<Ticket>> TicketService::ticketList(int currentPage, 
     return ticketDAO->ticketList(offset,count);
 }
 
-std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter)
+std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter,int currentPage,int pageSize)
 {
-    return ticketDAO->selectOrderByCondition(filter);
+    int offset = currentPage * pageSize;
+    int count = pageSize;
+    return ticketDAO->selectOrderByCondition(filter,offset,count);
 }
 
 bool TicketService::orderTransfer(const TicketExecutor &executor)

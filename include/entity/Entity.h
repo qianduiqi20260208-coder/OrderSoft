@@ -270,7 +270,7 @@ struct Log {
     int userId;
     std::string opType;
     std::string targetTable;
-    int targetId;
+    int recordId;
     std::string before;
     std::string after;
     std::string createdTime;

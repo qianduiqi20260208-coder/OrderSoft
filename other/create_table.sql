@@ -128,16 +128,23 @@ CREATE TABLE IF NOT EXISTS other_work_order (
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
 );
 
+CREATE TABLE IF NOT EXISTS concrete_table_log(
+	id BIGINT PRIMARY KEY AUTO_INCREMENT,
+	operation_type  VARCHAR(20),                  -- 操作类型：insert/update/delete
+	table_name      VARCHAR(64),                  -- 操作的表名
+	record_id       BIGINT,                       -- 操作的主键ID（或复合键描述）
+	content_before  TEXT,                         -- 修改/删除前内容（json）
+    content_after   TEXT,                         -- 修改/新增后内容（json）
+	operation_log_id BIGINT, 
+	FOREIGN KEY (operation_log_id) REFERENCES operation_log(id)
+);
+
 CREATE TABLE IF NOT EXISTS operation_log (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id         BIGINT,                       -- 操作人
-    operation_type  VARCHAR(20),                  -- 操作类型：insert/update/delete
-    table_name      VARCHAR(64),                  -- 操作的表名
-    record_id       BIGINT,                       -- 操作的主键ID（或复合键描述）
-    content_before  TEXT,                         -- 修改/删除前内容（json）
-    content_after   TEXT,                         -- 修改/新增后内容（json）
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (user_id) REFERENCES user(username)
+	
 );
 
 CREATE TABLE IF NOT EXISTS encryption_key (
