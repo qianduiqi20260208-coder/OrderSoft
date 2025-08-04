@@ -446,6 +446,15 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
 
     mysql_free_result(res);
 
+    // 检查是否有有效的附件信息
+    if (relativePath.empty() || tmp->attachment.fileName.empty()) {
+        // 设置空的附件信息
+        tmp->attachment.fileName = "";
+        tmp->attachment.file = "";
+        DBConnectionManager::closeConnection(mysql);
+        return true; // 返回true，因为没有附件不算错误
+    }
+
     std::string filePath = config.getString("storage","upload_dir") + relativePath;
 
     std::ifstream ifs(filePath,std::ios::binary | std::ios::in);

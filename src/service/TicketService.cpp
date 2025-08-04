@@ -25,18 +25,23 @@ bool TicketService::completeTicket(const Ticket &ticket)
     return ticketDAO->completeTicket(ticket);
 }
 
-std::vector<std::shared_ptr<Ticket>> TicketService::ticketList(int currentPage, int pageSize)
-{
-    //将currentPage和pageSize转换成数据库需要字段
-    int offset = currentPage * pageSize;
-    int count = pageSize;
+// std::vector<std::shared_ptr<Ticket>> TicketService::ticketList(int currentPage, int pageSize)
+// {
+//     //将currentPage和pageSize转换成数据库需要字段
+//     int offset = currentPage * pageSize;
+//     int count = pageSize;
 
-    return ticketDAO->ticketList(offset,count);
-}
+//     return ticketDAO->ticketList(offset,count);
+// }
 
-std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter)
+// std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter)
+// {
+//     return ticketDAO->selectOrderByCondition(filter);
+// }
+
+std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition_(const std::map<std::string, std::string> filter, int offset, int pageSize)
 {
-    return ticketDAO->selectOrderByCondition(filter);
+    return ticketDAO->selectOrderByCondition_(filter, offset, pageSize);
 }
 
 bool TicketService::orderTransfer(const TicketExecutor &executor)

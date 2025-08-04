@@ -397,79 +397,10 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
     return completeConcreteTicket(ticket);
 }
 
-std::vector<std::shared_ptr<Ticket>> TicketDAO::ticketList(int offset, int count)
-{
-    //检查数据库连接状态
-    if(!DBConnectionManager::ensureConnected(mysql))
-    {
-        return {std::shared_ptr<Ticket>()};
-    }
-
-    std::vector<std::shared_ptr<Ticket>> retVec;
-
-    snprintf(sql, SQL_MAX, "select * from work_order order by id desc limit %d,%d;",offset,count);
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:ticketList() 查询work_order表失败！失败原因：%s\n", mysql_error(mysql));
-        return {std::shared_ptr<Ticket>()};
-    }
-    res = mysql_store_result(mysql);
-    while(row = mysql_fetch_row(res))
-    {
-        std::shared_ptr<Ticket> tmp;
-        //判断工单的类型
-        if(std::string(row[3]) == "问题复现")
-        {
-            tmp = std::make_shared<TicketReproduce>();
-        }else if(std::string(row[3]) == "版本迭代")
-        {   
-            tmp = std::make_shared<TicketVersion>();
-        }else if(std::string(row[3]) == "直接封装+发送")
-        {
-            tmp = std::make_shared<TicketPackage>();
-        }else if(std::string(row[3]) == "交付发送")
-        {
-            tmp = std::make_shared<TicketDelivery>();
-        }else if(std::string(row[3]) == "功能开发")
-        {
-            tmp = std::make_shared<TicketFeature>();
-        }else if(std::string(row[3]) == "其他")
-        {
-            tmp = std::make_shared<TicketOther>();
-        }
-        //封装一些共有的信息
-        tmp->id = atoi(row[0]);
-        tmp->creatorId = atoi(row[1]);
-        tmp->createTime = row[2];
-        tmp->ticketType = row[3];
-        tmp->model = row[4];
-        tmp->modelVersion = row[5];
-        tmp->status = row[6];
-        tmp->approverId = atoi(row[7]);
-
-        tmp->priorityHint = (row[8]?row[8]:"");
-        tmp->distributorId = atoi(row[9]?row[9]:"-1");
-        tmp->approvedTime = row[10]?row[10]:"";
-        tmp->priorityTask = row[11]?row[11]:"";
-        tmp->distributedTime = row[12]?row[12]:"";
-        tmp->completedTime = row[13]?row[13]:"";
-        tmp->rejectReason = row[14]?row[14]:"";
-
-        //查询模型版本
-        if(tmp->modelVersion !="")
-            tmp->modelVersion = UserDAO::queryModelVersion(stoi(tmp->modelVersion));
-        //封装工单执行人
-        tmp->executor = UserDAO::queryTicketExecutor(tmp->id);
-        
-        //封装一些私有的信息
-        concreteTicketList(tmp->id,tmp,retVec);
-    }
-    mysql_free_result(res);
-
-    return retVec;
-}
-
-std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std::map<std::string, std::string> filter)
+std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
+    const std::map<std::string, std::string>& filter, 
+    int offset, 
+    int count)
 {
     //检查数据库连接状态
     if(!DBConnectionManager::ensureConnected(mysql))
@@ -480,10 +411,15 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std
     std::vector<std::shared_ptr<Ticket>> retVec;
 
     std::stringstream ss;
-    ss<<"select * from work_order where ";
+    ss<<"select * from work_order ";
     bool first = true;
     //根据类型的不同进行不同的处理
     std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id"};
+
+    if(!filter.empty())
+    {
+        ss<<" where "; //如果没有过滤条件，则查询所有
+    }
 
     for(auto ele: filter)
     {
@@ -497,7 +433,9 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std
         first = false;
     }
 
-    ss<<" order by id desc;";
+    ss<<" order by id desc limit "<<offset<<","<<count<<";";
+
+
     printf("sql:%s\n", ss.str().c_str());
     ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
     
@@ -560,12 +498,16 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition(const std
     return retVec;
 }
 
+
+
 void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> vecElement,std::vector<std::shared_ptr<Ticket>> & retVec)
 {
     //判断具体工单的类型
     if(vecElement->ticketType == "问题复现")
     {
         auto tmp = std::static_pointer_cast<TicketReproduce>(vecElement);
+        // 保存ticketId，用于查询附件
+        tmp->ticketId = work_order_id;
         snprintf(sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",tmp->Ticket::id);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
@@ -723,10 +665,11 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
         return false;
     }
 
-    snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1],executor.reason[0].c_str());
+    snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1].c_str(),executor.reason[0].c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        std::cout<<"[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n";
+        // std::cout<<"[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n";
+        printf("[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n", mysql_error(mysql));
         return false;
     }
     return true;
