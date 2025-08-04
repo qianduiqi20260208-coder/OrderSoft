@@ -116,6 +116,8 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
 
         auto tickets = userService->getUserOrder(std::stoi(userID));
 
+        printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
+
         nlohmann::json list = nlohmann::json::array();
         for (const auto& ticketPtr : tickets) {
             if (ticketPtr) {
@@ -133,22 +135,6 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
                 {"total", tickets.size()},
             }}
         };
-
-		//// 调用服务层获取用户工单列表
-  //      auto orders = service_.fetchUserOrderList(userID, role);
-
-		//// 将工单列表转换为JSON格式
-  //      nlohmann::json list = nlohmann::json::array();
-  //      for (const auto& o : orders) list.push_back(o.to_json());
-		//// 构建响应
-  //      nlohmann::json resp = {
-  //          {"status", 1},
-  //          {"error", ""},
-  //          {"data", {
-  //              {"list", list},
-  //              {"total", orders.size()}
-  //          }}
-  //      };
         return crow::response{ resp.dump() };
         });
 }

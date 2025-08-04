@@ -66,6 +66,7 @@ struct Ticket {
     std::string completedTime; // 完成时间
     std::string rejectReason; // 拒绝原因
     TicketExecutor executor;//流转工单时对应的执行人们
+
     // 多态序列化接口,与前端定义的变量对应
     virtual nlohmann::json to_json() const {
         nlohmann::json j;
@@ -78,13 +79,43 @@ struct Ticket {
 		j["status"] = status; // 工单状态
 		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
 		j["referencePriority"] = priorityHint; // 参考优先级
-		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
-		j["executorID"] = (executorId != 0 ? std::to_string(executorId) : ""); // 执行人ID
+		j["distributorID"] = (distributorId != -1 ? std::to_string(distributorId) : ""); // 分发人ID
 		j["approveTime"] = approvedTime; // 审批时间
 		j["taskPriority"] = priorityTask; // 任务优先级
 		j["distributeTime"] = distributedTime; // 分发时间
 		j["finishTime"] = completedTime; // 完成时间
         j["rejectReason"] = rejectReason; // 拒绝原因
+
+        // 序列化 executor 流转信息（倒序）
+        j["transfers"] = nlohmann::json::array();
+
+        // 安全检查：确保数组不为空且大小一致
+        if (!executor.executor.empty() && 
+            !executor.timestamp.empty() && 
+            !executor.reason.empty()) {
+            
+            size_t transferCount = std::min({
+                executor.executor.size(),
+                executor.timestamp.size(), 
+                executor.reason.size()
+            });
+
+            j["executorID"] = (executorId != -1 ? std::to_string(executorId) : executor.executor[0]); // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
+            
+            // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
+            if (transferCount > 1) {
+                // 倒序遍历：从最新的流转记录开始，跳过第一条记录
+                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                    nlohmann::json transfer;
+                    transfer["transferExecutorID"] = executor.executor[i];
+                    transfer["transferReason"] = executor.reason[i];
+                    transfer["transferTime"] = executor.timestamp[i];
+                    j["transfers"].push_back(transfer);
+                }
+            }
+            // 如果只有一条记录，j["transfers"] 保持为空数组
+        }
+
         return j;
     }
     virtual ~Ticket() = default;
@@ -113,7 +144,14 @@ struct TicketReproduce :public Ticket{
         //j["ticketId"] = ticketId;
 		j["coordinationID"] = coordinationId; // 协调单ID
 		j["description"] = content; // 复现内容描述
-		j["files"] = attachment.fileName; // 附件信息传文件路径
+		j["fileName"] = attachment.fileName; // 附件信息传文件路径
+        // 提供文件下载URL而不是直接传输文件内容
+        if (!attachment.fileName.empty()) {
+            j["fileUrl"] = "/files/ticket/" + std::to_string(Ticket::id) + "/" + attachment.fileName;
+            j["hasAttachment"] = true;
+        } else {
+            j["hasAttachment"] = false;
+        }
 		j["finishPhenomenon"] = phenomenon; // 复现现象
 		j["finishRemark"] = remark; // 备注
         return j;

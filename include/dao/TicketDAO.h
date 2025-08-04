@@ -22,7 +22,8 @@ public:
 
 
     std::vector<std::shared_ptr<Ticket>> ticketList(int offset,int count) override;
-    std::vector<std::shared_ptr<Ticket>> selectOrderByCondition(const std::map<std::string,std::string> filter,int offset, int count) override;
+
+    std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string, std::string>& filter, int offset, int count) override;
 
     bool orderTransfer(const TicketExecutor& executor) override;
     ~TicketDAO();

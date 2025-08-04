@@ -1,5 +1,6 @@
 #include "TicketController.h"
 #include <nlohmann/json.hpp>
+#include "IniReader.h"
 #include <jwt_utils.h>
 
 TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketService(sp)
@@ -7,12 +8,13 @@ TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketSer
     // 初始化 mock 客户列表
     customerList_ = { "zhangsan", "lisi"};
     // 初始化 mock 审批人列表
-    approverList_ = { "666666", "888888", "999999", "000000", "9005", "9006" };
-    // 初始化 mock 模型版本
-    modelVersionMap_ = {
-        {"ATA04_Aerodynamics", {"V3.1.0.1A", "12.2.2","12.2.1"}},
-        {"ATA08_WeightBalance", {"10.2.1"}},
-    };
+    approverList_ = { "666666", "888888", "999999", "000000", "9001", "9002" };
+    // 初始化 mock 分发人列表
+    distributorList_ = { "666666", "888888", "999999", "000000", "9003", "9004" };
+    // 初始化 mock 流转执行人列表
+    transferExecutorList_ = { "666666", "888888", "999999", "000000", "9005", "9006" };
+    // 初始化 mock 执行人列表
+    executorList_ = { "666666", "888888", "999999", "000000", "9005", "9006" };
 }
 
 // 解析 multipart/form-data 格式的表单数据
@@ -48,8 +50,9 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
         // 解析头部和内容
         std::string headers = part.substr(0, header_end);
         std::string content = part.substr(header_end + 4);
-        // 去除内容末尾的换行符
-        content.erase(content.find_last_not_of("\r\n") + 1);
+        
+        // 对于文件内容，不要去除末尾字符，保持原始二进制数据
+        // 只有在非文件字段时才去除换行符
 
         std::string name, filename;
         std::istringstream header_stream(headers);
@@ -76,12 +79,14 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
             //if (saveFile(filename, content, saved_path)) {
             //    result.saved_files.push_back(saved_path);
             //}
-			// 文件内容存入 ticketreproduce.attachment
+			// 文件内容存入 ticketreproduce.attachment（保持原始二进制数据）
 			ticketreproduce.attachment.file = content;
 			ticketreproduce.attachment.fileName = filename;
         }
         // 如果是普通字段，则保存到 fields
         else if (!name.empty()) {
+            // 对于普通表单字段，去除末尾的换行符
+            content.erase(content.find_last_not_of("\r\n") + 1);
             result.fields[name].push_back(content);
         }
 
@@ -91,15 +96,115 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
     return result; // 返回解析结果
 }
 
+crow::response TicketController::downloadTicketFile(int ticketId, const std::string& filename) {
+    try {
+        // 读取配置文件，获取上传目录
+        IniReader config;
+        if (!config.load("../../config/config.ini")) {
+            printf("[error] function:downloadTicketFile 无法读取 config.ini 文件\n");
+            return crow::response(500, R"({"status":0,"error":"配置文件读取失败","data":{}})");
+        }
+        
+        // 构建文件路径，与保存时的路径格式保持一致
+        std::string relativePath = "/ticket/" + filename;
+        std::string filePath = config.getString("storage", "upload_dir") + relativePath;
+        
+        // 检查文件是否存在
+        std::ifstream file(filePath, std::ios::binary);
+        if (!file.is_open()) {
+            printf("[error] function:downloadTicketFile 文件打开失败!filePath:%s\n", filePath.c_str());
+            return crow::response(404, R"({"status":0,"error":"文件不存在","data":{}})");
+        }
+        
+        // 获取文件大小
+        file.seekg(0, std::ios::end);
+        std::streamsize fileSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+        
+        // 读取文件内容 - 使用更安全的二进制读取方式
+        std::string content(fileSize, '\0');
+        file.read(&content[0], fileSize);
+
+        // 验证读取是否完整
+        if (!file || file.gcount() != fileSize) {
+            printf("[error] function:downloadTicketFile 文件读取不完整! 期望:%ld, 实际:%ld\n", 
+                fileSize, file.gcount());
+            return crow::response(500, R"({"status":0,"error":"文件读取失败","data":{}})");
+        }
+
+        file.close();
+        
+        // 根据文件扩展名设置Content-Type
+        std::string contentType = "application/octet-stream";
+        size_t dotPos = filename.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            std::string extension = filename.substr(dotPos + 1);
+            
+            if (extension == "jpg" || extension == "jpeg") {
+                contentType = "image/jpeg";
+            } else if (extension == "png") {
+                contentType = "image/png";
+            } else if (extension == "pdf") {
+                contentType = "application/pdf";
+            } else if (extension == "txt") {
+                contentType = "text/plain";
+            } else if (extension == "doc" || extension == "docx") {
+                contentType = "application/msword";
+            } else if (extension == "xls" || extension == "xlsx") {
+                contentType = "application/vnd.ms-excel";
+            }
+        }
+        
+        // // 构建响应
+        // crow::response resp(200, content);
+        // resp.add_header("Content-Type", contentType);
+        // resp.add_header("Content-Length", std::to_string(content.size()));
+        // resp.add_header("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        // resp.add_header("Cache-Control", "no-cache");
+        // resp.add_header("Access-Control-Allow-Origin", "*"); // 如果需要跨域
+        
+        // return resp;
+
+                // 将文件内容转换为Base64编码
+        std::string base64Content = base64_encode(content); // 你需要实现这个函数
+        
+        // 返回JSON格式，符合前端期望的格式
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"filename", filename},
+                {"contentType", contentType},
+                {"size", content.size()},
+                {"content", base64Content}  // Base64编码的文件内容
+            }}
+        };
+        
+        crow::response response(200, resp.dump());
+        response.add_header("Content-Type", "application/json");
+        response.add_header("Access-Control-Allow-Origin", "*");
+        return response;
+        
+    } catch (const std::exception& e) {
+        printf("[error] function:downloadTicketFile 异常:%s\n", e.what());
+        nlohmann::json errorResp = {
+            {"status", 1},
+            {"error", "文件下载失败"},
+            {"data", nlohmann::json::object()}
+        };
+        return crow::response(500, errorResp.dump());
+    }
+}
+
 void TicketController::registerRoutes(crow::SimpleApp& app) {
 
     // // 获取工单分页（可筛选）
     // CROW_ROUTE(app, "/order/all").methods("GET"_method)
     //     ([this](const crow::request& req) {
-	// 	// // JWT校验
-    //     // if (!checkToken(req)) {
-    //     //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    //     // }
+	// 	// JWT校验
+    //     if (!checkToken(req)) {
+    //         return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+    //     }
 	// 	// 解析查询参数，支持分页和筛选
     //     auto params = crow::query_string(req.url_params);
 	// 	int page = std::stoi(params.get("page") ? params.get("page") : "1"); // 默认第1页
@@ -137,6 +242,93 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
     //     return crow::response{ resp.dump() };
     //     });
 
+    // 获取工单分页（可筛选）
+    CROW_ROUTE(app, "/order/all").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        
+        // 解析查询参数
+        auto params = crow::query_string(req.url_params);
+        int page = std::stoi(params.get("page") ? params.get("page") : "1");
+        int pageSize = std::stoi(params.get("pageSize") ? params.get("pageSize") : "10");
+        std::string orderID = params.get("orderID") ? params.get("orderID") : "";
+        std::string type = params.get("type") ? params.get("type") : "";
+        std::string promoterID = params.get("promoterID") ? params.get("promoterID") : "";
+        std::string modelID = params.get("modelID") ? params.get("modelID") : "";
+        std::string referencePriority = params.get("referencePriority") ? params.get("referencePriority") : "";
+        std::string taskPriority = params.get("taskPriority") ? params.get("taskPriority") : "";
+        std::string status = params.get("status") ? params.get("status") : "";
+        std::string startDate = params.get("startDate") ? params.get("startDate") : "";
+        std::string endDate = params.get("endDate") ? params.get("endDate") : "";
+
+        // 构建筛选条件
+        std::map<std::string, std::string> filter;
+        
+        // 根据前端传来的参数构建filter
+        if (!orderID.empty()) {
+            filter["id"] = orderID;  // 根据工单ID筛选
+        }
+        if (!type.empty()) {
+            filter["type"] = type;  // 根据工单类型筛选
+        }
+        if (!promoterID.empty()) {
+            filter["creator_id"] = promoterID;  // 根据发起人工号筛选
+        }
+        if (!status.empty()) {
+            filter["status"] = status;  // 根据工单状态筛选
+        }
+        if (!referencePriority.empty()) {
+            filter["priority"] = referencePriority;  // 根据参考优先级筛选
+        }
+        if (!taskPriority.empty()) {
+            filter["task_priority"] = taskPriority;  // 根据任务优先级
+        }
+        if (!modelID.empty()) {
+            filter["model"] = modelID;  // 根据模型名筛选
+        }
+
+        // 计算分页偏移量
+        int offset = (page - 1) * pageSize;
+        
+        // 使用统一的方法查询（支持筛选+分页）
+        auto tickets = ticketService->selectOrderByCondition_(filter, offset, pageSize);
+
+        // 构建响应列表
+        nlohmann::json list = nlohmann::json::array();
+        for (const auto& ticketPtr : tickets) {
+            if (ticketPtr) {
+                list.push_back(ticketPtr->to_json());
+            }
+        }
+
+        // 获取总数（需要添加对应的服务方法）
+        int totalCount = 50;
+        // if (!filter.empty()) {
+        //     // 筛选条件下的总数
+        //     auto allFilteredTickets = ticketService->selectOrderByCondition(filter);
+        //     totalCount = static_cast<int>(allFilteredTickets.size());
+        // } else {
+        //     // 所有工单的总数
+        //     totalCount = ticketService->getTicketCount(); // 需要实现这个方法
+        // }
+
+        // 构建响应
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", list},
+                {"total", totalCount},
+                {"page", page},
+                {"pageSize", pageSize}
+            }}
+        };
+
+        return crow::response{ resp.dump() };
+    });
     // 提交问题复现工单（支持FormData格式上传文件）
     CROW_ROUTE(app, "/order/problem").methods("POST"_method)
         ([this](const crow::request& req) {
@@ -786,35 +978,49 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         return crow::response{ resp.dump() };
         });
 
-    // // 工单流转
-    // CROW_ROUTE(app, "/order/transfer").methods("POST"_method)
-    //     ([this](const crow::request& req) {
-    //     // // JWT校验
-    //     // if (!checkToken(req)) {
-    //     //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    //     // }
-    //     auto body = nlohmann::json::parse(req.body, nullptr, false);
-    //     if (body.is_discarded()) {
-    //         return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
-    //     }
-    //     bool ok = service_.transferOrder(body);
-    //     nlohmann::json resp;
-    //     if (ok) {
-    //         resp = {
-    //             {"status", 1},
-    //             {"error", ""},
-    //             {"data", {{"message", "流转成功"}}}
-    //         };
-    //     }
-    //     else {
-    //         resp = {
-    //             {"status", 1},
-    //             {"error", "流转失败"},
-    //             {"data", nlohmann::json::object()}
-    //         };
-    //     }
-    //     return crow::response{ resp.dump() };
-    //     });
+    // 工单流转
+    CROW_ROUTE(app, "/order/transfer").methods("POST"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        auto body = nlohmann::json::parse(req.body, nullptr, false);
+        if (body.is_discarded()) {
+            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+        }
+
+        // 清空并重新填充数组
+        ticketexecutor.executor.clear();
+        ticketexecutor.reason.clear();
+        ticketexecutor.timestamp.clear();
+
+        // 检查字段
+        ticketexecutor.ticketId = std::stoi(body.value("orderID", "")); // 工单ID
+        ticketexecutor.executor.push_back(body.value("executorID", "")); // [0] 当前执行人ID
+        ticketexecutor.executor.push_back(body.value("transferExecutorID", "")); // [1] 流转目标执行人ID
+        ticketexecutor.reason.push_back(body.value("transferReason", "")); // [0] 流转原因
+        ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // [0] 流转时间
+
+        bool ok = ticketService->orderTransfer(ticketexecutor);
+        
+        nlohmann::json resp;
+        if (ok) {
+            resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {{"message", "流转成功"}}}
+            };
+        }
+        else {
+            resp = {
+                {"status", 1},
+                {"error", "流转失败"},
+                {"data", nlohmann::json::object()}
+            };
+        }
+        return crow::response{ resp.dump() };
+        });
 
     // 获取审批人信息列表
     CROW_ROUTE(app, "/approver/list").methods("GET"_method)
@@ -832,7 +1038,62 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-            });
+        });
+
+    // 获取分发人信息列表
+    CROW_ROUTE(app, "/distributor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        nlohmann::json distributors = distributorList_;
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", distributors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取流转人信息列表
+    CROW_ROUTE(app, "/transferExecutor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        nlohmann::json transferExecutors = transferExecutorList_;
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", transferExecutors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取执行人信息列表
+    CROW_ROUTE(app, "/executor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        nlohmann::json executors = executorList_;
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", executors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
 
     // 获取客户信息列表
     CROW_ROUTE(app, "/customer/list").methods("GET"_method)
@@ -881,4 +1142,16 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
     //     }
     //     return crow::response{ resp.dump() };
     //     });
+
+    // 工单附件文件下载接口
+    CROW_ROUTE(app, "/files/ticket/<int>/<string>").methods("GET"_method)
+    ([this](const crow::request& req, int ticketId, const std::string& filename) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        
+        printf("[info] 文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
+        return downloadTicketFile(ticketId, filename);
+    });
 }

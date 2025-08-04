@@ -96,6 +96,7 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "cinttypes": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "queue": "cpp"
     }
 }

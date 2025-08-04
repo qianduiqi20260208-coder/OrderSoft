@@ -32,13 +32,18 @@ public:
      * @brief multipart/form-data 解析结果结构体,专用于文件附件
      */
     MultipartResult parseMultipartForm(const std::string& content_type, const std::string& body);
+
+    // 文件下载接口
+    crow::response downloadTicketFile(int ticketId, const std::string& filename);
     
 private:
     std::shared_ptr<ITicketService> ticketService; // 工单服务实例
 
     std::vector<std::string> customerList_; // 客户列表
 	std::vector<std::string> approverList_; // 审批人列表
-	nlohmann::json modelVersionMap_; // 模型版本映射，key为模型ID，value为版本列表
+    std::vector<std::string> distributorList_; // 分发人列表
+    std::vector<std::string> transferExecutorList_; // 执行人列表
+    std::vector<std::string> executorList_; // 执行人列表
 
     Ticket ticket; // 工单主结构体，包含所有工单类型的字段
 	TicketReproduce ticketreproduce; // 问题复现工单结构体
