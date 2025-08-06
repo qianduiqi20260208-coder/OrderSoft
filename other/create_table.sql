@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS model_version (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     model VARCHAR(64) NOT NULL,
     version VARCHAR(64) NOT NULL,
-    FOREIGN KEY (model) REFERENCES model(ata_code)
+    FOREIGN KEY (model) REFERENCES model(ata_code),
+	UNIQUE (model, version)
 );
 
 CREATE TABLE IF NOT EXISTS user (
@@ -45,7 +46,8 @@ CREATE TABLE IF NOT EXISTS user_model (
     username BIGINT NOT NULL,
     model VARCHAR(64) NOT NULL,
     FOREIGN KEY (username) REFERENCES user(username),
-	FOREIGN KEY (model) REFERENCES model(ata_code)
+	FOREIGN KEY (model) REFERENCES model(ata_code),
+	UNIQUE(username,model)
 );
 
 CREATE TABLE IF NOT EXISTS work_order (
@@ -78,7 +80,8 @@ CREATE TABLE IF NOT EXISTS work_order_executor (
     transferred_at DATETIME DEFAULT NULL,
     transfer_reason TEXT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id),
-    FOREIGN KEY (executor_id) REFERENCES user(username)
+    FOREIGN KEY (executor_id) REFERENCES user(username),
+	UNIQUE(work_order_id,executor_id)
 );
 
 CREATE TABLE IF NOT EXISTS issue_reproduction (
@@ -113,7 +116,7 @@ CREATE TABLE IF NOT EXISTS function_development (
     description_create TEXT,
     description_completed TEXT,
     model_id BIGINT,
-    model_version_id BIGINT,
+    new_model_version_id BIGINT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id),
     FOREIGN KEY (model_id) REFERENCES model(id),
     FOREIGN KEY (model_version_id) REFERENCES model_version(id)
@@ -128,16 +131,23 @@ CREATE TABLE IF NOT EXISTS other_work_order (
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
 );
 
+CREATE TABLE IF NOT EXISTS concrete_table_log(
+	id BIGINT PRIMARY KEY AUTO_INCREMENT,
+	operation_type  VARCHAR(20),                  -- 操作类型：insert/update/delete
+	table_name      VARCHAR(64),                  -- 操作的表名
+	record_id       BIGINT,                       -- 操作的主键ID（或复合键描述）
+	content_before  TEXT,                         -- 修改/删除前内容（json）
+    content_after   TEXT,                         -- 修改/新增后内容（json）
+	operation_log_id BIGINT, 
+	FOREIGN KEY (operation_log_id) REFERENCES operation_log(id)
+);
+
 CREATE TABLE IF NOT EXISTS operation_log (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id         BIGINT,                       -- 操作人
-    operation_type  VARCHAR(20),                  -- 操作类型：insert/update/delete
-    table_name      VARCHAR(64),                  -- 操作的表名
-    record_id       BIGINT,                       -- 操作的主键ID（或复合键描述）
-    content_before  TEXT,                         -- 修改/删除前内容（json）
-    content_after   TEXT,                         -- 修改/新增后内容（json）
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (user_id) REFERENCES user(username)
+	
 );
 
 CREATE TABLE IF NOT EXISTS encryption_key (
@@ -157,16 +167,14 @@ CREATE TABLE IF NOT EXISTS product_authorization (
     end_date DATE,
     authorization_status ENUM('未授权', '授权中', '已过期') DEFAULT '未授权',
     remarks TEXT,
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
+	UNIQUE(encryption_key,authorization_code)
 );
 
 CREATE TABLE IF NOT EXISTS customer_info (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_name VARCHAR(128) NOT NULL UNIQUE,
-    device_type ENUM('lab', 'IPT', 'FTD', 'FFS'),
-    computer_remarks TEXT,
-    product_authorization_id BIGINT,
-    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id)
+	remarks TEXT
 );
 
 CREATE TABLE IF NOT EXISTS encryption_key_history (
@@ -189,7 +197,7 @@ CREATE TABLE IF NOT EXISTS model_encryption_authorization (
 CREATE TABLE IF NOT EXISTS delivery_send (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     work_order_id BIGINT NOT NULL,
-    target_customer VARCHAR(128),
+    target_customer VARCHAR(128) NOT NULL,
     validated_by_cae BOOLEAN,
     sensitive_info TEXT,
 	is_encrypted BOOLEAN,
@@ -210,7 +218,7 @@ CREATE TABLE IF NOT EXISTS package_send (
     update_content TEXT,
     packaging_requirements TEXT,
     interface_changed BOOLEAN,
-    target_customer VARCHAR(128),
+    target_customer VARCHAR(128) NOT NULL,
     validated_by_cae BOOLEAN,
     sensitive_info TEXT,
 	

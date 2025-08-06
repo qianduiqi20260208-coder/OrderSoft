@@ -8,6 +8,8 @@ public:
     virtual std::vector<std::string> getModel(){return {};};
     virtual std::vector<std::string> getModelVersionByModel(std::string modelName){return {};};
 
+    //增加模型
+    virtual bool addModelVersion(const std::string& model,const std::string& modelVersion) = 0;
     virtual ~IModelDAO() = 0;
 };
 

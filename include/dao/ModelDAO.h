@@ -8,6 +8,9 @@ public:
     ModelDAO(MYSQL* ms);
     std::vector<std::string> getModel()override;
     std::vector<std::string> getModelVersionByModel(std::string modelName)override;
+
+    bool addModelVersion(const std::string& model,const std::string& modelVersion) override;
+
     ~ModelDAO();
 private:
     MYSQL* mysql;

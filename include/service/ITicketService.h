@@ -16,6 +16,10 @@ public:
     virtual std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string,std::string> filter, int offset, int pageSize) = 0;
 
     virtual bool orderTransfer(const TicketExecutor& executor) = 0;
+    virtual unsigned long long getOrderCount() = 0;
+
+    virtual std::vector<std::string> getClient() = 0;
+
     virtual ~ITicketService() =0;
     
 };

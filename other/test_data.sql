@@ -231,5 +231,3 @@ INSERT INTO package_send (
     1,
     '完成打包并通知客户，等待验收'
 );
-
-select * from work_order order by id desc limit 3,1;

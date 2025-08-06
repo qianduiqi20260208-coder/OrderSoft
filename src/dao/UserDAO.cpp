@@ -32,7 +32,7 @@ std::vector<User> UserDAO::getUser()
         User user;
         user.jobNumber = atoi(row[1]);
         user.fullName = (row[3] == nullptr ? "":row[3]);
-        user.canApprove = atoi(row[5]);
+
         user.lastLoginTime = (row[10] == nullptr ? "":row[10]);
         user.isOnline = atoi(row[11]);
         if(row[12]!=nullptr)
@@ -55,7 +55,7 @@ std::vector<User> UserDAO::getUser()
         mysql_free_result(res);
 
         // 查出用户身份
-        snprintf(sql, SQL_MAX, "select role from user_multi_role where user_id=%d;",user.jobNumber);
+        snprintf(sql, SQL_MAX, "select role from user_multi_role where user_id=%d and role != 'null';",user.jobNumber);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getUser() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -338,7 +338,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->updateNote = row[3];
             tmp->packRequirement = row[4];
             tmp->interfaceChanged = atoi(row[5]);
-            tmp->targetClient = atoi(row[6]);
+            tmp->targetClient = row[6];
             tmp->validatedByCAE =atoi(row[7]);
             tmp->sensitiveInfo = row[8];
 
@@ -361,9 +361,9 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         MYSQL_ROW row;
         while(row = mysql_fetch_row(res))
         {
-            tmp->targetClient = atoi(row[2]);
+            tmp->targetClient = row[2];
             tmp->validatedByCAE = atoi(row[3]);
-            tmp->sensitiveInfo = row[4];
+            tmp->sensitiveInfo = (row[4]?row[4]:"");
 
         }
         mysql_free_result(res);
@@ -563,4 +563,32 @@ std::string UserDAO::queryProductAuthorization(int productAuthorizationId)
     DBConnectionManager::closeConnection(mysql);
 
     return retStr;
+}
+
+bool UserDAO::login(std::string account, std::string password)
+{
+    bool retLogin = false;
+
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        printf("[error] function:login() 数据库连接失败！失败原因：%s\n", mysql_error(mysql));
+        return retLogin;
+    }
+
+    snprintf(sql, SQL_MAX, "select password from user where username = %d;",stoi(account));
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:login() 查询user表失败！失败原因：%s\n", mysql_error(mysql));
+        return ret;
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+       if(password == std::string(row[0]))
+            retLogin = true;
+    }
+    mysql_free_result(res);
+
+    return retLogin;
 }

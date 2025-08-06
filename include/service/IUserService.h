@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include <memory>
 #include <map>
-
+#include <optional>
 
 class IUserService
 {
@@ -13,6 +13,9 @@ public:
     virtual std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber){return {};}
     
     virtual std::map<std::string,std::vector<int>> getOrderRole()= 0;
+
+    virtual std::optional<User> login(const std::string& account, const std::string& password) = 0;
+
     virtual ~IUserService() =0;
 };
 

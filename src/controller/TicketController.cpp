@@ -925,7 +925,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketfeature.status = "已完成"; // 更新工单状态为已完成
         ticketfeature.ticketType = "功能开发"; // 工单类型 显示指定
         ticketfeature.completedTime = body.value("finishTime", ""); // 完成时间
-        ticketfeature.modelVersionId = std::stoi(body.value("finishModelVersionId", "")); // 升级后模型版本ID
+        ticketfeature.modelVersion = body.value("finishModelVersionId", ""); // 升级后模型版本ID
         ticketfeature.featureFinal = body.value("finishFeatureDesc", ""); // 完成功能描述
         ticketfeature.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
 

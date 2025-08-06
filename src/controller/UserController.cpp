@@ -32,7 +32,6 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         j["account"] = std::to_string(user.jobNumber); // 返回工号 
         j["token"] = token; // 返回token
         j["role"] = "SuperUser"; // 返回用户角色
-        j["isApprover"] = user.canApprove; // 返回是否有审批权限
         j["models"] = user.responsibleModel; // 返回用户关联的模型
 
 		// // 调用用户服务进行登录验证

@@ -27,7 +27,6 @@ struct User {
     std::string password; // 密码
     std::string fullName; // 姓名
     std::vector<std::string> roleVec; // 用户角色
-    bool canApprove; // 是否有审批权限
     std::vector<std::string> responsibleModel; // 关联的模型
     std::string email; // 邮箱
     std::string phone; // 手机号
@@ -263,8 +262,7 @@ struct TicketFeature :public Ticket{
     int id;
     int ticketId;
     std::string featureInit; // 功能描述
-    int modelId; // 完成后模型ID
-    int modelVersionId; // 完成后模型版本ID
+    std::string newModelVersion; // 完成后模型版本ID
     std::string featureFinal; // 完成后功能描述
 
     // 多态序列化接口
@@ -273,7 +271,7 @@ struct TicketFeature :public Ticket{
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["finishFeatureDesc"] = featureInit; // 功能描述
-		j["finishModelVersionId"] = (modelVersionId != 0 ? std::to_string(modelVersionId) : ""); // 完成后模型版本ID
+		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
 		return j;
 	}
@@ -308,7 +306,7 @@ struct Log {
     int userId;
     std::string opType;
     std::string targetTable;
-    int targetId;
+    int recordId;
     std::string before;
     std::string after;
     std::string createdTime;
@@ -334,15 +332,6 @@ struct ProductLicense {
     std::string endDate;
     std::string status;
     std::string remark;
-};
-
-
-struct Client {
-    int id;
-    std::string name;
-    std::string deviceType;
-    std::string note;
-    int licenseId;
 };
 
 
