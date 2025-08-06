@@ -79,7 +79,7 @@ struct Ticket {
 		j["status"] = status; // 工单状态
 		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
 		j["referencePriority"] = priorityHint; // 参考优先级
-		j["distributorID"] = (distributorId != -1 ? std::to_string(distributorId) : ""); // 分发人ID
+		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
 		j["approveTime"] = approvedTime; // 审批时间
 		j["taskPriority"] = priorityTask; // 任务优先级
 		j["distributeTime"] = distributedTime; // 分发时间

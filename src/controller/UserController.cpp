@@ -137,4 +137,87 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         };
         return crow::response{ resp.dump() };
         });
+
+    // 获取审批人信息列表
+    CROW_ROUTE(app, "/approver/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        nlohmann::json approvers = retMap["审批人"];
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", approvers}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取分发人信息列表
+    CROW_ROUTE(app, "/distributor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        nlohmann::json distributors = retMap["分发人"];
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", distributors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取执行人信息列表
+    CROW_ROUTE(app, "/executor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        nlohmann::json executors = retMap["执行人"];
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", executors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取流转人信息列表
+    CROW_ROUTE(app, "/transferExecutor/list").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        nlohmann::json transferExecutors = retMap["执行人"];
+        
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", transferExecutors}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
 }

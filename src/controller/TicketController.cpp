@@ -7,14 +7,12 @@ TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketSer
 {
     // 初始化 mock 客户列表
     customerList_ = { "zhangsan", "lisi"};
-    // 初始化 mock 审批人列表
-    approverList_ = { "666666", "888888", "999999", "000000", "9001", "9002" };
-    // 初始化 mock 分发人列表
-    distributorList_ = { "666666", "888888", "999999", "000000", "9003", "9004" };
-    // 初始化 mock 流转执行人列表
-    transferExecutorList_ = { "666666", "888888", "999999", "000000", "9005", "9006" };
-    // 初始化 mock 执行人列表
-    executorList_ = { "666666", "888888", "999999", "000000", "9005", "9006" };
+
+    // 初始化 mock 外壳号列表
+    shellNumberList_ = { "qwer1234", "asdf1234", "A53000000003"};
+
+    // 初始化 mock 授权ID列表
+    authIDList_ = { "333444555", "1", "2"};
 }
 
 // 解析 multipart/form-data 格式的表单数据
@@ -80,8 +78,11 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
             //    result.saved_files.push_back(saved_path);
             //}
 			// 文件内容存入 ticketreproduce.attachment（保持原始二进制数据）
+
+            // 生成唯一文件名
+            std::string uniqueFileName = generateUniqueFileName(filename);
 			ticketreproduce.attachment.file = content;
-			ticketreproduce.attachment.fileName = filename;
+			ticketreproduce.attachment.fileName = uniqueFileName;
         }
         // 如果是普通字段，则保存到 fields
         else if (!name.empty()) {
@@ -329,6 +330,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
 
         return crow::response{ resp.dump() };
     });
+
     // 提交问题复现工单（支持FormData格式上传文件）
     CROW_ROUTE(app, "/order/problem").methods("POST"_method)
         ([this](const crow::request& req) {
@@ -640,6 +642,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
+        ticket.priorityHint.clear(); // 清空参考优先级
         ticket.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因 
@@ -755,6 +758,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticketreproduce.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketreproduce.status = "已完成"; // 更新工单状态为已完成
+        ticketreproduce.ticketType = "问题复现"; // 工单类型 显示指定
         ticketreproduce.completedTime = body.value("finishTime", ""); // 完成时间
         ticketreproduce.phenomenon = body.value("finishPhenomenon", ""); // 复现现象
         ticketreproduce.remark = body.value("finishRemark", ""); // 备注
@@ -794,6 +798,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticketversion.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketversion.status = "已完成"; // 更新工单状态为已完成
+        ticketversion.ticketType = "版本迭代"; // 工单类型 显示指定
         ticketversion.completedTime = body.value("finishTime", ""); // 完成时间
         ticketversion.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本
         ticketversion.remark = body.value("finishRemark", ""); // 备注
@@ -833,6 +838,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticketdelivery.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketdelivery.status = "已完成"; // 更新工单状态为已完成
+        ticketdelivery.ticketType = "交付发送"; // 工单类型 显示指定
         ticketdelivery.completedTime = body.value("finishTime", ""); // 完成时间
         ticketdelivery.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketdelivery.licenseId = body.value("finishAuthId", ""); // 授权ID
@@ -873,9 +879,10 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
 
         // 检查字段
         ticketpackage.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
+        ticketpackage.ticketType = "直接封装+发送"; // 工单类型 显示指定
         ticketpackage.status = "已完成"; // 更新工单状态为已完成
         ticketpackage.completedTime = body.value("finishTime", ""); // 完成时间
-        ticketpackage.newModelVersion = std::stoi(body.value("finishModelVersion", "")); // 升级后模型版本ID
+        ticketpackage.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本ID
         ticketpackage.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketpackage.license = body.value("finishAuthId", ""); // 授权ID
         ticketpackage.dongle = body.value("finishShellNo", ""); // 外壳号
@@ -916,6 +923,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticketfeature.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketfeature.status = "已完成"; // 更新工单状态为已完成
+        ticketfeature.ticketType = "功能开发"; // 工单类型 显示指定
         ticketfeature.completedTime = body.value("finishTime", ""); // 完成时间
         ticketfeature.modelVersionId = std::stoi(body.value("finishModelVersionId", "")); // 升级后模型版本ID
         ticketfeature.featureFinal = body.value("finishFeatureDesc", ""); // 完成功能描述
@@ -955,6 +963,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticketother.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketother.status = "已完成"; // 更新工单状态为已完成
+        ticketother.ticketType = "其他"; // 工单类型 显示指定
         ticketother.completedTime = std::stoi(body.value("finishTime", "")); // 完成时间
         ticketother.remark = body.value("finishRemarkOther", ""); // 完成备注
         ticketother.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
@@ -1022,78 +1031,6 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         return crow::response{ resp.dump() };
         });
 
-    // 获取审批人信息列表
-    CROW_ROUTE(app, "/approver/list").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        nlohmann::json approvers = approverList_;
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", approvers}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
-
-    // 获取分发人信息列表
-    CROW_ROUTE(app, "/distributor/list").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        nlohmann::json distributors = distributorList_;
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", distributors}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
-
-    // 获取流转人信息列表
-    CROW_ROUTE(app, "/transferExecutor/list").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        nlohmann::json transferExecutors = transferExecutorList_;
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", transferExecutors}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
-
-    // 获取执行人信息列表
-    CROW_ROUTE(app, "/executor/list").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        nlohmann::json executors = executorList_;
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", executors}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
-
 
     // 获取客户信息列表
     CROW_ROUTE(app, "/customer/list").methods("GET"_method)
@@ -1143,9 +1080,45 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
     //     return crow::response{ resp.dump() };
     //     });
 
+    // 获取外壳号列表
+    CROW_ROUTE(app, "/order/shell-numbers").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        nlohmann::json shellNumber = shellNumberList_;
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", shellNumber}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取授权ID列表
+    CROW_ROUTE(app, "/order/auth-ids").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        nlohmann::json authID = authIDList_;
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", authID}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
     // 工单附件文件下载接口
     CROW_ROUTE(app, "/files/ticket/<int>/<string>").methods("GET"_method)
-    ([this](const crow::request& req, int ticketId, const std::string& filename) {
+        ([this](const crow::request& req, int ticketId, const std::string& filename) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -1153,5 +1126,5 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         
         printf("[info] 文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
         return downloadTicketFile(ticketId, filename);
-    });
+        });
 }
