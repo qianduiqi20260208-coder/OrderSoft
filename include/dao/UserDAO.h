@@ -17,6 +17,9 @@ public:
     std::vector<int> getOrderDispatcher() override;
     std::vector<int> getOrderExecutor()  override;
 
+    
+    bool login(std::string account,std::string password) override;
+
     ~UserDAO();
 private:
     //mysql套件

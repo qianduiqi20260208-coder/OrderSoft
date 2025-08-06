@@ -3,7 +3,7 @@
 #include "IUserDAO.h"
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <optional>
+
 #include <vector>
 #include <string>
 
@@ -23,7 +23,7 @@ public:
      * @param password 用户密码
      * @return 登录成功返回用户信息的JSON对象，失败返回std::nullopt
      */
-    std::optional<nlohmann::json> login(const std::string& account, const std::string& password);
+    std::optional<User> login(const std::string& account, const std::string& password);
 
     /**
      * @brief 根据token获取权限列表

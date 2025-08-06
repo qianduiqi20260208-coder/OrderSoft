@@ -63,3 +63,23 @@ ModelDAO::~ModelDAO()
 {
     DBConnectionManager::closeConnection(mysql);
 }
+
+bool ModelDAO::addModelVersion(const std::string &model, const std::string &modelVersion)
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return false;
+    }
+
+    //数据库存储
+    snprintf(sql, SQL_MAX, "INSERT INTO model_version(model,version) "
+        "VALUES('%s', '%s');", model.c_str(),modelVersion.c_str());	
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:addModelVersion 添加模型版本失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
+    return true;
+}

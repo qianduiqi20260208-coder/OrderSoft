@@ -232,4 +232,4 @@ INSERT INTO package_send (
     '完成打包并通知客户，等待验收'
 );
 
-select * from work_order where status = '待审批' order by id desc limit 0,2; 
+select * from work_order order by id desc limit 0,INT_MAX; 

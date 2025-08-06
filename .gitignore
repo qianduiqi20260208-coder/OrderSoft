@@ -1,7 +1,4 @@
 build
 test
-CMakeLists.txt
 src/main.cpp
 extern
-.gitignore
-.vscode

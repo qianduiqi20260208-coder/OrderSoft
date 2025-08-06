@@ -130,8 +130,9 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
 
     }else if(ticket.ticketType == "功能开发"){
         const TicketFeature& tmp = dynamic_cast<const TicketFeature&>(ticket);
-        snprintf(sql, SQL_MAX, "update function_development set description_completed = '%s' where work_order_id = %d;",tmp.featureFinal.c_str(),tmp.Ticket::id);
+        snprintf(sql, SQL_MAX, "update function_development set description_completed = '%s',new_model_version_id = (select id from model_version where model = '%s' and version = '%s' ) where work_order_id = %d;",tmp.featureFinal.c_str(),tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        printf("sql:%s\n",sql);
         if (ret) {
             printf("[error] function:completeConcreteTicket 修改function_development表失败！失败原因：%s\n", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
@@ -176,25 +177,33 @@ bool TicketDAO::saveUploadFile(const TicketReproduce &ticket)
         std::cerr << "无法读取 config.ini 文件\n";
         return false;
     }
-    std::string relativePath = "/ticket/"+ticket.attachment.fileName;
-    std::string filePath = config.getString("storage","upload_dir") + relativePath;
-    std::fstream ofs(filePath,std::ios::binary | std::ios::out);
-    if(!ofs.is_open())
-    {
-        printf("[error] function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
-    }
-    ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
-    ofs.close();
 
-    //数据库存储
-	snprintf(sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
-        "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
-	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-		printf("[error] function:saveUploadFile 插入附件信息表失败！失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
+    if(ticket.attachment.fileName != "")
+    {
+        std::string relativePath = "/ticket/"+ticket.attachment.fileName;
+        std::string filePath = config.getString("storage","upload_dir") + relativePath;
+        std::fstream ofs(filePath,std::ios::binary | std::ios::out);
+        if(!ofs.is_open())
+        {
+            printf("[error] function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
+            ofs.close();
+            return false;
+        }else{
+            ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
+            ofs.close();
+
+            //数据库存储
+            snprintf(sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
+                "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
+            ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+            if (ret) {
+                printf("[error] function:saveUploadFile 插入附件信息表失败！失败原因：%s\n", mysql_error(mysql));
+                mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -328,34 +337,46 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
         return false;
     }
 
-    //修改工单状态
-    snprintf(sql, SQL_MAX, "update work_order set status = '进行中', dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-		printf("[error] function:dispatchTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
+    //看任务优先级变量里是否有数据，没有数据表示拒绝，拒绝的话需要填写拒绝原因
+    if(ticket.priorityTask == "")
+    {
+        snprintf(sql, SQL_MAX, "update work_order set status = '已退回',reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:dispatchTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+    }else{
+        //修改工单状态
+        snprintf(sql, SQL_MAX, "update work_order set status = '进行中', dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:dispatchTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
 
-    //记录工单执行人
-    snprintf(sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,%d,NOW());", ticket.id,ticket.executorId);
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-		printf("[error] function:dispatchTicket 修改work_order_executor表失败!失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
+        //记录工单执行人
+        snprintf(sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,%d,NOW());", ticket.id,ticket.executorId);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:dispatchTicket 修改work_order_executor表失败!失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
 
-    //记录另一个人的待办
-    snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'执行人',%d);",ticket.executorId,ticket.id);	
-	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-	if (ret) {
-		printf("[error] function:dispatchTicket 插入user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
+        //记录另一个人的待办
+        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'执行人',%d);",ticket.executorId,ticket.id);	
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:dispatchTicket 插入user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+    }
 
-    //删除自己在流程中的位置
+    //删除自己的待办
     snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '分发人' ;",ticket.id,ticket.distributorId);	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
@@ -364,7 +385,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
 		return false;
 	}
 
-        //事务提交
+    //事务提交
     if (mysql_real_query(mysql, "COMMIT",strlen("COMMIT"))) {
 		printf("[error] function:dispatchTicket 事务提交失败!失败原因：%s\n", mysql_error(mysql));
         return false;
@@ -632,7 +653,10 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         {
             tmp->featureInit = (row[2]?row[2]:"");
             tmp->featureFinal = (row[3]?row[3]:"");
+            tmp->newModelVersion = UserDAO::queryModelVersion(atoi(row[5]));
         }
+        //查询模型版本
+
         mysql_free_result(res);
         retVec.push_back(tmp);
     }else if(vecElement->ticketType == "其他"){
@@ -665,14 +689,98 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
         return false;
     }
 
+    //启用事务
+    if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
+        printf("[error] function:orderTransfer 事务开始失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
     snprintf(sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1].c_str(),executor.reason[0].c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        // std::cout<<"[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n";
         printf("[error] function:orderTransfer 添加work_order_executor表失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
         return false;
     }
+
+    //记录另一个人的待办
+    snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'执行人',%d);",stoi(executor.executor[1]),executor.ticketId);	
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    printf("sql:%s\n",sql);
+    if (ret) {
+        printf("[error] function:orderTransfer 插入user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+        return false;
+    }
+    
+    //删除自己在流程中的位置
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '执行人' ;",executor.ticketId,stoi(executor.executor[0]));	
+	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+	if (ret) {
+		printf("[error] function:orderTransfer 删除user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
+		return false;
+	}
+
+    //事务提交
+    if (mysql_real_query(mysql, "COMMIT",strlen("COMMIT"))) {
+        printf("[error] function:orderTransfer 事务提交失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
     return true;
+}
+
+unsigned long long TicketDAO::getOrderCount()
+{
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return false;
+    }
+    unsigned long long retCount = -1;
+
+    snprintf(sql, SQL_MAX, "select count(*) from work_order;");
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderCount() 查询work_order表失败！失败原因：%s\n", mysql_error(mysql));
+        return retCount;
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    if(row = mysql_fetch_row(res))
+    {
+        retCount = atoi(row[0]);
+    }
+    mysql_free_result(res);
+
+    return retCount;
+}
+
+std::vector<std::string> TicketDAO::getOrderClient()
+{
+    std::vector<std::string> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {"select fail!"};
+    }
+
+    snprintf(sql, SQL_MAX, "select customer_name from customer_info;");
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderClient() 查询customer_info表失败！失败原因：%s\n", mysql_error(mysql));
+        return  {"select fail!"};
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(std::string(row[0]));
+    }
+    mysql_free_result(res);
+
+    return retVec;
 }
 
 TicketDAO::~TicketDAO()
