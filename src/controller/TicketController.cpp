@@ -262,8 +262,8 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         std::string referencePriority = params.get("referencePriority") ? params.get("referencePriority") : "";
         std::string taskPriority = params.get("taskPriority") ? params.get("taskPriority") : "";
         std::string status = params.get("status") ? params.get("status") : "";
-        std::string startDate = params.get("startDate") ? params.get("startDate") : "";
-        std::string endDate = params.get("endDate") ? params.get("endDate") : "";
+        // std::string startDate = params.get("startDate") ? params.get("startDate") : "";
+        // std::string endDate = params.get("endDate") ? params.get("endDate") : "";
 
         // 构建筛选条件
         std::map<std::string, std::string> filter;
@@ -305,16 +305,8 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             }
         }
 
-        // 获取总数（需要添加对应的服务方法）
-        int totalCount = 50;
-        // if (!filter.empty()) {
-        //     // 筛选条件下的总数
-        //     auto allFilteredTickets = ticketService->selectOrderByCondition(filter);
-        //     totalCount = static_cast<int>(allFilteredTickets.size());
-        // } else {
-        //     // 所有工单的总数
-        //     totalCount = ticketService->getTicketCount(); // 需要实现这个方法
-        // }
+        // 获取工单总数
+        long long totalCount = ticketService->getOrderCount();
 
         // 构建响应
         nlohmann::json resp = {
@@ -720,6 +712,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
+        ticket.priorityTask.clear(); // 清空任务优先级
         ticket.distributorId = std::stoi(body.value("distributorID", "")); // 分发人ID
         ticket.distributedTime = body.value("distributeTime", ""); // 分发时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因
@@ -925,7 +918,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketfeature.status = "已完成"; // 更新工单状态为已完成
         ticketfeature.ticketType = "功能开发"; // 工单类型 显示指定
         ticketfeature.completedTime = body.value("finishTime", ""); // 完成时间
-        ticketfeature.modelVersion = body.value("finishModelVersionId", ""); // 升级后模型版本ID
+        ticketfeature.newModelVersion = body.value("finishModelVersionId", ""); // 升级后模型版本ID
         ticketfeature.featureFinal = body.value("finishFeatureDesc", ""); // 完成功能描述
         ticketfeature.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
 
@@ -1039,7 +1032,10 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-        nlohmann::json customers = customerList_;
+
+        std::vector<std::string> clientList = ticketService->getClient();
+
+        nlohmann::json customers = clientList;
         nlohmann::json resp = {
             {"status", 1},
             {"error", ""},
@@ -1048,7 +1044,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-            });
+        });
 
     // // 添加新客户
     // CROW_ROUTE(app, "/customer/add").methods("POST"_method)

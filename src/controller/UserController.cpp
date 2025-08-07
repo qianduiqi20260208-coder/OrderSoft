@@ -35,12 +35,12 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         j["models"] = user.responsibleModel; // 返回用户关联的模型
 
 		// // 调用用户服务进行登录验证
-        // auto userOpt = userService_test->login(account, password);
+        auto userOpt = userService->login(account, password);
 
         crow::response r;
         r.set_header("Access-Control-Allow-Origin", "*");
         r.set_header("Content-Type", "application/json; charset = utf - 8");
-        if (user.jobNumber != 0) {
+        if (userOpt) {
             // 登录成功，返回用户信息
             nlohmann::json resp = {
                 {"error", ""},

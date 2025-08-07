@@ -26,7 +26,7 @@ bool TicketService::completeTicket(const Ticket &ticket)
     if(ticket.ticketType == "功能开发")
     {
         auto& t = dynamic_cast<const TicketFeature&>(ticket);
-        modelDAO->addModelVersion(ticket.model,t.modelVersion);
+        modelDAO->addModelVersion(ticket.model,t.newModelVersion);
     }else if(ticket.ticketType == "版本迭代"){
         auto& t = dynamic_cast<const TicketVersion&>(ticket);
         modelDAO->addModelVersion(ticket.model,t.newModelVersion);

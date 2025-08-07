@@ -270,7 +270,7 @@ struct TicketFeature :public Ticket{
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
-		j["finishFeatureDesc"] = featureInit; // 功能描述
+		j["featureDesc"] = featureInit; // 功能描述
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
 		return j;
