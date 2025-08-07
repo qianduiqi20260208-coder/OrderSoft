@@ -34,7 +34,7 @@ bool TicketService::completeTicket(const Ticket &ticket)
         auto& t = dynamic_cast<const TicketPackage&>(ticket);
         modelDAO->addModelVersion(ticket.model,t.newModelVersion);
     }
-
+    
     return ticketDAO->completeTicket(ticket);
 }
 
