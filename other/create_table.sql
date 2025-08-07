@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS model_version (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     model VARCHAR(64) NOT NULL,
     version VARCHAR(64) NOT NULL,
+	update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (model) REFERENCES model(ata_code),
 	UNIQUE (model, version)
 );
@@ -119,7 +120,7 @@ CREATE TABLE IF NOT EXISTS function_development (
     new_model_version_id BIGINT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id),
     FOREIGN KEY (model_id) REFERENCES model(id),
-    FOREIGN KEY (model_version_id) REFERENCES model_version(id)
+    FOREIGN KEY (new_model_version_id) REFERENCES model_version(id)
 );
 
 
@@ -130,6 +131,15 @@ CREATE TABLE IF NOT EXISTS other_work_order (
     remarks TEXT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
 );
+
+CREATE TABLE IF NOT EXISTS operation_log (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id         BIGINT,                       -- 操作人
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (user_id) REFERENCES user(username)
+	
+);
+
 
 CREATE TABLE IF NOT EXISTS concrete_table_log(
 	id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -142,31 +152,18 @@ CREATE TABLE IF NOT EXISTS concrete_table_log(
 	FOREIGN KEY (operation_log_id) REFERENCES operation_log(id)
 );
 
-CREATE TABLE IF NOT EXISTS operation_log (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id         BIGINT,                       -- 操作人
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY (user_id) REFERENCES user(username)
-	
-);
 
 CREATE TABLE IF NOT EXISTS encryption_key (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     shell_number VARCHAR(64) UNIQUE,
-    shell_serial_number VARCHAR(64),
-    remarks TEXT,
-    status ENUM('出库', '入库', '损坏', '丢失') DEFAULT '入库'
+    shell_serial_number VARCHAR(64)
 );
 
 CREATE TABLE IF NOT EXISTS product_authorization (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     encryption_key VARCHAR(64),
     authorization_code VARCHAR(64),  -- 授权ID，如2025071010
-    encryption_type ENUM('本地锁', '网络锁', '软锁授权'),
-    start_date DATE,
-    end_date DATE,
-    authorization_status ENUM('未授权', '授权中', '已过期') DEFAULT '未授权',
-    remarks TEXT,
+	generate_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
 	UNIQUE(encryption_key,authorization_code)
 );
@@ -177,14 +174,33 @@ CREATE TABLE IF NOT EXISTS customer_info (
 	remarks TEXT
 );
 
+
+CREATE TABLE IF NOT EXISTS product_authorization_info (
+	id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    authorization_id BIGINT NOT NULL, -- 外键，引用产品授权表的ID
+    encryption_type ENUM('本地锁', '网络锁', '软锁授权') NOT NULL,
+    authorization_start_date DATE NOT NULL,
+    authorization_end_date DATE NOT NULL,
+    remark TEXT, -- 填写软锁信息/网络锁信息
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (authorization_id) REFERENCES product_authorization(id)
+);
+
 CREATE TABLE IF NOT EXISTS encryption_key_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     encryption_key VARCHAR(64) NOT NULL,
-    in_storage_time DATETIME,
-    out_storage_time DATETIME,
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+    in_storage_time DATETIME NOT NULL ,
+    out_storage_time DATETIME NOT NULL,
+	status ENUM('出库', '入库', '损坏', '丢失') NOT NULL,
+    customer VARCHAR(64) NOT NULL, -- 外键，引用客户信息表ID
+    customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS') NOT NULL,
+    customer_pc_remark TEXT,
+    remark TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
+    FOREIGN KEY (customer) REFERENCES customer_info(customer_name)
 );
-
 
 CREATE TABLE IF NOT EXISTS model_encryption_authorization (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

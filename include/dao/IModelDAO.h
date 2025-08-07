@@ -10,6 +10,9 @@ public:
 
     //增加模型
     virtual bool addModelVersion(const std::string& model,const std::string& modelVersion) = 0;
+
+    virtual std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(const std::string& model,int page,int pageSize) = 0;
+
     virtual ~IModelDAO() = 0;
 };
 

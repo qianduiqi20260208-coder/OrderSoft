@@ -41,7 +41,8 @@ insert into customer_info(customer_name) values('lisi');
 insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.1');
 insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.2');
 insert into model_version(model,version) values('ATA08_WeightBalance','10.2.1');
-
+insert into model_version(model,version) values('ATA08_WeightBalance','10.2.2');
+insert into model_version(model,version) values('ATA08_WeightBalance','10.2.3');
 
 -- 加密狗
 insert into encryption_key(shell_number) values('qwer1234');
@@ -156,6 +157,7 @@ INSERT INTO function_development (
     '新增用户角色管理功能',
     '功能开发完成，已提交测试'
 );
+
 INSERT INTO work_order (
     creator_id, created_at, type, model, model_version_id,
     status, approver_id, priority, dispatcher_id,
@@ -174,6 +176,7 @@ INSERT INTO other_work_order (
     '紧急处理客户反馈问题',
     '该工单不属于常规分类，记录处理过程'
 );
+
 SET @wid = LAST_INSERT_ID();
 INSERT INTO work_order (
     creator_id, created_at, type, model, model_version_id,
@@ -192,7 +195,7 @@ INSERT INTO delivery_send (
     shell_code, authorization_id, remarks
 ) VALUES (
     @wid,
-    '张三',
+    'zhangsan',
     TRUE,
     '包含部分未公开接口文档',
     TRUE,

@@ -27,6 +27,7 @@ public:
     bool orderTransfer(const TicketExecutor& executor) override;
     unsigned long long getOrderCount() override;
     std::vector<std::string> getOrderClient() override;
+    
     ~TicketDAO();
 private:
     //mysql套件

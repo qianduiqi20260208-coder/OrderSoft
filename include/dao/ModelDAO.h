@@ -11,6 +11,8 @@ public:
 
     bool addModelVersion(const std::string& model,const std::string& modelVersion) override;
 
+    std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(const std::string& model,int page,int pageSize) override;
+
     ~ModelDAO();
 private:
     MYSQL* mysql;
