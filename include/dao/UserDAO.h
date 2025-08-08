@@ -32,6 +32,9 @@ private:
 public:
     static bool downloadAttachment(std::shared_ptr<TicketReproduce>);
     static std::string queryModelVersion(int modelVersionId);
+
+    static std::string queryBaseModelVersion(int modelVersionId);
+
     static TicketExecutor queryTicketExecutor(int workOrderId);
     static std::string queryProductAuthorization(int);
 };

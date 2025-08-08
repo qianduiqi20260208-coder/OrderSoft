@@ -587,7 +587,13 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         }
         mysql_free_result(res);
         if(tmp->newModelVersion !="")
-            tmp->newModelVersion = UserDAO::queryModelVersion(stoi(tmp->newModelVersion));
+        {
+            int modelVersionId = stoi(tmp->newModelVersion);
+            tmp->newModelVersion = UserDAO::queryModelVersion(modelVersionId);
+            //查询基模型版本
+            tmp->baseModelVersion = UserDAO::queryBaseModelVersion(modelVersionId);
+        }
+
 
         retVec.push_back(tmp);
     }else if(vecElement->ticketType == "直接封装+发送"){
@@ -619,8 +625,15 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             tmp->remark = (row[13]?row[13]:"");
         }
         mysql_free_result(res);
+
         if(tmp->newModelVersion !="")
-            tmp->newModelVersion = UserDAO::queryModelVersion(stoi(tmp->newModelVersion));
+        {
+            int modelVersionId = stoi(tmp->newModelVersion);
+            tmp->newModelVersion = UserDAO::queryModelVersion(modelVersionId);
+            //查询基模型版本
+            tmp->baseModelVersion = UserDAO::queryBaseModelVersion(modelVersionId);
+        }
+
         if(tmp->license != "")
             tmp->license = UserDAO::queryProductAuthorization(stoi(tmp->license));
         retVec.push_back(tmp);
@@ -670,6 +683,13 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             tmp->newModelVersion = UserDAO::queryModelVersion(atoi(row[5]));
         }
         //查询模型版本
+        if(tmp->newModelVersion !="")
+        {
+            int modelVersionId = stoi(tmp->newModelVersion);
+            tmp->newModelVersion = UserDAO::queryModelVersion(modelVersionId);
+            //查询基模型版本
+            tmp->baseModelVersion = UserDAO::queryBaseModelVersion(modelVersionId);
+        }
 
         mysql_free_result(res);
         retVec.push_back(tmp);

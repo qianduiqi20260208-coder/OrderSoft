@@ -501,6 +501,49 @@ std::string UserDAO::queryModelVersion(int modelVersionId)
     return retStr;
 }
 
+std::string UserDAO::queryBaseModelVersion(int modelVersionId)
+{
+    MYSQL* mysql;
+    char sql[SQL_MAX];	
+    DBConnectionManager::getConnection(mysql);
+    std::string retStr;
+    std::string model;
+
+    //查询模型名称
+    snprintf(sql, SQL_MAX, "select model from model_version where id = %d;",modelVersionId);
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        return "error";
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    if(row = mysql_fetch_row(res))
+    {
+        model = row[0];
+    }
+    mysql_free_result(res);
+
+    //查询模型版本的前一个版本
+    snprintf(sql, SQL_MAX, "select version from model_version where model = '%s' and id < %d order by id desc limit 1;",model.c_str(),modelVersionId);
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        return "error";
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        retStr = row[0];
+    }
+    mysql_free_result(res);
+
+    DBConnectionManager::closeConnection(mysql);
+
+    return retStr;
+}
+
+
 TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
 {
     MYSQL* mysql;
