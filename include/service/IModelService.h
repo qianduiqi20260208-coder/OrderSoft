@@ -12,6 +12,8 @@ public:
 
     virtual std::vector<std::pair<std::vector<std::string>,std::vector<std::shared_ptr<Ticket>>>> getModelVersionWithOrdersByModelPaged(const std::string& model,int page,int pageSize) = 0;
     
+    virtual int getModelVersionCount(std::string model) = 0;
+
     virtual ~IModelService() =0;
 };
 

@@ -37,15 +37,31 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 #生成可执行文件
 add_executable(ModelLifeManager ${SOURCES})
 
+<<<<<<< HEAD
 #设置输出文件路径   
 set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+=======
+# 测试程序1也链接它
+add_executable(TicketTest test/ticketTest.cpp)
+target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
+>>>>>>> 36cb99ad8c484d63894474f96a51c9c139a3b6b1
 
 #指定需要链接的具体的库
 target_link_libraries(ModelLifeManager PRIVATE libmysql)    # MySQL数据库驱动库
 target_link_libraries(ModelLifeManager PRIVATE ws2_32 mswsock) # Windows网络相关库（socket支持）
 target_link_libraries(ModelLifeManager PRIVATE ssl crypto)  # OpenSSL加密库（jwt-cpp等依赖）
 
+<<<<<<< HEAD
 target_include_directories(ModelLifeManager PRIVATE "extern/Crow-master/include")
+=======
+# 测试程序3也链接它
+# add_executable(ModelTest test/modelTest.cpp)
+# target_link_libraries(ModelTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+# set_target_properties(ModelTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+# target_include_directories(ModelTest PRIVATE ${MY_INCLUDES})
+>>>>>>> 36cb99ad8c484d63894474f96a51c9c139a3b6b1
 
 target_compile_definitions(ModelLifeManager PRIVATE LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt")
 

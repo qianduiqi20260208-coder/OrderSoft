@@ -115,3 +115,30 @@ std::vector<std::vector<std::string>> ModelDAO::getModelVersionInfoByModelPaged(
     mysql_free_result(res);
     return retVec;
 }
+
+//-1表示查询失败
+int ModelDAO::getModelVersionCount(std::string model)
+{
+    int count = -1;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return count;
+    }
+
+    //分页查询所有模型版本
+    snprintf(sql, SQL_MAX, "select count(*) from model_version where model ='%s';",model.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getModelVersionCount 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        return count;
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        count = atoi(row[0]);
+    }
+    mysql_free_result(res);
+
+    return count;
+}
