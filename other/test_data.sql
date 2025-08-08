@@ -45,8 +45,42 @@ insert into model_version(model,version) values('ATA08_WeightBalance','10.2.2');
 insert into model_version(model,version) values('ATA08_WeightBalance','10.2.3');
 
 -- 加密狗
-insert into encryption_key(shell_number) values('qwer1234');
-insert into encryption_key(shell_number) values('asdf1234');
+insert into encryption_key values(NULL,'qwer1234','234234');
+insert into encryption_key values(NULL,'asdf1234','123123');
+
+
+INSERT INTO encryption_key_history (
+    encryption_key,
+    in_storage_time,
+    out_storage_time,
+    status,
+    customer,
+    customer_device_type,
+    customer_pc_remark,
+    remark
+) VALUES 
+(
+    'qwer1234',
+    '2025-08-01 10:00:00',
+    '2025-08-05 15:30:00',
+    '出库',
+    '华为',
+    'lab',
+    '实验室电脑1',
+    '正常出库用于测试'
+),
+(
+    'asdf1234',
+    '2025-07-20 09:00:00',
+    NULL,
+    '入库',
+    '中兴',
+    'FTD',
+    'FTD台式机A',
+    '入库等待分发'
+);
+
+
 
 -- 授权ID
 insert into product_authorization(encryption_key,authorization_code) values('qwer1234','333444555');
@@ -177,7 +211,7 @@ INSERT INTO other_work_order (
     '该工单不属于常规分类，记录处理过程'
 );
 
-SET @wid = LAST_INSERT_ID();
+
 INSERT INTO work_order (
     creator_id, created_at, type, model, model_version_id,
     status, approver_id, priority, dispatcher_id,

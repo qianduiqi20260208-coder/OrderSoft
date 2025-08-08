@@ -13,6 +13,8 @@ public:
 
     std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(const std::string& model,int page,int pageSize) override;
 
+    int getModelVersionCount(std::string model) override;
+
     ~ModelDAO();
 private:
     MYSQL* mysql;

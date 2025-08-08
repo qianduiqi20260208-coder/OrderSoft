@@ -155,8 +155,8 @@ CREATE TABLE IF NOT EXISTS concrete_table_log(
 
 CREATE TABLE IF NOT EXISTS encryption_key (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    shell_number VARCHAR(64) UNIQUE,
-    shell_serial_number VARCHAR(64)
+    shell_number VARCHAR(64) UNIQUE NOT NULL,
+    shell_serial_number VARCHAR(64) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS product_authorization (
@@ -190,10 +190,10 @@ CREATE TABLE IF NOT EXISTS product_authorization_info (
 CREATE TABLE IF NOT EXISTS encryption_key_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     encryption_key VARCHAR(64) NOT NULL,
-    in_storage_time DATETIME NOT NULL ,
-    out_storage_time DATETIME NOT NULL,
+    in_storage_time DATETIME ,
+    out_storage_time DATETIME ,
 	status ENUM('出库', '入库', '损坏', '丢失') NOT NULL,
-    customer BIGINT NOT NULL, -- 外键，引用客户信息表ID
+    customer VARCHAR(64) NOT NULL, -- 外键，引用客户信息表中的客户名字
     customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS') NOT NULL,
     customer_pc_remark TEXT,
     remark TEXT,

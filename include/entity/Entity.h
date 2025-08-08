@@ -296,9 +296,18 @@ struct TicketOther :public Ticket{
 	}
 };
 
-
-
-
+struct DongleInfo {
+    std::string dongleId;           // 加密狗ID
+    std::string shellCode;          // 外壳号
+    std::string shellSerial;        // 外壳序列号
+    std::string dongleRemark;       // 加密狗备注
+    std::string dongleStatus;       // 加密狗状态
+    std::string clientName;         // 客户名称
+    std::string clientDeviceType;   // 客户设备类型（lab/IPT/FTD/FFS）
+    std::string clientNote;         // 客户电脑备注
+    std::string inTime;             // 入库时间（建议使用 std::chrono 或转成时间戳类型）
+    std::string outTime;            // 出库时间（建议使用 std::chrono 或转成时间戳类型）
+};
 
 
 struct Log {
@@ -313,16 +322,6 @@ struct Log {
 };
 
 
-
-
-struct Dongle {
-    int id;
-    std::string shellCode;
-    std::string shellSerial;
-    std::string remark;
-    std::string status;
-};
-
 struct ProductLicense {
     int id;
     int dongleId;
@@ -334,14 +333,6 @@ struct ProductLicense {
     std::string remark;
 };
 
-
-struct DongleHistory {
-    int id;
-    int dongleId;
-    std::string inTime;
-    std::string outTime;
-};
-
 struct TicketReproduceAttachment
 {
     int id;
@@ -350,3 +341,5 @@ struct TicketReproduceAttachment
     std::string fileName;
     std::string uploadTime;
 };
+ 
+

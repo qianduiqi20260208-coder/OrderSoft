@@ -108,8 +108,15 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
     }else if(ticket.ticketType == "交付发送"){
         //去产品授权表里根据外壳号以及授权码找出唯一的产品授权ID
         const TicketDelivery& tmp = dynamic_cast<const TicketDelivery&>(ticket);
-        snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-            " = '%s'),remarks = '%s' where work_order_id = %d;", tmp.encrypted,tmp.dongleId.c_str(),tmp.licenseId.c_str(),tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+        //判断是否加密，然后分开处理
+        if(tmp.encrypted)
+        {
+            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
+                " = '%s'),remarks = '%s' where work_order_id = %d;", tmp.encrypted,tmp.dongleId.c_str(),tmp.licenseId.c_str(),tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+        }else{
+            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = 0 where work_order_id = %d;", tmp.Ticket::id);
+        }
+
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:completeConcreteTicket 修改delivery_send表失败！失败原因：%s\n", mysql_error(mysql));
@@ -118,9 +125,16 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         }
         
     }else if(ticket.ticketType == "直接封装+发送"){
+        
         const TicketPackage& tmp = dynamic_cast<const TicketPackage&>(ticket);
-        snprintf(sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-        " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,tmp.dongle.c_str(),tmp.license.c_str(),tmp.dongle.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+        if(tmp.encrypted)
+        {
+            snprintf(sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
+            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,tmp.dongle.c_str(),tmp.license.c_str(),tmp.dongle.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+        }else{
+            snprintf(sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
+        }
+
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:completeConcreteTicket 修改package_send表失败！失败原因：%s\n", mysql_error(mysql));
