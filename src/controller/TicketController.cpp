@@ -1083,6 +1083,23 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
+        // 从查询参数中获取targetCustomer
+        std::string targetCustomer = "";
+        auto params = crow::query_string(req.url_params);
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+
+        // 参数验证
+        if (targetCustomer.empty()) {
+            nlohmann::json resp = {
+                {"status", 0},
+                {"error", "缺少必要参数：targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
         nlohmann::json shellNumber = shellNumberList_;
         nlohmann::json resp = {
             {"status", 1},
@@ -1101,12 +1118,70 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-        nlohmann::json authID = authIDList_;
+        // 从查询参数中获取shellNumber
+        std::string shellNumber = "";
+        auto params = crow::query_string(req.url_params);
+        if (params.get("shellNumber") != nullptr) {
+            shellNumber = params.get("shellNumber");
+        }
+
+        // 参数验证
+        if (shellNumber.empty()) {
+            nlohmann::json resp = {
+                {"status", 0},
+                {"error", "缺少必要参数：targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+        
+        // 根据不同客户返回不同的Mock授权ID数据
+        nlohmann::json authIDList = nlohmann::json::array();
+        
+        if (shellNumber == "qwer1234") {
+            authIDList = {
+                {
+                    {"authId", "333444555"},
+                    {"endDate", "2025-10-01"},
+                    {"deviceType", "FTD"},
+                    {"description", "张三个人授权"}
+                },
+                {
+                    {"authId", "2025071005"},
+                    {"endDate", "2025-05-20"},
+                    {"deviceType", "FFS"},
+                    {"description", "张三测试授权"}
+                }
+            };
+        }
+        else if (shellNumber == "asdf1234") {
+            authIDList = {
+                {
+                    {"authId", "333444555"},
+                    {"endDate", "2025-07-15"},
+                    {"deviceType", "lab"},
+                    {"description", "李四开发授权"}
+                },
+                {
+                    {"authId", "2025071007"},
+                    {"endDate", "2024-12-01"},
+                    {"deviceType", "FTD"},
+                    {"description", "李四临时授权"}
+                },
+                {
+                    {"authId", "2025071003"},
+                    {"endDate", "2025-12-31"},
+                    {"deviceType", "IPT"},
+                    {"description", "华模测试授权"}
+                }
+            };
+        }
+    
         nlohmann::json resp = {
             {"status", 1},
             {"error", ""},
             {"data", {
-                {"list", authID}
+                {"list", authIDList}
             }}
         };
         return crow::response{ resp.dump() };

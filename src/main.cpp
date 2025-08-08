@@ -21,6 +21,10 @@
 #include "ModelDAO.h"
 #include "ModelService.h"
 #include "ModelController.h"
+// 交付模块
+// #include "CustomerInfoDAO.h"
+// #include "CustomerInfoService.h"
+#include "CustomerInfoController.h"
 
 
 int main() {
@@ -41,17 +45,20 @@ int main() {
     // 创建 Service 对象，传递正确的参数
     auto userService = std::make_shared<UserService>(userDAO);
     auto ticketService = std::make_shared<TicketService>(ticketDAO, modelDAO);  // 传递两个参数
-    auto modelService = std::make_shared<ModelService>(modelDAO);
+    auto modelService = std::make_shared<ModelService>(modelDAO, ticketDAO);
 
     // 创建控制器
     UserController userController(userService);
     TicketController ticketController(ticketService);
     ModelController modelController(modelService);
+    CustomerInfoController customerInfoController;
+
 
 	crow::SimpleApp app;
     userController.registerRoutes(app);
 	ticketController.registerRoutes(app);
 	modelController.registerRoutes(app);
+    customerInfoController.registerRoutes(app);
 
 	app.port(18080).multithreaded().run();
 	

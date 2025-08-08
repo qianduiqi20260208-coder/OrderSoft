@@ -97,6 +97,7 @@
         "xutility": "cpp",
         "cinttypes": "cpp",
         "strstream": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "*.def": "cpp"
     }
 }

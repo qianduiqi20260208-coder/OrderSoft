@@ -21,6 +21,13 @@ public:
      * @param app Crow 应用对象
      */
     void registerRoutes(crow::SimpleApp& app);
+
+    /**
+     * @brief 将中文角色名称转换为英文
+     * @param chineseRole 中文角色名称
+     * @return 对应的英文角色名称
+     */
+    std::string convertRoleToEnglish(const std::string& chineseRole) const;
 private:
     std::shared_ptr<IUserService> userService;
     std::shared_ptr<UserService> userService_test;
