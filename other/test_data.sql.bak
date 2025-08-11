@@ -211,7 +211,7 @@ INSERT INTO other_work_order (
     '该工单不属于常规分类，记录处理过程'
 );
 
-SET @wid = LAST_INSERT_ID();
+
 INSERT INTO work_order (
     creator_id, created_at, type, model, model_version_id,
     status, approver_id, priority, dispatcher_id,

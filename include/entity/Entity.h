@@ -167,6 +167,7 @@ struct TicketVersion :public Ticket{
     std::string packRequirement; // 封装要求
     bool interfaceChanged; // 接口是否变化
     std::string newModelVersion; // 升级后模型版本
+    std::string baseModelVersion;//模型基版本
     std::string remark; // 备注 
 
     // 多态序列化接口
@@ -200,6 +201,7 @@ struct TicketPackage :public Ticket{
     std::string sensitiveInfo; // 是否包含敏感信息
 
     std::string newModelVersion; // 升级后模型版本
+    std::string baseModelVersion;//模型基版本
     bool encrypted; // 是否加密
     std::string dongle; // 外壳号
     std::string license; // 授权ID
@@ -263,6 +265,7 @@ struct TicketFeature :public Ticket{
     int ticketId;
     std::string featureInit; // 功能描述
     std::string newModelVersion; // 完成后模型版本ID
+    std::string baseModelVersion;//模型基版本
     std::string featureFinal; // 完成后功能描述
 
     // 多态序列化接口

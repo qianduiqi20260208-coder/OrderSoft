@@ -39,12 +39,48 @@ add_executable(ModelLifeManager ${SOURCES})
 #设置输出文件路径   
 set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
+<<<<<<< HEAD
 #指定需要链接的具体的库
 target_link_libraries(ModelLifeManager PRIVATE libmysql)    # MySQL数据库驱动库
 target_link_libraries(ModelLifeManager PRIVATE ws2_32 mswsock) # Windows网络相关库（socket支持）
 target_link_libraries(ModelLifeManager PRIVATE ssl crypto)  # OpenSSL加密库（jwt-cpp等依赖）
 
 target_compile_definitions(ModelLifeManager PRIVATE LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt")
+=======
+# 测试程序1也链接它
+# add_executable(TicketTest test/ticketTest.cpp)
+# target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+# set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+# target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
+
+# 测试程序2也链接它
+# add_executable(UserTest test/userTest.cpp)
+# target_link_libraries(UserTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+# set_target_properties(UserTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+# target_include_directories(UserTest PRIVATE ${MY_INCLUDES})
+
+# 测试程序3也链接它
+add_executable(ModelTest test/modelTest.cpp)
+target_link_libraries(ModelTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+set_target_properties(ModelTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(ModelTest PRIVATE ${MY_INCLUDES})
+
+#catch_discover_tests(TicketTest)
+
+# # 主程序链接这个库
+# add_executable(ModelLifeManager src/main.cpp)
+# #主程序链接的核心库
+# target_link_libraries(ModelLifeManager PRIVATE ModelLifeCore)
+# #指定需要链接的具体的库 (web,加密相关的库)
+# target_link_libraries(ModelLifeManager PRIVATE  ws2_32 mswsock "${CMAKE_SOURCE_DIR}/extern/openssl/lib/libcrypto.lib")
+# target_include_directories(ModelLifeManager PRIVATE ${MY_INCLUDES})
+
+# #设置可执行文件输出的位置
+# set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+
+# #宏定义 给出日志文件输出的位置
+# target_compile_definitions(ModelLifeManager PRIVATE LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt")
+>>>>>>> 088b7a22b195f8695000948e362f1f54cbf2dc2e
 
 # 自动复制所需的DLL文件到输出目录
 add_custom_command(TARGET ModelLifeManager POST_BUILD
