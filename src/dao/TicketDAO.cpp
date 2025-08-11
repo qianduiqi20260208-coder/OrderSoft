@@ -114,7 +114,7 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
             snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
                 " = '%s'),remarks = '%s' where work_order_id = %d;", tmp.encrypted,tmp.dongleId.c_str(),tmp.licenseId.c_str(),tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
         }else{
-            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = 0 where work_order_id = %d;", tmp.Ticket::id);
+            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
         }
 
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));

@@ -52,7 +52,8 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
         }
         
         // 计算总数（这里简化处理，实际应该调用专门的计数方法）
-        int total = 50;        
+        int total = modelService->getModelVersionCount(modelID);      
+        printf("total: %d\n", total);  
         
         nlohmann::json resp = {
             {"status", 1},

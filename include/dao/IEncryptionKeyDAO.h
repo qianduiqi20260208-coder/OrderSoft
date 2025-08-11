@@ -10,3 +10,5 @@ public:
     virtual bool createEncryptionKey(std::string,std::string) = 0;
     virtual bool updateEncryptionKey(int id,std::string,std::string) = 0;
 };
+
+inline IEncryptionKey::~IEncryptionKey() =default;
