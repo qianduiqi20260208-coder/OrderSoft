@@ -155,18 +155,8 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
                 contentType = "application/vnd.ms-excel";
             }
         }
-        
-        // // 构建响应
-        // crow::response resp(200, content);
-        // resp.add_header("Content-Type", contentType);
-        // resp.add_header("Content-Length", std::to_string(content.size()));
-        // resp.add_header("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-        // resp.add_header("Cache-Control", "no-cache");
-        // resp.add_header("Access-Control-Allow-Origin", "*"); // 如果需要跨域
-        
-        // return resp;
 
-                // 将文件内容转换为Base64编码
+        // 将文件内容转换为Base64编码
         std::string base64Content = base64_encode(content); // 你需要实现这个函数
         
         // 返回JSON格式，符合前端期望的格式
@@ -198,50 +188,6 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
 }
 
 void TicketController::registerRoutes(crow::SimpleApp& app) {
-
-    // // 获取工单分页（可筛选）
-    // CROW_ROUTE(app, "/order/all").methods("GET"_method)
-    //     ([this](const crow::request& req) {
-	// 	// JWT校验
-    //     if (!checkToken(req)) {
-    //         return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    //     }
-	// 	// 解析查询参数，支持分页和筛选
-    //     auto params = crow::query_string(req.url_params);
-	// 	int page = std::stoi(params.get("page") ? params.get("page") : "1"); // 默认第1页
-	// 	int pageSize = std::stoi(params.get("pageSize") ? params.get("pageSize") : "10"); // 默认每页10条
-	// 	std::string orderID = params.get("orderID") ? params.get("orderID") : ""; // 工单ID筛选条件
-	// 	std::string type = params.get("type") ? params.get("type") : ""; // 工单类型筛选条件
-	// 	std::string promoterID = params.get("promoterID") ? params.get("promoterID") : ""; // 提交人ID筛选条件
-	// 	std::string modelID = params.get("modelID") ? params.get("modelID") : ""; // 模型ID筛选条件
-	// 	std::string referencePriority = params.get("referencePriority") ? params.get("referencePriority") : ""; // 参考优先级筛选条件
-	// 	std::string taskPriority = params.get("taskPriority") ? params.get("taskPriority") : ""; // 任务优先级筛选条件
-	// 	std::string status = params.get("status") ? params.get("status") : ""; // 工单状态筛选条件
-	// 	std::string startDate = params.get("startDate") ? params.get("startDate") : ""; // 开始日期筛选条件
-	// 	std::string endDate = params.get("endDate") ? params.get("endDate") : ""; // 结束日期筛选条件
-
-	// 	// 调用服务层获取工单分页数据
-    //     auto orders = service_.fetchOrderPage(page, pageSize, orderID, type, promoterID, modelID, referencePriority, taskPriority, status, startDate, endDate);
-        
-	// 	// 将工单列表转换为JSON格式
-    //     nlohmann::json list = nlohmann::json::array();
-    //     for (const auto& o : orders) list.push_back(o.to_json());
-
-    //     // 构建响应
-    //     nlohmann::json resp = {
-    //         {"status", 1},
-    //         {"error", ""},
-    //         {"data", {
-    //             {"list", list},
-    //             {"total", service_.getOrderCount(orderID, type, promoterID, modelID, referencePriority, taskPriority, status, startDate, endDate)},
-    //             {"page", page},
-    //             {"pageSize", pageSize}
-    //         }}
-    //     };
-
-
-    //     return crow::response{ resp.dump() };
-    //     });
 
     // 获取工单分页（可筛选）
     CROW_ROUTE(app, "/order/all").methods("GET"_method)

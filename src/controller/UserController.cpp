@@ -1,6 +1,26 @@
 #include "UserController.h"
 #include "jwt_utils.h"
 
+// 添加匿名命名空间 - 仅在当前文件可见
+namespace {
+    int safeStoi(const std::string& str, int defaultValue = 0) {
+        if (str.empty() || str == "null" || str == "undefined") {
+            return defaultValue;
+        }
+        try {
+            return std::stoi(str);
+        } catch (const std::exception& e) {
+            printf("[WARNING] safeStoi failed for '%s': %s, using default %d\n", 
+                   str.c_str(), e.what(), defaultValue);
+            return defaultValue;
+        }
+    }
+    
+    std::string safeGetParam(const char* param) {
+        return param ? std::string(param) : std::string("");
+    }
+}
+
 UserController::UserController(std::shared_ptr<IUserService> sp) : userService(sp) {}
 
 // 角色转换函数
@@ -28,7 +48,7 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             crow::response r(400);
             r.set_header("Access-Control-Allow-Origin", "*");
             r.set_header("Content-Type", "application/json");
-            r.write(R"({"error":"Invalid JSON","status":0,"data":{}})");
+            r.write(R"({"error":"Invalid JSON","status":1,"data":{}})");
             return r;
         }
 
@@ -40,7 +60,18 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         // 调用用户服务进行登录验证
         auto userOpt = userService->login(account, password);
 
-        user = userService->getUserByJobNumber(std::stoi(account));
+        // 安全转换账号为整数
+        int jobNumber = safeStoi(account, -1);
+        if (jobNumber <= 0) {
+            crow::response r(400);
+            r.set_header("Access-Control-Allow-Origin", "*");
+            r.set_header("Content-Type", "application/json");
+            r.write(R"({"error":"无效的工号格式","status":1,"data":{}})");
+            return r;
+        }
+
+
+        user = userService->getUserByJobNumber(jobNumber);
 
         crow::response r;
         r.set_header("Access-Control-Allow-Origin", "*");
@@ -68,7 +99,7 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             // 登录失败，返回错误信息
             nlohmann::json resp = {
                 {"error", "账号或密码错误"},
-                {"status", 0},
+                {"status", 1},
                 {"data", nlohmann::json::object()}
             };
             r.code = 200;
@@ -136,7 +167,18 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         std::string userID = params.get("userID") ? params.get("userID") : "";
         std::string role = params.get("role") ? params.get("role") : "";
 
-        auto tickets = userService->getUserOrder(std::stoi(userID));
+        // 安全转换 userID
+        int userIdInt = safeStoi(userID, -1);
+        if (userIdInt <= 0) {
+            nlohmann::json errorResp = {
+                {"status", 1},
+                {"error", "无效的用户ID"},
+                {"data", nlohmann::json::object()}
+            };
+            return crow::response(400, errorResp.dump());
+        }
+
+        auto tickets = userService->getUserOrder(userIdInt);
 
         printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 

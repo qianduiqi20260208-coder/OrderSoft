@@ -1,6 +1,26 @@
 #include "ModelController.h"
 #include "jwt_utils.h"
 
+// 匿名命名空间 - 仅在当前文件可见
+namespace {
+    int safeStoi(const std::string& str, int defaultValue = 0) {
+        if (str.empty() || str == "null" || str == "undefined") {
+            return defaultValue;
+        }
+        try {
+            return std::stoi(str);
+        } catch (const std::exception& e) {
+            printf("[WARNING] safeStoi failed for '%s': %s, using default %d\n", 
+                   str.c_str(), e.what(), defaultValue);
+            return defaultValue;
+        }
+    }
+    
+    std::string safeGetParam(const char* param) {
+        return param ? std::string(param) : std::string("");
+    }
+}
+
 ModelController::ModelController(std::shared_ptr<IModelService> sp) : modelService(sp) {}
 
 void ModelController::registerRoutes(crow::SimpleApp& app) {
@@ -11,16 +31,26 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-        // 解析分页参数
+        // 解析分页参数 - 使用安全转换
         auto params = crow::query_string(req.url_params);
-        int page = std::stoi(params.get("page") ? params.get("page") : "1");
-        int pageSize = std::stoi(params.get("pageSize") ? params.get("pageSize") : "10");
-        std::string modelID = params.get("modelID") ? params.get("modelID") : "";
+        
+        // 安全获取参数
+        std::string pageStr = safeGetParam(params.get("page"));
+        std::string pageSizeStr = safeGetParam(params.get("pageSize"));
+        std::string modelID = safeGetParam(params.get("modelID"));
+        
+        // 安全转换为整数
+        int page = safeStoi(pageStr.empty() ? "1" : pageStr, 1);
+        int pageSize = safeStoi(pageSizeStr.empty() ? "10" : pageSizeStr, 10);
+        
+        // 参数验证
+        if (page <= 0) page = 1;
+        if (pageSize <= 0 || pageSize > 100) pageSize = 10;
 
         // 获取模型列表及工单信息，支持分页
         std::vector<std::pair<std::vector<std::string>, std::vector<std::shared_ptr<Ticket>>>> modelListWithTickets = 
             modelService->getModelVersionWithOrdersByModelPaged(modelID, page-1, pageSize);
-        
+
         // 转换为目标JSON格式
         nlohmann::json modelList = nlohmann::json::array();
         
@@ -51,7 +81,7 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
             modelList.push_back(modelJson);
         }
         
-        // 计算总数（这里简化处理，实际应该调用专门的计数方法）
+        // 计算总数
         int total = modelService->getModelVersionCount(modelID);      
         printf("total: %d\n", total);  
         

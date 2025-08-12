@@ -26,7 +26,6 @@ std::vector<std::pair<std::vector<std::string>, std::vector<std::shared_ptr<Tick
     for(const auto& vec : modelVersionVec)
     {
         std::pair<std::vector<std::string>, std::vector<std::shared_ptr<Ticket>>> tmp;
-        
         //将模型以及模型版本信息放入结果集中
         tmp.first.push_back(model);
         tmp.first.push_back(vec[0]);
