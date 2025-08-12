@@ -38,23 +38,30 @@ target_link_libraries(ModelLifeCore PRIVATE "C:/Program Files/MySQL/MySQL Server
 target_include_directories(ModelLifeCore PRIVATE ${MY_INCLUDES})
 add_subdirectory(extern/Catch2-3.5.3)
 
-# 测试程序1也链接它
+# 测试程序1
 # add_executable(TicketTest test/ticketTest.cpp)
 # target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
 # set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 # target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
 
-# 测试程序2也链接它
+# 测试程序2
 # add_executable(UserTest test/userTest.cpp)
 # target_link_libraries(UserTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
 # set_target_properties(UserTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 # target_include_directories(UserTest PRIVATE ${MY_INCLUDES})
 
-# 测试程序3也链接它
-add_executable(ModelTest test/modelTest.cpp)
-target_link_libraries(ModelTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
-set_target_properties(ModelTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-target_include_directories(ModelTest PRIVATE ${MY_INCLUDES})
+# 测试程序3
+# add_executable(ModelTest test/modelTest.cpp)
+# target_link_libraries(ModelTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+# set_target_properties(ModelTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+# target_include_directories(ModelTest PRIVATE ${MY_INCLUDES})
+
+# 测试程序4
+add_executable(EncryptionKeyTest test/encryptionKeyTest.cpp)
+target_link_libraries(EncryptionKeyTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+set_target_properties(EncryptionKeyTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(EncryptionKeyTest PRIVATE ${MY_INCLUDES})
+
 
 #catch_discover_tests(TicketTest)
 
@@ -71,4 +78,3 @@ target_include_directories(ModelTest PRIVATE ${MY_INCLUDES})
 
 # #宏定义 给出日志文件输出的位置
 # target_compile_definitions(ModelLifeManager PRIVATE LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt")
-

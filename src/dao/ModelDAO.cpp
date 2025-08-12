@@ -99,7 +99,7 @@ std::vector<std::vector<std::string>> ModelDAO::getModelVersionInfoByModelPaged(
     snprintf(sql, SQL_MAX, "select version,id,update_time from model_version where model ='%s' order by id desc limit %d,%d;",model.c_str(),offset,count);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getModelVersionWithOrdersByModelPaged 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        printf("[error] function:getModelVersionInfoByModelPaged 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);

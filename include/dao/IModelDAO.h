@@ -14,7 +14,7 @@ public:
     virtual std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(const std::string& model,int page,int pageSize) = 0;
 
     virtual int getModelVersionCount(std::string model) = 0;
-
+    
     virtual ~IModelDAO() = 0;
 };
 

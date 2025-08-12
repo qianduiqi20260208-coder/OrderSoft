@@ -12,7 +12,7 @@ public:
     bool createEncryptionKey(std::string,std::string) override;
 
     bool updateEncryptionKey(int id,std::string,std::string) override;
-
+    ~EncryptionKey();
 private:
     MYSQL* mysql;
     char sql[SQL_MAX];		// 存储sql语句

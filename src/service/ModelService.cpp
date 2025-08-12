@@ -31,12 +31,68 @@ std::vector<std::pair<std::vector<std::string>, std::vector<std::shared_ptr<Tick
         tmp.first.push_back(model);
         tmp.first.push_back(vec[0]);
         tmp.first.push_back(vec[2]);
-        //根据model_version_id来倒叙查询工单
+        //根据model_version_id来倒叙查询工单 不同类型的工单分开处理。
         std::map<std::string,std::string> ruleMap;
         ruleMap["model_version_id"] = vec[1];
+        ruleMap["type"] = "问题复现";
         tmp.second = std::move(ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX));
+        ruleMap["type"] = "交付发送";
+        const auto& ret1 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
+        for(const auto& ele:ret1)
+            tmp.second.push_back(ele);
+        ruleMap["type"] = "其他";
+        const auto& ret2 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
+        for(const auto& ele:ret2)
+            tmp.second.push_back(ele);
+
+        //查找所有目标版本为给定值的工单
+        const auto& ret3 = findOrdersByTargetVersion(vec[0]);
+        for(const auto& ele:ret3)
+            tmp.second.push_back(ele);
 
         retVec.push_back(tmp);
+    }
+
+    return retVec;
+}
+
+std::vector<std::shared_ptr<Ticket>> ModelService::findOrdersByTargetVersion(std::string targetModelVersion)
+{
+    std::vector<std::shared_ptr<Ticket>> retVec;
+    //查询版本迭代类工单
+    std::map<std::string,std::string> ruleMap;
+    ruleMap["type"] = "版本迭代";
+    const auto& ret1 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
+    for(const auto& ele:ret1)
+    {
+        const auto& transfered = std::static_pointer_cast<const TicketVersion>(ele);
+        if(transfered->newModelVersion == targetModelVersion)
+        {
+            retVec.push_back(ele);
+        }
+    }
+
+    //查询直接封装+发送类工单
+    ruleMap["type"] = "直接封装+发送";
+    const auto& ret2 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
+    for(const auto& ele:ret2)
+    {
+        const auto& transfered = std::static_pointer_cast<const TicketPackage>(ele);
+        if(transfered->newModelVersion == targetModelVersion)
+        {
+            retVec.push_back(ele);
+        }
+    }
+    //查询功能开发类工单
+    ruleMap["type"] = "功能开发";
+    const auto& ret3 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
+    for(const auto& ele:ret1)
+    {
+        const auto& transfered = std::static_pointer_cast<const TicketFeature>(ele);
+        if(transfered->newModelVersion == targetModelVersion)
+        {
+            retVec.push_back(ele);
+        }
     }
 
     return retVec;

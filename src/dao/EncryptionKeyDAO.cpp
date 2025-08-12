@@ -25,16 +25,14 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
     res = mysql_store_result(mysql);
     while(row = mysql_fetch_row(res))
     {
-        //排除外壳号为空的记录
-        if(!row[1] || !row[2])
-            continue;
+
         DongleInfo di;
         di.dongleId = row[0];
         di.shellCode = row[1];
         di.shellSerial = row[2];
         
         //根据外壳号去加密狗历史信息表里查询与加密狗关联的诸多信息
-        snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' desc;",row[1]);//只查询一条数据
+        snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getDongleInfo 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -70,7 +68,7 @@ bool EncryptionKey::createEncryptionKey(std::string s1, std::string s2)
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:createEncryptionKey 插入 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
-        return {};
+        return false;
     }
 
     return true;
@@ -87,8 +85,13 @@ bool EncryptionKey::updateEncryptionKey(int id, std::string s1, std::string s2)
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:updateEncryptionKey 修改 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
-        return {};
+        return false;
     }
 
     return true;
+}
+
+EncryptionKey::~EncryptionKey()
+{
+    DBConnectionManager::closeConnection(mysql);
 }
