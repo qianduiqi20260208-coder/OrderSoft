@@ -114,7 +114,7 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
             snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
                 " = '%s'),remarks = '%s' where work_order_id = %d;", tmp.encrypted,tmp.dongleId.c_str(),tmp.licenseId.c_str(),tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
         }else{
-            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = 0 where work_order_id = %d;", tmp.Ticket::id);
+            snprintf(sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
         }
 
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
@@ -522,10 +522,11 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
 
         //查询模型版本
         if(tmp->modelVersion !="")
+        {
             tmp->modelVersion = UserDAO::queryModelVersion(stoi(tmp->modelVersion));
+        }
         //封装工单执行人
         tmp->executor = UserDAO::queryTicketExecutor(tmp->id);
-        
         //封装一些私有的信息
         concreteTicketList(tmp->id,tmp,retVec);
     }
@@ -680,7 +681,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         {
             tmp->featureInit = (row[2]?row[2]:"");
             tmp->featureFinal = (row[3]?row[3]:"");
-            tmp->newModelVersion = UserDAO::queryModelVersion(atoi(row[5]));
+            tmp->newModelVersion = ((row[5])?row[5]:"");
         }
         //查询模型版本
         if(tmp->newModelVersion !="")
