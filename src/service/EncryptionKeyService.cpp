@@ -1,0 +1,40 @@
+#include "EncryptionKeyService.h"
+
+EncryptionKeyService::EncryptionKeyService(std::shared_ptr<IEncryptionKey> dao) : encryptionKeyDAO_(dao)
+{
+}
+
+bool EncryptionKeyService::deliveryOperation(const std::string& clientName, 
+                                           const std::string& shellNumber, 
+                                           const std::string& deviceType, 
+                                           const std::string& deviceNote)
+{
+    // 调用DAO层的交付操作方法
+    return encryptionKeyDAO_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote);
+}
+
+bool EncryptionKeyService::returnOperation(const std::string& clientName,
+                                           const std::string& shellNumber,
+                                           const std::string& returnDate)
+{
+    // 调用DAO层的归还操作方法
+    return encryptionKeyDAO_->returnOperation(clientName, shellNumber, returnDate);
+}
+
+std::vector<std::pair<int, std::string>> EncryptionKeyService::getAvailableShellNumbers()
+{
+    // 调用DAO层的获取可交付外壳号列表方法
+    return encryptionKeyDAO_->getAvailableShellNumbers();
+}
+
+bool EncryptionKeyService::createAuthorization(const std::string& clientName,
+                                               const std::string& shellNumber,
+                                               const std::string& authId,
+                                               const std::string& authType,
+                                               const std::string& startDate,
+                                               const std::string& endDate,
+                                               const std::string& authNote)
+{
+    // 调用DAO层的创建授权方法
+    return encryptionKeyDAO_->createAuthorization(clientName, shellNumber, authId, authType, startDate, endDate, authNote);
+}
