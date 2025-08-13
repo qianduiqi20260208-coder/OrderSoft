@@ -14,7 +14,12 @@ public:
 
     std::vector<std::pair<std::vector<std::string>,std::vector<std::shared_ptr<Ticket>>>> getModelVersionWithOrdersByModelPaged(const std::string& model,int page,int pageSize) override;
 
+    std::vector<std::shared_ptr<Ticket>> findOrdersByTargetVersion(std::string) override;
+
     int getModelVersionCount(std::string model) override;
+
+
+
 private:
     std::shared_ptr<IModelDAO> modelDAO_;
     std::shared_ptr<ITicketDAO> ticketDAO_;

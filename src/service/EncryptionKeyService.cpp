@@ -2,11 +2,28 @@
 
 EncryptionKeyService::EncryptionKeyService(std::shared_ptr<IEncryptionKey> dao) : encryptionKeyDAO_(dao)
 {
+
 }
 
-bool EncryptionKeyService::deliveryOperation(const std::string& clientName, 
-                                           const std::string& shellNumber, 
-                                           const std::string& deviceType, 
+std::vector<DongleInfo> EncryptionKeyService::getDongleInfo()
+{
+
+    return encryptionKeyDAO_->getDongleInfo();
+}
+
+bool EncryptionKeyService::createEncryptionKey(std::string s1, std::string s2)
+{
+    return encryptionKeyDAO_->createEncryptionKey(s1,s2);
+}
+
+bool EncryptionKeyService::updateEncryptionKey(int id, std::string s1, std::string s2)
+{
+    return encryptionKeyDAO_->updateEncryptionKey(id,s1,s2);
+}
+
+bool EncryptionKeyService::deliveryOperation(const std::string& clientName,
+                                           const std::string& shellNumber,
+                                           const std::string& deviceType,
                                            const std::string& deviceNote)
 {
     // 调用DAO层的交付操作方法

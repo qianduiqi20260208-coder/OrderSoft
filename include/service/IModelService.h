@@ -14,6 +14,8 @@ public:
     
     virtual int getModelVersionCount(std::string model) = 0;
 
+    virtual std::vector<std::shared_ptr<Ticket>> findOrdersByTargetVersion(std::string) = 0;
+    
     virtual ~IModelService() =0;
 };
 

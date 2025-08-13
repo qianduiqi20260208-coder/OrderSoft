@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS model_version (
     model VARCHAR(64) NOT NULL,
     version VARCHAR(64) NOT NULL,
 	update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (model) REFERENCES model(ata_code),
+    FOREIGN KEY (model) REFERENCES model(ata_code)
+	ON DELETE CASCADE
+	ON UPDATE CASCADE,
 	UNIQUE (model, version)
 );
 
@@ -40,14 +42,21 @@ CREATE TABLE IF NOT EXISTS user (
     online_status BOOLEAN DEFAULT FALSE,
     last_model_used BIGINT,
     FOREIGN KEY (model_id) REFERENCES model(id)
+	ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS user_model (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username BIGINT NOT NULL,
     model VARCHAR(64) NOT NULL,
-    FOREIGN KEY (username) REFERENCES user(username),
-	FOREIGN KEY (model) REFERENCES model(ata_code),
+    FOREIGN KEY (username) REFERENCES user(username)
+	ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	FOREIGN KEY (model) REFERENCES model(ata_code)
+	ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	
 	UNIQUE(username,model)
 );
 
@@ -67,11 +76,21 @@ CREATE TABLE IF NOT EXISTS work_order (
     dispatched_at DATETIME DEFAULT NULL,
     completed_at DATETIME DEFAULT NULL,
 	reject_reason TEXT,
-    FOREIGN KEY (creator_id) REFERENCES user(username),
-    FOREIGN KEY (model) REFERENCES model(ata_code),
-    FOREIGN KEY (model_version_id) REFERENCES model_version(id),
-    FOREIGN KEY (approver_id) REFERENCES user(username),
+    FOREIGN KEY (creator_id) REFERENCES user(username)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (model) REFERENCES model(ata_code)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (model_version_id) REFERENCES model_version(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (approver_id) REFERENCES user(username)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
     FOREIGN KEY (dispatcher_id) REFERENCES user(username)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS work_order_executor (
@@ -80,8 +99,13 @@ CREATE TABLE IF NOT EXISTS work_order_executor (
     executor_id BIGINT NOT NULL,
     transferred_at DATETIME DEFAULT NULL,
     transfer_reason TEXT,
-    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
-    FOREIGN KEY (executor_id) REFERENCES user(username),
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	
+    FOREIGN KEY (executor_id) REFERENCES user(username)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
 	UNIQUE(work_order_id,executor_id)
 );
 
@@ -94,6 +118,8 @@ CREATE TABLE IF NOT EXISTS issue_reproduction (
     phenomenon TEXT,
     remarks TEXT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS version_iteration (
@@ -107,8 +133,13 @@ CREATE TABLE IF NOT EXISTS version_iteration (
 	
     new_model_version_id BIGINT,
     remarks TEXT,
-    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	
 	FOREIGN KEY (new_model_version_id) REFERENCES model_version(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS function_development (
@@ -118,9 +149,15 @@ CREATE TABLE IF NOT EXISTS function_development (
     description_completed TEXT,
     model_id BIGINT,
     new_model_version_id BIGINT,
-    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
-    FOREIGN KEY (model_id) REFERENCES model(id),
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (model_id) REFERENCES model(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE,
     FOREIGN KEY (new_model_version_id) REFERENCES model_version(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 
@@ -130,6 +167,8 @@ CREATE TABLE IF NOT EXISTS other_work_order (
     description TEXT,
     remarks TEXT,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS operation_log (
@@ -137,6 +176,8 @@ CREATE TABLE IF NOT EXISTS operation_log (
     user_id         BIGINT,                       -- 操作人
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (user_id) REFERENCES user(username)
+		ON DELETE CASCADE
+	ON UPDATE CASCADE
 	
 );
 
@@ -150,6 +191,8 @@ CREATE TABLE IF NOT EXISTS concrete_table_log(
     content_after   TEXT,                         -- 修改/新增后内容（json）
 	operation_log_id BIGINT, 
 	FOREIGN KEY (operation_log_id) REFERENCES operation_log(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 
@@ -164,7 +207,9 @@ CREATE TABLE IF NOT EXISTS product_authorization (
     encryption_key VARCHAR(64),
     authorization_code VARCHAR(64),  -- 授权ID，如2025071010
 	generate_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
 	UNIQUE(encryption_key,authorization_code)
 );
 
@@ -185,6 +230,8 @@ CREATE TABLE IF NOT EXISTS product_authorization_info (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (authorization_id) REFERENCES product_authorization(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS encryption_key_history (
@@ -198,16 +245,24 @@ CREATE TABLE IF NOT EXISTS encryption_key_history (
     customer_pc_remark TEXT,
     remark TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
     FOREIGN KEY (customer) REFERENCES customer_info(customer_name)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS model_encryption_authorization (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     model_version_id BIGINT NOT NULL,
     product_authorization_id BIGINT NOT NULL,
-    FOREIGN KEY (model_version_id) REFERENCES model_version(id),
+    FOREIGN KEY (model_version_id) REFERENCES model_version(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
     FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS delivery_send (
@@ -220,10 +275,18 @@ CREATE TABLE IF NOT EXISTS delivery_send (
 	shell_code VARCHAR(64),
     authorization_id BIGINT,
     remarks TEXT,
-    FOREIGN KEY (work_order_id) REFERENCES work_order(id),
-	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name),
-	FOREIGN KEY (shell_code) REFERENCES encryption_key(shell_number),
+    FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	FOREIGN KEY (shell_code) REFERENCES encryption_key(shell_number)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
 	FOREIGN KEY (authorization_id) REFERENCES product_authorization(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS package_send (
@@ -244,12 +307,22 @@ CREATE TABLE IF NOT EXISTS package_send (
     product_authorization_id BIGINT,                         -- 授权ID
     remarks TEXT,
     
-    FOREIGN KEY (new_model_version_id) REFERENCES model_version(id),
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number),
-    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id),
-	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name),
+    FOREIGN KEY (new_model_version_id) REFERENCES model_version(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+    FOREIGN KEY (product_authorization_id) REFERENCES product_authorization(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	FOREIGN KEY (target_customer) REFERENCES customer_info(customer_name)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
 		
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );
 
 CREATE TABLE issue_reproduction_attachment (
@@ -263,6 +336,8 @@ CREATE TABLE issue_reproduction_attachment (
     
     upload_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '附件上传时间',
     FOREIGN KEY (ticket_id) REFERENCES work_order(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 
 );
 
@@ -273,6 +348,10 @@ CREATE TABLE IF NOT EXISTS user_multi_role (
     flow_role     ENUM('审批人','分发人','执行人','观察者')        NOT NULL COMMENT '在某条流程中的身份',
     work_order_id BIGINT,                                -- 根据工单ID是否为null来区分人员的位置是在工单内部还是工单外部
 
-    FOREIGN KEY (user_id)       REFERENCES user(username),
+    FOREIGN KEY (user_id)       REFERENCES user(username)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
     FOREIGN KEY (work_order_id) REFERENCES work_order(id)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE
 );

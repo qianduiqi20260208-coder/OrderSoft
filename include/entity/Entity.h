@@ -78,7 +78,7 @@ struct Ticket {
 		j["status"] = status; // 工单状态
 		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
 		j["referencePriority"] = priorityHint; // 参考优先级
-		j["distributorID"] = (distributorId != -1 ? std::to_string(distributorId) : ""); // 分发人ID
+		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
 		j["approveTime"] = approvedTime; // 审批时间
 		j["taskPriority"] = priorityTask; // 任务优先级
 		j["distributeTime"] = distributedTime; // 分发时间
@@ -273,7 +273,7 @@ struct TicketFeature :public Ticket{
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
-		j["finishFeatureDesc"] = featureInit; // 功能描述
+		j["featureDesc"] = featureInit; // 功能描述
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
 		return j;

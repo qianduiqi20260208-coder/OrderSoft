@@ -22,17 +22,22 @@ bool TicketService::dispatchTicket(const Ticket &ticket)
 
 bool TicketService::completeTicket(const Ticket &ticket)
 {
+    bool ret = true;
     //一方面增加新的模型版本，另一方面往工单表里插入数据
     if(ticket.ticketType == "功能开发")
     {
         auto& t = dynamic_cast<const TicketFeature&>(ticket);
-        modelDAO->addModelVersion(ticket.model,t.newModelVersion);
+        ret = modelDAO->addModelVersion(ticket.model,t.newModelVersion);
     }else if(ticket.ticketType == "版本迭代"){
         auto& t = dynamic_cast<const TicketVersion&>(ticket);
-        modelDAO->addModelVersion(ticket.model,t.newModelVersion);
+        ret = modelDAO->addModelVersion(ticket.model,t.newModelVersion);
     }else if(ticket.ticketType == "直接封装+发送"){
         auto& t = dynamic_cast<const TicketPackage&>(ticket);
-        modelDAO->addModelVersion(ticket.model,t.newModelVersion);
+        ret = modelDAO->addModelVersion(ticket.model,t.newModelVersion);
+    }
+    if(!ret)
+    {
+        return false; // 如果模型版本添加失败，直接返回
     }
     
     return ticketDAO->completeTicket(ticket);

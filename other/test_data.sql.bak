@@ -40,6 +40,7 @@ insert into customer_info(customer_name) values('lisi');
 -- 模型版本
 insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.1');
 insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.2');
+insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.3');
 insert into model_version(model,version) values('ATA08_WeightBalance','10.2.1');
 insert into model_version(model,version) values('ATA08_WeightBalance','10.2.2');
 insert into model_version(model,version) values('ATA08_WeightBalance','10.2.3');

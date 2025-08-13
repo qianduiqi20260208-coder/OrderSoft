@@ -36,6 +36,8 @@ insert into user(username,password,last_model_used) values(111111,123456,1);
 -- 客户信息
 insert into customer_info(customer_name) values('zhangsan');
 insert into customer_info(customer_name) values('lisi');
+insert into customer_info(customer_name) values('华为');
+insert into customer_info(customer_name) values('中兴');
 
 -- 模型版本
 insert into model_version(model,version) values('ATA04_Aerodynamics','12.2.1');
