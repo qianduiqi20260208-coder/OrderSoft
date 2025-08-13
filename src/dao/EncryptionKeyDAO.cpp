@@ -19,7 +19,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
 
     std::vector<DongleInfo> retVec;
 
-    snprintf(sql, SQL_MAX, "select * from encryption_key;");
+    snprintf(sql, SQL_MAX_, "select * from encryption_key;");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getDongleInfo 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -35,7 +35,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
         di.shellSerial = row[2];
         
         //根据外壳号去加密狗历史信息表里查询与加密狗关联的诸多信息
-        snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
+        snprintf(sql, SQL_MAX_, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getDongleInfo 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -67,7 +67,7 @@ bool EncryptionKey::createEncryptionKey(std::string s1, std::string s2)
         return false;
     }
 
-    snprintf(sql, SQL_MAX, "insert into encryption_key(shell_number,shell_serial_number) values('%s','%s'); ",s1.c_str(),s2.c_str());
+    snprintf(sql, SQL_MAX_, "insert into encryption_key(shell_number,shell_serial_number) values('%s','%s'); ",s1.c_str(),s2.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:createEncryptionKey 插入 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -91,7 +91,7 @@ std::vector<std::pair<int, std::string>> EncryptionKey::getAvailableShellNumbers
     // 优化后的SQL查询：获取可交付的外壳号
     // 1. 从未出库的外壳号（在encryption_key_history中没有记录）
     // 2. 最新状态为"入库"的外壳号
-    snprintf(sql, SQL_MAX,
+    snprintf(sql, SQL_MAX_,
              "SELECT DISTINCT ek.id, ek.shell_number "
              "FROM encryption_key ek "
              "WHERE ek.shell_number NOT IN ("
@@ -140,7 +140,7 @@ bool EncryptionKey::updateEncryptionKey(int id, std::string s1, std::string s2)
         return false;
     }
 
-    snprintf(sql, SQL_MAX, "update encryption_key set shell_number = '%s',shell_serial_number = '%s' where id = %d; ",s1.c_str(),s2.c_str(),id);
+    snprintf(sql, SQL_MAX_, "update encryption_key set shell_number = '%s',shell_serial_number = '%s' where id = %d; ",s1.c_str(),s2.c_str(),id);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:updateEncryptionKey 修改 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -168,7 +168,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     }
 
     // 1. 检查encryption_key表中是否已存在该外壳号
-    snprintf(sql, SQL_MAX, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:deliveryOperation 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -201,7 +201,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
         return false;
     }
     // 3. 检查客户名称是否存在于customer_info表中
-    snprintf(sql, SQL_MAX, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:deliveryOperation 查询 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -221,7 +221,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     // 4. 检查外壳号的当前状态，确保可以进行交付操作
     // 检查外壳号在记录表中最新一次操作是否为入库
-    snprintf(sql, SQL_MAX, "SELECT status FROM encryption_key_history WHERE encryption_key = '%s' ORDER BY id DESC LIMIT 1", shellNumber.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT status FROM encryption_key_history WHERE encryption_key = '%s' ORDER BY id DESC LIMIT 1", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:deliveryOperation 查询外壳号最新状态失败！失败原因：%s\n", mysql_error(mysql));
@@ -262,7 +262,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
 
     // 6. 向encryption_key_history表插入数据，status为"出库"，out_storage_time有值，in_storage_time为NULL
-    snprintf(sql, SQL_MAX,
+    snprintf(sql, SQL_MAX_,
              "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at) "
              "VALUES('%s', NULL, '%s', '出库', '%s', '%s', '%s', NOW())",
              shellNumber.c_str(), outStorageTime.c_str(), clientName.c_str(), deviceType.c_str(), deviceNote.c_str());
@@ -302,7 +302,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     }
 
     // 1. 检查客户名称是否存在于customer_info表中
-    snprintf(sql, SQL_MAX, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:returnOperation 查询 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -321,7 +321,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     }
 
     // 2. 检查encryption_key表中是否存在该外壳号
-    snprintf(sql, SQL_MAX, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:returnOperation 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -340,7 +340,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     }
 
     // 3. 检查是否存在未归还的出库记录并获取设备信息（status='出库'且in_storage_time为NULL）
-    snprintf(sql, SQL_MAX,
+    snprintf(sql, SQL_MAX_,
              "SELECT id, customer_device_type, customer_pc_remark FROM encryption_key_history WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' AND in_storage_time IS NULL ORDER BY created_at DESC LIMIT 1",
              shellNumber.c_str(), clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
@@ -365,7 +365,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     mysql_free_result(res);
 
     // 4. 插入新的入库记录到encryption_key_history表
-    snprintf(sql, SQL_MAX,
+    snprintf(sql, SQL_MAX_,
              "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at) "
              "VALUES('%s',NOW(), NULL, '入库', '%s', '%s', '%s', NOW())",
              shellNumber.c_str(), clientName.c_str(), deviceType.c_str(), deviceRemark.c_str());
@@ -407,7 +407,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     }
 
     // 1. 验证客户是否存在
-    snprintf(sql, SQL_MAX, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
+    snprintf(sql, SQL_MAX_, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:createAuthorization 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
@@ -425,7 +425,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     mysql_free_result(res);
 
     // 2. 验证外壳号是否存在且当前分配给指定客户
-    snprintf(sql, SQL_MAX,
+    snprintf(sql, SQL_MAX_,
         "SELECT ek.shell_number "
         "FROM encryption_key ek "
         "JOIN encryption_key_history ekh ON ek.shell_number = ekh.encryption_key "
@@ -456,7 +456,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     unsigned long long authorizationId = 0;
 
     // 首先查询是否已存在该外壳号和授权代码的记录
-    snprintf(sql, SQL_MAX, "SELECT id FROM product_authorization WHERE encryption_key = '%s' AND authorization_code = '%s'",
+    snprintf(sql, SQL_MAX_, "SELECT id FROM product_authorization WHERE encryption_key = '%s' AND authorization_code = '%s'",
              shellNumber.c_str(), authId.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
@@ -473,7 +473,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         mysql_free_result(res);
 
         // 更新product_authorization_info表
-        snprintf(sql, SQL_MAX,
+        snprintf(sql, SQL_MAX_,
                  "UPDATE product_authorization_info SET encryption_type = '%s', authorization_start_date = '%s', "
                  "authorization_end_date = '%s', remark = '%s' WHERE authorization_id = %llu",
                  authType.c_str(), startDate.c_str(), endDate.c_str(), authNote.c_str(), authorizationId);
@@ -482,7 +482,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         if (res) mysql_free_result(res);
 
         // 插入product_authorization表
-        snprintf(sql, SQL_MAX, "INSERT INTO product_authorization (encryption_key, authorization_code) VALUES ('%s', '%s')",
+        snprintf(sql, SQL_MAX_, "INSERT INTO product_authorization (encryption_key, authorization_code) VALUES ('%s', '%s')",
                  shellNumber.c_str(), authId.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
@@ -495,7 +495,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         authorizationId = mysql_insert_id(mysql);
 
         // 插入product_authorization_info表
-        snprintf(sql, SQL_MAX,
+        snprintf(sql, SQL_MAX_,
                  "INSERT INTO product_authorization_info (authorization_id, encryption_type, authorization_start_date, authorization_end_date, remark) "
                  "VALUES (%llu, '%s', '%s', '%s', '%s')",
                  authorizationId, authType.c_str(), startDate.c_str(), endDate.c_str(), authNote.c_str());

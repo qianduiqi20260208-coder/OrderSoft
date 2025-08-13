@@ -13,7 +13,7 @@ public:
     virtual bool updateClient(std::string,std::string,std::string) = 0;
 
     virtual std::vector<std::pair<std::string,std::string>> selectAllClientInfo() = 0;
-    virtual std::vector<const char*> selectEncryptionKeyByClient(std::string) = 0;
+    virtual std::vector<std::string> selectEncryptionKeyByClient(std::string) = 0;
     virtual std::pair<int,int> selectModelAndModelVersionCountByClient(std::string) = 0;
     virtual std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) = 0;
 
