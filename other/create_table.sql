@@ -240,8 +240,8 @@ CREATE TABLE IF NOT EXISTS encryption_key_history (
     in_storage_time DATETIME ,
     out_storage_time DATETIME ,
 	status ENUM('出库', '入库', '损坏', '丢失') NOT NULL,
-    customer VARCHAR(64) NOT NULL, -- 外键，引用客户信息表中的客户名字
-    customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS') NOT NULL,
+    customer VARCHAR(64), -- 外键，引用客户信息表中的客户名字
+    customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS'),
     customer_pc_remark TEXT,
     remark TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

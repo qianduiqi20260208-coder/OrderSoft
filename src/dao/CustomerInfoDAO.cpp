@@ -73,7 +73,7 @@ std::vector<std::pair<std::string, std::string>> CustomerInfoDAO::selectAllClien
     return retVec;
 }
 
-std::vector<const char *> CustomerInfoDAO::selectEncryptionKeyByClient(std::string client)
+std::vector<std::string> CustomerInfoDAO::selectEncryptionKeyByClient(std::string client)
 {
     std::vector<std::string> retVec;
     //检查数据库连接状态

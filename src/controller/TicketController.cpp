@@ -992,36 +992,6 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         return crow::response{ resp.dump() };
         });
 
-    // // 添加新客户
-    // CROW_ROUTE(app, "/customer/add").methods("POST"_method)
-    //     ([this](const crow::request& req) {
-    //     // // JWT校验
-    //     // if (!checkToken(req)) {
-    //     //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    //     // }
-    //     auto body = nlohmann::json::parse(req.body, nullptr, false);
-    //     if (body.is_discarded() || !body.contains("name")) {
-    //         return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
-    //     }
-    //     bool ok = service_.addCustomer(body["name"].get<std::string>());
-    //     nlohmann::json resp;
-    //     if (ok) {
-    //         resp = {
-    //             {"status", 1},
-    //             {"error", ""},
-    //             {"data", {{"message", "添加客户成功"}}}
-    //         };
-    //     }
-    //     else {
-    //         resp = {
-    //             {"status", 1},
-    //             {"error", "添加客户失败"},
-    //             {"data", nlohmann::json::object()}
-    //         };
-    //     }
-    //     return crow::response{ resp.dump() };
-    //     });
-
     // 获取外壳号列表
     CROW_ROUTE(app, "/order/shell-numbers").methods("GET"_method)
         ([this](const crow::request& req) {

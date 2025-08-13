@@ -1,170 +1,9 @@
 #include "CustomerInfoController.h"
 #include "jwt_utils.h"
 
-// CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoService> sp) : customerInfoService(sp) {}
-CustomerInfoController::CustomerInfoController() {
-
-}
+CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoService> sp) : customerInfoService(sp) {}
 
 void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
-    // 获取加密狗列表
-    CROW_ROUTE(app, "/dongle/list").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-
-        // // 调用加密狗服务获取加密狗列表
-        // auto dongleList = dongleService->getDongleList();
-        
-        // // 构建返回的JSON数据
-        // nlohmann::json dongleArray = nlohmann::json::array();
-        
-        // for (const auto& dongle : dongleList) {
-        //     nlohmann::json dongleItem = {
-        //         {"dongleId", dongle.dongleId},
-        //         {"shellCode", dongle.shellCode},          // 外壳号
-        //         {"shellSerial", dongle.shellSerial},      // 序列号
-        //         {"status", dongle.status},                // 状态：available/in_use/returned
-        //         {"currentClient", dongle.currentClient},  // 当前所属客户
-        //         {"deviceType", dongle.deviceType},        // 设备类型：lab/IPT/FTD/FFS
-        //         {"deviceNote", dongle.deviceNote},        // 设备备注
-        //         {"deliveryDate", dongle.deliveryDate},    // 交付日期
-        //         {"returnDate", dongle.returnDate},        // 归还日期
-        //         {"createTime", dongle.createTime},        // 创建时间
-        //         {"updateTime", dongle.updateTime}         // 更新时间
-        //     };
-        //     dongleArray.push_back(dongleItem);
-        // }
-
-        // 直接返回mock数据
-        nlohmann::json dongleArray = nlohmann::json::array();
-        
-        // Mock数据1
-        dongleArray.push_back({
-            {"dongleId", "1"},
-            {"shellCode", "A53000000001"},
-            {"shellSerial", "89172CAS240919239001890"},
-            {"dongleRemark", "CAE技术有限公司专用加密狗"},
-            {"dongleStatus", "出库"},
-            {"clientName", "CAE"},
-            {"deviceType", "lab"},
-            {"note", "实验室环境专用设备，用于CAE计算测试"},
-            {"inTime", "2024-05-06 10:00:00"},
-            {"outTime", "2024-07-15 14:30:00"}
-        });
-        
-        // Mock数据2
-        dongleArray.push_back({
-            {"dongleId", "2"},
-            {"shellCode", "A53000000002"},
-            {"shellSerial", "89172CAS240919239001891"},
-            {"dongleRemark", "华模科技专用加密狗"},
-            {"dongleStatus", "出库"},
-            {"clientName", "华模科技"},
-            {"deviceType", "IPT"},
-            {"note", "集成产品团队专用设备，支持多用户协作"},
-            {"inTime", "2024-07-20 09:00:00"},
-            {"outTime", "2024-07-25 16:00:00"}
-        });
-        
-        // Mock数据3
-        dongleArray.push_back({
-            {"dongleId", "3"},
-            {"shellCode", "A53000000003"},
-            {"shellSerial", "89172CAS240919239001892"},
-            {"dongleRemark", "测试环境专用加密狗"},
-            {"dongleStatus", "入库"},
-            {"clientName", "CAE"},
-            {"deviceType", "FTD"},
-            {"note", "飞行测试数据处理系统专用设备"},
-            {"inTime", "2024-07-25 15:00:00"},
-            {"outTime", ""}
-        });
-        
-        // Mock数据4
-        dongleArray.push_back({
-            {"dongleId", "4"},
-            {"shellCode", "A53000000004"},
-            {"shellSerial", "89172CAS240919239001893"},
-            {"dongleRemark", "新入库加密狗，待分配"},
-            {"dongleStatus", "入库"},
-            {"clientName", "暂无"},
-            {"deviceType", "lab"},
-            {"note", "待分配给客户的新设备"},
-            {"inTime", "2025-07-28 10:00:00"},
-            {"outTime", ""}
-        });
-        
-        // Mock数据5
-        dongleArray.push_back({
-            {"dongleId", "5"},
-            {"shellCode", "A53000000005"},
-            {"shellSerial", "89172CAS240919239001894"},
-            {"dongleRemark", "损坏设备，需要维修"},
-            {"dongleStatus", "损坏"},
-            {"clientName", "华模科技"},
-            {"deviceType", "FFS"},
-            {"note", "全功能仿真系统，硬件故障待维修"},
-            {"inTime", "2024-01-15 14:00:00"},
-            {"outTime", "2024-06-20 10:30:00"}
-        });
-        
-        // Mock数据6
-        dongleArray.push_back({
-            {"dongleId", "6"},
-            {"shellCode", "A53000000006"},
-            {"shellSerial", "89172CAS240919239001895"},
-            {"dongleRemark", "丢失设备记录"},
-            {"dongleStatus", "丢失"},
-            {"clientName", "CAE"},
-            {"deviceType", "lab"},
-            {"note", "实验室设备，已确认丢失"},
-            {"inTime", "2024-03-01 08:00:00"},
-            {"outTime", "2024-04-15 17:00:00"}
-        });
-        
-        // Mock数据7
-        dongleArray.push_back({
-            {"dongleId", "7"},
-            {"shellCode", "A53000000007"},
-            {"shellSerial", "89172CAS240919239001896"},
-            {"dongleRemark", "备用加密狗"},
-            {"dongleStatus", "入库"},
-            {"clientName", "暂无"},
-            {"deviceType", "lab"},
-            {"note", "备用设备，待分配"},
-            {"inTime", "2025-07-30 11:00:00"},
-            {"outTime", ""}
-        });
-        
-        // Mock数据8
-        dongleArray.push_back({
-            {"dongleId", "8"},
-            {"shellCode", "A53000000008"},
-            {"shellSerial", "89172CAS240919239001897"},
-            {"dongleRemark", "高级授权加密狗"},
-            {"dongleStatus", "出库"},
-            {"clientName", "CAE"},
-            {"deviceType", "IPT"},
-            {"note", "高级功能测试设备"},
-            {"inTime", "2025-07-01 09:00:00"},
-            {"outTime", "2025-07-01 15:00:00"}
-        });
-
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"success", true},
-                {"message", "获取加密狗列表成功"},
-                {"list", dongleArray},
-                {"total", 8}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
 
     // 获取特定加密狗的历史记录
     CROW_ROUTE(app, "/dongle/<string>/history").methods("GET"_method)
@@ -477,7 +316,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             // 参数验证
             if (!reqData.contains("clientName")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName"},
                     {"data", {}}
                 };
@@ -485,29 +324,48 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             }
 
             std::string clientName = reqData["clientName"];
-            std::string clientInfo = reqData.value("clientinfo", ""); // 可选参数
+            std::string clientInfo = reqData.value("clientinfo", ""); 
 
             printf("[DEBUG] 新建客户，clientName: %s, clientInfo: %s\n", 
                    clientName.c_str(), clientInfo.c_str());
 
-            // TODO: 调用服务层创建客户
-            // bool result = clientService->createClient(clientName, clientInfo);
+            // // TODO: 调用服务层创建客户
+            // bool result = customerInfoService->addClientInfo(clientName, clientInfo);
 
-            nlohmann::json resp = {
-                {"status", 1},
-                {"error", ""},
-                {"data", {
-                    {"success", true},
-                    {"message", "客户创建成功"}
-                }}
-            };
-            
-            return crow::response{ resp.dump() };
+            bool result = true;
+
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "客户创建成功"}
+                    }}
+                };
+                
+                return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "客户创建失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "客户创建失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+
 
         } catch (const std::exception& e) {
             printf("[ERROR] 新建客户失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -530,7 +388,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             // 参数验证
             if (!reqData.contains("originalClientName") || !reqData.contains("clientName")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：originalClientName 或 clientName"},
                     {"data", {}}
                 };
@@ -544,24 +402,43 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             printf("[DEBUG] 编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
                    originalClientName.c_str(), clientName.c_str(), clientInfo.c_str());
 
-            // TODO: 调用服务层更新客户信息
-            // bool result = clientService->updateClient(originalClientName, clientName, clientInfo);
+            // // TODO: 调用服务层更新客户信息
+            // bool result = customerInfoService->alterClientInfo(originalClientName, clientName, clientInfo);
 
-            nlohmann::json resp = {
-                {"status", 1},
-                {"error", ""},
-                {"data", {
-                    {"success", true},
-                    {"message", "客户信息更新成功"}
-                }}
-            };
-            
-            return crow::response{ resp.dump() };
+            bool result = true;
+
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "客户信息更新成功"}
+                    }}
+                };
+                
+                return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "客户信息更新失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "客户信息更新失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+
 
         } catch (const std::exception& e) {
             printf("[ERROR] 编辑客户失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -587,7 +464,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "缺少必要参数：clientName"},
                 {"data", {}}
             };
@@ -597,7 +474,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         printf("[DEBUG] 获取发送详情信息，clientName: %s\n", clientName.c_str());
 
         // TODO: 调用服务层获取发送详情
-        // auto sendDetailList = clientService->getSendDetail(clientName);
+        // auto sendDetailList = customerInfoService->getSendDetail(clientName);
 
         nlohmann::json resp = {
             {"status", 1},
@@ -638,7 +515,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "缺少必要参数：clientName"},
                 {"data", {}}
             };
@@ -649,7 +526,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
                clientName.c_str(), page, pageSize);
 
         // TODO: 调用服务层获取分页发送详情
-        // auto sendDetailList = clientService->getSendDetailWithPagination(clientName, page, pageSize);
+        // auto sendDetailList = customerInfoService->getSendDetailWithPagination(clientName, page, pageSize);
 
         nlohmann::json resp = {
             {"status", 1},
@@ -683,7 +560,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "缺少必要参数：clientName"},
                 {"data", {}}
             };
@@ -693,7 +570,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         printf("[DEBUG] 获取发送总览，clientName: %s\n", clientName.c_str());
 
         // TODO: 调用服务层获取发送总览
-        // auto sendOverview = clientService->getSendOverview(clientName);
+        // auto sendOverview = customerInfoService->getSendOverview(clientName);
 
         nlohmann::json resp = {
             {"status", 1},
@@ -725,7 +602,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "缺少必要参数：clientName"},
                 {"data", {}}
             };
@@ -735,7 +612,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         printf("[DEBUG] 获取授权详情信息，clientName: %s\n", clientName.c_str());
 
         // TODO: 调用服务层获取授权详情
-        // auto authDetailList = clientService->getAuthDetail(clientName);
+        // auto authDetailList = customerInfoService->getAuthDetail(clientName);
 
         nlohmann::json resp = {
             {"status", 1},
@@ -772,7 +649,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 参数验证
         if (clientName.empty() || shellNumber.empty()) {
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "缺少必要参数：clientName 或 shellNumber"},
                 {"data", {}}
             };
@@ -813,7 +690,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
                 !reqData.contains("deviceType") || !reqData.contains("deviceNote")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
                     {"data", {}}
                 };
@@ -845,7 +722,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         } catch (const std::exception& e) {
             printf("[ERROR] 交付外壳失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -869,7 +746,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
                 !reqData.contains("returnDate")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber 或 returnDate"},
                     {"data", {}}
                 };
@@ -900,7 +777,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         } catch (const std::exception& e) {
             printf("[ERROR] 归还外壳失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -925,7 +802,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
                 !reqData.contains("authType") || !reqData.contains("startDate") || 
                 !reqData.contains("endDate") || !reqData.contains("authNote")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber、authType、startDate、endDate 或 authNote"},
                     {"data", {}}
                 };
@@ -961,7 +838,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         } catch (const std::exception& e) {
             printf("[ERROR] 新建授权信息失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -985,7 +862,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
                 !reqData.contains("deviceType") || !reqData.contains("deviceNote")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
                     {"data", {}}
                 };
@@ -1017,7 +894,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         } catch (const std::exception& e) {
             printf("[ERROR] 更新外壳号信息失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };
@@ -1040,7 +917,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("changes")) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "缺少必要参数：clientName 或 changes"},
                     {"data", {}}
                 };
@@ -1053,7 +930,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             // 验证changes数组格式
             if (!changes.is_array()) {
                 nlohmann::json resp = {
-                    {"status", 0},
+                    {"status", 1},
                     {"error", "参数格式错误：changes 必须是数组"},
                     {"data", {}}
                 };
@@ -1090,7 +967,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         } catch (const std::exception& e) {
             printf("[ERROR] 批量更新授权截止日期失败: %s\n", e.what());
             nlohmann::json resp = {
-                {"status", 0},
+                {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
                 {"data", {}}
             };

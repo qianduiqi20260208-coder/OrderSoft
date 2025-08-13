@@ -180,6 +180,7 @@ struct TicketVersion :public Ticket{
 		j["packageRequirement"] = packRequirement; // 封装要求
 		j["apiChanged"] = interfaceChanged ? "是" : "否"; // 接口是否变化（是/否）
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishRemark"] = remark; // 备注
 		return j;
 	}
@@ -201,7 +202,7 @@ struct TicketPackage :public Ticket{
     std::string sensitiveInfo; // 是否包含敏感信息
 
     std::string newModelVersion; // 升级后模型版本
-    std::string baseModelVersion;//模型基版本
+    std::string baseModelVersion;// 模型基版本
     bool encrypted; // 是否加密
     std::string dongle; // 外壳号
     std::string license; // 授权ID
@@ -221,6 +222,7 @@ struct TicketPackage :public Ticket{
 		j["isCAEChecked"] = validatedByCAE ? "是" : "否"; // 是否经过CAE检查（是/否）
 		j["hasSensitiveInfo"] = sensitiveInfo; // 是否包含敏感信息（是/否）
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本ID
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["isEncrypted"] = encrypted ? "是" : "否"; // 是否加密（是/否）
 		j["finishShellNo"] = dongle; // 外壳号
 		j["finishAuthId"] = license; // 授权ID
@@ -275,6 +277,7 @@ struct TicketFeature :public Ticket{
 		//j["ticketId"] = ticketId;
 		j["featureDesc"] = featureInit; // 功能描述
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
 		return j;
 	}
@@ -310,6 +313,22 @@ struct DongleInfo {
     std::string clientNote;         // 客户电脑备注
     std::string inTime;             // 入库时间（建议使用 std::chrono 或转成时间戳类型）
     std::string outTime;            // 出库时间（建议使用 std::chrono 或转成时间戳类型）
+
+    // 序列化接口
+    nlohmann::json to_json() const {
+        nlohmann::json j;
+        j["dongleId"] = dongleId; // 加密狗ID
+        j["shellCode"] = shellCode; // 外壳号
+        j["shellSerial"] = shellSerial; // 外壳序列号
+        j["dongleRemark"] = dongleRemark; // 加密狗备注
+        j["dongleStatus"] = dongleStatus; // 加密狗状态
+        j["clientName"] = clientName; // 客户名称
+        j["clientDeviceType"] = clientDeviceType; // 客户设备类型
+        j["clientNote"] = clientNote; // 客户电脑备注
+        j["inTime"] = inTime; // 入库时间
+        j["outTime"] = outTime; // 出库时间
+        return j;
+    }
 };
 
 

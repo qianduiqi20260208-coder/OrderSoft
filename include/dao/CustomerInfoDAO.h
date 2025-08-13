@@ -13,7 +13,7 @@ public:
     bool updateClient(std::string,std::string,std::string) override;
 
     std::vector<std::pair<std::string,std::string>> selectAllClientInfo() override;
-    std::vector<const char*> selectEncryptionKeyByClient(std::string) override;
+    std::vector<std::string> selectEncryptionKeyByClient(std::string) override;
     std::pair<int,int> selectModelAndModelVersionCountByClient(std::string) override;
     std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) override;
 
