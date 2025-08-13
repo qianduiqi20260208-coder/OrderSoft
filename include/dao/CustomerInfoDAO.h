@@ -1,13 +1,13 @@
 #pragma once
 #include "ICustomerInfoDAO.h"
 #include <mysql.h>
-#define SQL_MAX 512		// sql语句字符数组最大值
+#define SQL_MAX 1024	
 
 class CustomerInfoDAO : public ICustomerInfoDAO
 {
 public:
-    CustomerInfoDAO(MYSQL* m);
-    
+    CustomerInfoDAO(MYSQL* ms);
+
     bool createClient(std::string,std::string) override;
     //第一个string是原客户名称，第二个string是新客户名称，第三个string是客户信息备注
     bool updateClient(std::string,std::string,std::string) override;
@@ -17,7 +17,14 @@ public:
     std::pair<int,int> selectModelAndModelVersionCountByClient(std::string) override;
     std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) override;
 
+    // 根据客户名称获取客户信息和加密狗授权信息
+    Client getClientAuthInfo(const std::string& clientName) override;
+
+    // 获取所有客户名称列表
+    std::vector<std::string> getAllClientNames() override;
+
     ~CustomerInfoDAO();
+
 private:
     MYSQL* mysql;
     char sql[SQL_MAX];		// 存储sql语句
@@ -25,4 +32,3 @@ private:
     MYSQL_ROW row;
     int ret;
 };
-

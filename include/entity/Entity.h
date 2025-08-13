@@ -365,3 +365,31 @@ struct TicketReproduceAttachment
 };
  
 
+// 
+struct Authorization 
+{
+    std::string authId;
+    std::string startDate;
+    std::string endDate;
+    std::string authType;
+    std::string authNote;
+    // std::string status; 暂不定义
+};
+//
+struct ShellNumber 
+{
+   
+   std::string shellNumber;
+   std::string deviceType;
+   std::string deviceNote;
+   int authCount;
+   std::vector<Authorization> authorizationList;
+};
+//
+struct Client
+{
+   int id;
+   std::string clientName;
+   int dongleCount;
+   std::vector<ShellNumber> shellNumbers;
+};

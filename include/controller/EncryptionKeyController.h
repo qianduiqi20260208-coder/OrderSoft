@@ -1,26 +1,33 @@
-/*****************************************************************//**
- * \file   EncryptionKeyController.h
- * \brief  加密狗控制器，负责注册加密狗相关的 HTTP 路由
- * 
- * \author 
- * \date   August 2025
- *********************************************************************/
 #pragma once
 #include "IEncryptionKeyService.h"
-#include "entity/Entity.h"
-#include "util/ticket.h"
 #include <memory>
-#include <crow.h>
+#include <string>
 #include <nlohmann/json.hpp>
+#include <crow.h>
 
-class EncryptionKeyController {
+class EncryptionKeyController
+{
 public:
-    EncryptionKeyController(std::shared_ptr<IEncryptionKeyService>);
-    /**
-     * @brief 注册路由到 Crow 应用
-     * @param app Crow 应用对象
-     */
+    EncryptionKeyController(std::shared_ptr<IEncryptionKeyService> service);
+    
+    // 注册路由
     void registerRoutes(crow::SimpleApp& app);
+    
+    // 交付操作处理函数
+    crow::response handleDeliveryOperation(const crow::request& req);
+    
+    // 入库操作处理函数
+    crow::response handleReturnOperation(const crow::request& req);
+    
+    // 获取可交付外壳号列表处理函数
+    crow::response handleGetAvailableShellNumbers(const crow::request& req);
+    
+    // 创建授权处理函数
+    crow::response handleCreateAuthorization(const crow::request& req);
+    
 private:
-    std::shared_ptr<IEncryptionKeyService> encryptionKeyService;
+    std::shared_ptr<IEncryptionKeyService> encryptionKeyService_;
+    
+    // 检查token是否有效
+    bool checkToken(const crow::request& req);
 };
