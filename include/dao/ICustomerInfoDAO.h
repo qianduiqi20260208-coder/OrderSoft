@@ -23,9 +23,5 @@ public:
     // 获取所有客户名称列表
     virtual std::vector<std::string> getAllClientNames() = 0;
 
-    virtual ~ICustomerInfoDAO() = 0;
-
     virtual ~ICustomerInfoDAO() = default;
 };
-
-inline ICustomerInfoDAO::~ICustomerInfoDAO() = default;

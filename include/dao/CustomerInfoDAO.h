@@ -1,6 +1,7 @@
 #pragma once
 #include "ICustomerInfoDAO.h"
 #include <mysql.h>
+#define SQL_MAX 1024	
 
 class CustomerInfoDAO : public ICustomerInfoDAO
 {
@@ -26,7 +27,7 @@ public:
 
 private:
     MYSQL* mysql;
-    char sql[1024];		// 存储sql语句
+    char sql[SQL_MAX];		// 存储sql语句
     MYSQL_RES* res;
     MYSQL_ROW row;
     int ret;
