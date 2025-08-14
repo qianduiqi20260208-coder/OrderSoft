@@ -254,7 +254,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             "LEFT JOIN "
             "    product_authorization_info pai ON pa.id = pai.authorization_id "
             "WHERE "
-            "    ci.customer_name = '%s' AND ek.shell_number = '%s' AND ekh.status = '出库' ;",
+            "    ci.customer_name = '%s' AND ek.shell_number = '%s' AND ekh.status = '出库' AND pa.return = '0' ;",
+
             // "    AND (pa.generate_time IS NULL OR pa.generate_time >= ekh.out_storage_time)", 
             clientName.c_str(), shellNumber.c_str());
         

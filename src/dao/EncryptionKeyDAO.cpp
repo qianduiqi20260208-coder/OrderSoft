@@ -375,6 +375,17 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
+    // 5. 设置授权为归还
+    snprintf(sql, SQL_MAX_, "UPDATE `model_life_manager`.`product_authorization` SET `return` = '1' WHERE `encryption_key` = '%s'", shellNumber.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:returnOperation 更新 product_authorization 表失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+    // 6.TODO设置授权的结束时间
+
+
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
