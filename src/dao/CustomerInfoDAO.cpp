@@ -265,7 +265,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         }
         
         res = mysql_store_result(mysql);
-        
+        bool haveAuth = false;
+        Authorization lastAuth;
         // 处理查询结果，构建Authorization列表
         while (row = mysql_fetch_row(res))
         {
@@ -279,13 +280,19 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
                 auth.authType = row[3] ? row[3] : "";
                 auth.authNote = row[4] ? row[4] : "";
                 
-                // 添加授权信息到对应的ShellNumber 只添加最后一个
-
-                //shellNumberMap[shellNumber].authorizationList.push_back(auth);
-                shellNumberMap[shellNumber].authorizationList[0] = auth;
                 shellNumberMap[shellNumber].authCount++;
+
+                // 添加授权信息到对应的ShellNumber 只添加最后一个
+                haveAuth = true;
+                lastAuth = auth;
+                //shellNumberMap[shellNumber].authorizationList.push_back(auth);
             }
         }
+        if (haveAuth)
+        {
+            shellNumberMap[shellNumber].authorizationList.push_back(lastAuth);
+        }
+        
         mysql_free_result(res);
     }
     
