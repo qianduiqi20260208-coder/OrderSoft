@@ -19,8 +19,10 @@ public:
     // 归还操作：更新encryption_key_history表中的归还时间和状态
     bool returnOperation(const std::string& clientName,
                          const std::string& shellNumber,
+                         const std::string& operationType,
                          const std::string& inTime,
-                         const std::string& outTime) override;
+                         const std::string& outTime,
+                         const std::string& remark) override;
 
     // 获取可交付的外壳号列表
     std::vector<std::pair<int, std::string>> getAvailableShellNumbers() override;

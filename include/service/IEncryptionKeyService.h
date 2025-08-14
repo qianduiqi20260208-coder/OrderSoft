@@ -19,11 +19,13 @@ public:
                                   const std::string& deviceNote) = 0;
 
     // 归还操作：更新encryption_key_history表中的归还时间和状态
-    // 参数：客户名称、外壳号、归还时间
+    // 参数：客户名称、外壳号、操作类型、入库时间、出库时间、备注
     virtual bool returnOperation(const std::string& clientName,
                                  const std::string& shellNumber,
+                                 const std::string& operationType,
                                  const std::string& inTime,
-                                 const std::string& outTime) = 0;
+                                 const std::string& outTime,
+                                 const std::string& remark) = 0;
 
     // 获取可交付的外壳号列表
     // 返回：可交付的外壳号信息列表（id和shell_number）

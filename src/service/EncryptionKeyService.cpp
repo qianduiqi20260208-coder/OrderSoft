@@ -32,11 +32,14 @@ bool EncryptionKeyService::deliveryOperation(const std::string& clientName,
 
 bool EncryptionKeyService::returnOperation(const std::string& clientName,
                                            const std::string& shellNumber,
+                                           const std::string& operationType,
                                            const std::string& inTime,
-                                           const std::string& outTime)
+                                           const std::string& outTime,
+                                           const std::string& remark)
 {
     // 调用DAO层的归还操作方法
-    return encryptionKeyDAO_->returnOperation(clientName, shellNumber, inTime, outTime);
+    return encryptionKeyDAO_->returnOperation(clientName, shellNumber, operationType, inTime, outTime, remark);
+
 }
 
 std::vector<std::pair<int, std::string>> EncryptionKeyService::getAvailableShellNumbers()

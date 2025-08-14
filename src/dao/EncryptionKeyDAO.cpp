@@ -287,8 +287,10 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 // 入库操作：更新encryption_key_history表中的入库时间和状态
 bool EncryptionKey::returnOperation(const std::string& clientName,
                                    const std::string& shellNumber,
+                                   const std::string& operationType,
                                    const std::string& inTime,
-                                   const std::string& outTime)
+                                   const std::string& outTime,
+                                   const std::string& remark)
 {
     // 检查数据库连接状态
     if(!DBConnectionManager::ensureConnected(mysql))
@@ -368,8 +370,8 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     // 4. 插入新的入库记录到encryption_key_history表
     snprintf(sql, SQL_MAX_,
              "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at) "
-             "VALUES('%s','%s','%s', '入库', '%s', '%s', '%s', NOW())",
-             shellNumber.c_str(), inTime.c_str(), outTime.c_str(), clientName.c_str(), deviceType.c_str(), deviceRemark.c_str());
+             "VALUES('%s','%s','%s', '%s', '%s', '%s', '%s', NOW())",
+             shellNumber.c_str(), inTime.c_str(), outTime.c_str(), operationType.c_str(), clientName.c_str(), deviceType.c_str(), deviceRemark.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:returnOperation 插入 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -386,7 +388,17 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     }
     // 6.TODO设置授权的结束时间
 
-
+    // 7. 如果操作类型为'损坏'或'丢失'，更新encryption_key表的remark字段
+    if (operationType == "损坏" || operationType == "丢失") {
+        snprintf(sql, SQL_MAX_, "UPDATE encryption_key SET remark = '%s' WHERE shell_number = '%s'", remark.c_str(), shellNumber.c_str());
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:returnOperation 更新 encryption_key 表 remark 字段失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        printf("[info] function:returnOperation 外壳号 %s 因 %s 更新备注：%s\n", shellNumber.c_str(), operationType.c_str(), remark.c_str());
+    }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {

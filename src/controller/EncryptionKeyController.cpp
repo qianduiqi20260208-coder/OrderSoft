@@ -266,11 +266,12 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+                !reqData.contains("operationType") || 
                 !reqData.contains("inTime") || 
                 !reqData.contains("outTime")) {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "缺少必要参数：clientName、shellNumber 或 inTime 或 outTime"},
+                    {"error", "缺少必要参数：clientName、shellNumber 或 operationType 或 inTime 或 outTime"},
                     {"data", {}}
                 };
                 return crow::response(400, resp.dump());
@@ -280,12 +281,16 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             std::string shellNumber = reqData["shellNumber"];
             std::string inTime = reqData["inTime"];
             std::string outTime = reqData["outTime"];
+            std::string operationType = reqData["operationType"];
+            std::string remark = reqData.contains("remark") ? reqData["remark"] : "";
 
-            printf("[DEBUG] 归还外壳，clientName: %s, shellNumber: %s, inTime: %s, outTime: %s\n", 
-                   clientName.c_str(), shellNumber.c_str(), inTime.c_str(), outTime.c_str());
+
+            printf("[DEBUG] 归还外壳，clientName: %s, shellNumber: %s, inTime: %s, outTime: %s, operationType: %s, remark: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), inTime.c_str(), outTime.c_str(), operationType.c_str(), remark.c_str());
 
             // 调用服务层归还外壳
-            bool success = encryptionKeyService_->returnOperation(clientName, shellNumber, inTime, outTime);
+            bool success = encryptionKeyService_->returnOperation(clientName, shellNumber, operationType, inTime, outTime, remark);
+
 
             if(success)
             {
