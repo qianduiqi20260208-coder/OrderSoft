@@ -23,5 +23,8 @@ public:
     // 获取所有客户名称列表
     virtual std::vector<std::string> getAllClientNames() = 0;
 
+    // 获取指定客户和外壳号的授权信息
+    virtual std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) = 0;
+
     virtual ~ICustomerInfoDAO() = default;
 };

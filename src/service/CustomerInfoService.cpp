@@ -107,3 +107,54 @@ std::vector<std::string> CustomerInfoService::getAllClientNames()
 {
     return customerInfoDAO_->getAllClientNames();
 }
+
+nlohmann::json CustomerInfoService::getShellAuthorizationInfoJson(const std::string& clientName, const std::string& shellNumber)
+{
+    nlohmann::json result;
+    
+    // 设置默认返回结构
+    result["error"] = "";
+    result["status"] = 1;
+    result["data"] = nlohmann::json::object();
+    
+    // 调用DAO层获取指定外壳号的授权信息
+    std::vector<Authorization> authorizationList = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+    
+    // 构建返回的JSON数据
+    nlohmann::json& data = result["data"];
+    data["clientName"] = clientName;
+    data["shellNumber"] = shellNumber;
+    data["authCount"] = authorizationList.size();
+    data["authorizationList"] = nlohmann::json::array();
+    
+    // 处理每个授权信息
+    for (const auto& auth : authorizationList)
+    {
+        nlohmann::json authInfo;
+        authInfo["authId"] = auth.authId;
+        authInfo["startDate"] = auth.startDate;
+        authInfo["endDate"] = auth.endDate;
+        authInfo["authType"] = auth.authType;
+        authInfo["authNote"] = auth.authNote;
+        
+        // 根据日期判断授权状态
+        std::string status = "有效";
+        
+        // 获取当前日期（简化处理，实际应该使用标准库的日期时间函数）
+        time_t now = time(nullptr);
+        struct tm* timeinfo = localtime(&now);
+        char currentDate[11];
+        strftime(currentDate, sizeof(currentDate), "%Y-%m-%d", timeinfo);
+        
+        // 简单的字符串比较来判断日期（实际项目中应该使用更严格的日期比较）
+        if (!auth.endDate.empty() && auth.endDate < std::string(currentDate))
+        {
+            status = "已过期";
+        }
+        
+        authInfo["status"] = status;
+        data["authorizationList"].push_back(authInfo);
+    }
+    
+    return result;
+}

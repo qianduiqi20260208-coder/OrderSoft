@@ -25,6 +25,9 @@ public:
     // 处理获取所有客户名称的HTTP请求
     crow::response handleGetAllClientNames(const crow::request& req);
     
+    // 处理获取指定客户和外壳号授权信息的HTTP请求
+    crow::response handleGetShellAuthorizationInfo(const crow::request& req);
+    
 private:
     std::shared_ptr<ICustomerInfoService> customerInfoService_;
 };

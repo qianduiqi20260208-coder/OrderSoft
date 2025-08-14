@@ -55,3 +55,22 @@ bool EncryptionKeyService::createAuthorization(const std::string& clientName,
     // 调用DAO层的创建授权方法
     return encryptionKeyDAO_->createAuthorization(clientName, shellNumber, authId, authType, startDate, endDate, authNote);
 }
+
+bool EncryptionKeyService::updateAuthorizationEndDates(const std::string& clientName,
+                                                       const std::vector<std::tuple<std::string, std::string, std::string>>& changes)
+{
+    // 调用DAO层的批量更新授权截止日期方法
+    return encryptionKeyDAO_->updateAuthorizationEndDates(clientName, changes);
+}
+
+bool EncryptionKeyService::updateShellDeviceInfo(const std::string& clientName,
+                                                 const std::string& shellNumber,
+                                                 const std::string& deviceType,
+                                                 const std::string& deviceNote)
+{
+    return encryptionKeyDAO_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote);
+}
+
+EncryptionKeyService::~EncryptionKeyService()
+{
+}

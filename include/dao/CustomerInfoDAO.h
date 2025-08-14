@@ -23,6 +23,9 @@ public:
     // 获取所有客户名称列表
     std::vector<std::string> getAllClientNames() override;
 
+    // 获取指定客户和外壳号的授权信息
+    std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) override;
+
     ~CustomerInfoDAO();
 
 private:

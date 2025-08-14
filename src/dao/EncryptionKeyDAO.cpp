@@ -520,6 +520,227 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     return true;
 }
 
+bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
+                                               const std::vector<std::tuple<std::string, std::string, std::string>>& changes)
+{
+    char sql[SQL_MAX_];
+    int ret;
+
+    if (!mysql) {
+        printf("[error] function:updateAuthorizationEndDates MySQL连接为空！\n");
+        return false;
+    }
+
+    // 开始事务
+    if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
+        printf("[error] function:updateAuthorizationEndDates 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
+    // 1. 验证客户是否存在
+    snprintf(sql, SQL_MAX_, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updateAuthorizationEndDates 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    MYSQL_RES* res = mysql_store_result(mysql);
+    if (!res || mysql_num_rows(res) == 0) {
+        printf("[error] function:updateAuthorizationEndDates 客户不存在：%s\n", clientName.c_str());
+        if (res) mysql_free_result(res);
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+    mysql_free_result(res);
+
+    // 2. 逐个处理更新请求
+    for (const auto& change : changes) {
+        const std::string& shellNumber = std::get<0>(change);
+        const std::string& authId = std::get<1>(change);
+        const std::string& newEndDate = std::get<2>(change);
+
+        // 验证授权记录是否存在且属于指定客户的外壳号
+        snprintf(sql, SQL_MAX_,
+            "SELECT pai.id "
+            "FROM product_authorization pa "
+            "JOIN product_authorization_info pai ON pa.id = pai.authorization_id "
+            "JOIN encryption_key_history ekh ON pa.encryption_key = ekh.encryption_key "
+            "JOIN ("
+            "    SELECT encryption_key, MAX(id) as max_id "
+            "    FROM encryption_key_history "
+            "    GROUP BY encryption_key"
+            ") latest ON ekh.encryption_key = latest.encryption_key AND ekh.id = latest.max_id "
+            "WHERE pa.encryption_key = '%s' AND pa.authorization_code = '%s' "
+            "AND ekh.customer = '%s' AND ekh.status = '出库'",
+            shellNumber.c_str(), authId.c_str(), clientName.c_str());
+        
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:updateAuthorizationEndDates 查询授权记录失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+
+        res = mysql_store_result(mysql);
+        if (!res || mysql_num_rows(res) == 0) {
+            printf("[error] function:updateAuthorizationEndDates 授权记录不存在或不属于客户 %s：外壳号=%s, 授权ID=%s\n", 
+                   clientName.c_str(), shellNumber.c_str(), authId.c_str());
+            if (res) mysql_free_result(res);
+            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        MYSQL_ROW row = mysql_fetch_row(res);
+        std::string authInfoId = row[0];
+        mysql_free_result(res);
+
+        // 更新授权截止日期
+        snprintf(sql, SQL_MAX_,
+            "UPDATE product_authorization_info "
+            "SET authorization_end_date = '%s' "
+            "WHERE id = %s",
+            newEndDate.c_str(), authInfoId.c_str());
+        
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:updateAuthorizationEndDates 更新授权截止日期失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+
+        printf("[info] function:updateAuthorizationEndDates 成功更新授权：外壳号=%s, 授权ID=%s, 新截止日期=%s\n",
+               shellNumber.c_str(), authId.c_str(), newEndDate.c_str());
+    }
+
+    // 提交事务
+    if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
+        printf("[error] function:updateAuthorizationEndDates 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    printf("[info] function:updateAuthorizationEndDates 批量更新授权截止日期成功，共更新 %zu 条记录\n", changes.size());
+    return true;
+}
+
+bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
+                                         const std::string& shellNumber,
+                                         const std::string& deviceType,
+                                         const std::string& deviceNote)
+{
+    char sql[SQL_MAX_];
+    int ret;
+
+    if (!mysql) {
+        printf("[error] function:updateShellDeviceInfo MySQL连接为空！\n");
+        return false;
+    }
+
+    // 开始事务
+    if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
+        printf("[error] function:updateShellDeviceInfo 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
+    // 1. 验证客户是否存在
+    snprintf(sql, SQL_MAX_, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updateShellDeviceInfo 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    MYSQL_RES* res = mysql_store_result(mysql);
+    if (!res || mysql_num_rows(res) == 0) {
+        printf("[error] function:updateShellDeviceInfo 客户不存在：%s\n", clientName.c_str());
+        if (res) mysql_free_result(res);
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+    mysql_free_result(res);
+
+    // 2. 验证外壳号是否存在
+    snprintf(sql, SQL_MAX_, "SELECT shell_number FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updateShellDeviceInfo 查询外壳号失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    res = mysql_store_result(mysql);
+    if (!res || mysql_num_rows(res) == 0) {
+        printf("[error] function:updateShellDeviceInfo 外壳号不存在：%s\n", shellNumber.c_str());
+        if (res) mysql_free_result(res);
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+    mysql_free_result(res);
+
+    // 3. 验证设备类型是否有效
+    if (deviceType != "lab" && deviceType != "IPT" && deviceType != "FTD" && deviceType != "FFS") {
+        printf("[error] function:updateShellDeviceInfo 设备类型 '%s' 无效！有效值为: lab, IPT, FTD, FFS\n", deviceType.c_str());
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    // 4. 查找指定客户当前持有的外壳号的最新出库记录
+    snprintf(sql, SQL_MAX_,
+        "SELECT id FROM encryption_key_history "
+        "WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' "
+        "AND in_storage_time IS NULL "
+        "ORDER BY id DESC LIMIT 1",
+        shellNumber.c_str(), clientName.c_str());
+    
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updateShellDeviceInfo 查询外壳号出库记录失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    res = mysql_store_result(mysql);
+    if (!res || mysql_num_rows(res) == 0) {
+        printf("[error] function:updateShellDeviceInfo 外壳号 %s 未分配给客户 %s 或已归还\n", 
+               shellNumber.c_str(), clientName.c_str());
+        if (res) mysql_free_result(res);
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+    
+    MYSQL_ROW row = mysql_fetch_row(res);
+    std::string historyId = row[0];
+    mysql_free_result(res);
+
+    // 5. 更新外壳号的设备信息
+    snprintf(sql, SQL_MAX_,
+        "UPDATE encryption_key_history "
+        "SET customer_device_type = '%s', customer_pc_remark = '%s' "
+        "WHERE id = %s",
+        deviceType.c_str(), deviceNote.c_str(), historyId.c_str());
+    
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updateShellDeviceInfo 更新设备信息失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    // 提交事务
+    if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
+        printf("[error] function:updateShellDeviceInfo 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
+    printf("[info] function:updateShellDeviceInfo 成功更新外壳号设备信息：客户=%s, 外壳号=%s, 设备类型=%s\n",
+           clientName.c_str(), shellNumber.c_str(), deviceType.c_str());
+    return true;
+}
+
 EncryptionKey::~EncryptionKey()
 {
     DBConnectionManager::closeConnection(mysql);

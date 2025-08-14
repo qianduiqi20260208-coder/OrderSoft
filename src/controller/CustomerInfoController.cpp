@@ -1,6 +1,18 @@
 #include "CustomerInfoController.h"
 #include <jwt_utils.h>
 
+bool CustomerInfoController::checkToken(const crow::request& req)
+{
+    // 从请求头中获取token字段
+    std::string token = req.get_header_value("token");
+    if (token.empty()) {
+        return false;
+    }
+    
+    // 使用jwt_utils中的全局checkToken函数验证token
+    return ::checkToken(req);
+}
+
 CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoService> service)
     : customerInfoService_(service)
 {
@@ -574,6 +586,55 @@ std::string CustomerInfoController::getClientAuthInfo(const std::string& clientN
     
     // 将JSON对象转换为字符串返回
     return result.dump();
+}
+
+crow::response CustomerInfoController::handleGetShellAuthorizationInfo(const crow::request& req)
+{
+    // JWT校验
+    if (!checkToken(req)) {
+        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+    }
+    
+    try {
+        // 解析JSON请求体
+        nlohmann::json requestJson = nlohmann::json::parse(req.body);
+        
+        // 参数验证
+        if (!requestJson.contains("clientName") || !requestJson.contains("shellNumber")) {
+            return crow::response(400, R"({"status":0,"error":"缺少必要参数clientName或shellNumber","data":{}})");
+        }
+        
+        std::string clientName = requestJson["clientName"];
+        std::string shellNumber = requestJson["shellNumber"];
+        
+        if (clientName.empty() || shellNumber.empty()) {
+            return crow::response(400, R"({"status":0,"error":"客户名称和外壳号不能为空","data":{}})");
+        }
+        
+        // 调用Service层获取指定外壳号的授权信息
+        nlohmann::json result = customerInfoService_->getShellAuthorizationInfoJson(clientName, shellNumber);
+        
+        // 设置响应头
+        crow::response response(200, result.dump());
+        response.add_header("Content-Type", "application/json; charset=utf-8");
+        return response;
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        nlohmann::json errorResponse = {
+            {"status", 0},
+            {"error", "JSON解析失败: " + std::string(e.what())},
+            {"data", nlohmann::json::object()}
+        };
+        return crow::response(400, errorResponse.dump());
+    }
+    catch (const std::exception& e) {
+        nlohmann::json errorResponse = {
+            {"status", 0},
+            {"error", std::string("获取外壳号授权信息失败: ") + e.what()},
+            {"data", nlohmann::json::object()}
+        };
+        return crow::response(500, errorResponse.dump());
+    }
 }
 
 crow::response CustomerInfoController::handleGetClientAuthInfo(const crow::request& req, const std::string& clientName)

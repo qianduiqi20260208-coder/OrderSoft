@@ -279,8 +279,10 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
                 auth.authType = row[3] ? row[3] : "";
                 auth.authNote = row[4] ? row[4] : "";
                 
-                // 添加授权信息到对应的ShellNumber
-                shellNumberMap[shellNumber].authorizationList.push_back(auth);
+                // 添加授权信息到对应的ShellNumber 只添加最后一个
+
+                //shellNumberMap[shellNumber].authorizationList.push_back(auth);
+                shellNumberMap[shellNumber].authorizationList[0] = auth;
                 shellNumberMap[shellNumber].authCount++;
             }
         }
@@ -334,6 +336,69 @@ std::vector<std::string> CustomerInfoDAO::getAllClientNames()
     return clientNames;
 }
 
+
+std::vector<Authorization> CustomerInfoDAO::getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber)
+{
+    std::vector<Authorization> authorizationList;
+    
+    // 查询该shell_number当前状态为"出库"的授权信息
+    // 关键修改：只查询当前出库周期内生成的授权，避免查询到之前归还前的授权
+    snprintf(sql, 1024, 
+        "SELECT "
+        "    pa.authorization_code, "
+        "    pai.authorization_start_date, "
+        "    pai.authorization_end_date, "
+        "    pai.encryption_type, "
+        "    pai.remark, "
+        "    ekh.status "
+        "FROM "
+        "    customer_info ci "
+        "JOIN "
+        "    encryption_key_history ekh ON ci.customer_name = ekh.customer "
+        "JOIN "
+        "    encryption_key ek ON ekh.encryption_key = ek.shell_number "
+        "JOIN ("
+        "    SELECT encryption_key, MAX(id) as max_id "
+        "    FROM encryption_key_history "
+        "    GROUP BY encryption_key"
+        ") latest ON ekh.encryption_key = latest.encryption_key AND ekh.id = latest.max_id "
+        "LEFT JOIN "
+        "    product_authorization pa ON ek.shell_number = pa.encryption_key "
+        "LEFT JOIN "
+        "    product_authorization_info pai ON pa.id = pai.authorization_id "
+        "WHERE "
+        "    ci.customer_name = '%s' AND ek.shell_number = '%s' AND ekh.status = '出库' ;",
+        // "    AND (pa.generate_time IS NULL OR pa.generate_time >= ekh.out_storage_time)", 
+        clientName.c_str(), shellNumber.c_str());
+    
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getShellAuthorizationInfo() 查询授权信息失败！失败原因：%s\n", mysql_error(mysql));
+        return authorizationList;
+    }
+    
+    res = mysql_store_result(mysql);
+    
+    // 处理查询结果，构建Authorization列表
+    while (row = mysql_fetch_row(res))
+    {
+        // 只有当授权码不为空时才添加授权信息
+        if (row[0] && strlen(row[0]) > 0)
+        {
+            Authorization auth;
+            auth.authId = row[0] ? row[0] : "";
+            auth.startDate = row[1] ? row[1] : "";
+            auth.endDate = row[2] ? row[2] : "";
+            auth.authType = row[3] ? row[3] : "";
+            auth.authNote = row[4] ? row[4] : "";
+            
+            authorizationList.push_back(auth);
+        }
+    }
+    
+    mysql_free_result(res);
+    return authorizationList;
+}
 
 CustomerInfoDAO::~CustomerInfoDAO()
 {
