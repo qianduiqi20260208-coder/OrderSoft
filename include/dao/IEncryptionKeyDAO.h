@@ -21,7 +21,8 @@ public:
     // 参数：客户名称、外壳号、入库时间
     virtual bool returnOperation(const std::string& clientName,
                                 const std::string& shellNumber,
-                                const std::string& returnDate) = 0;
+                                const std::string& inTime,
+                                const std::string& outTime) = 0;
 
     // 获取可交付的外壳号列表
     // 返回：可交付的外壳号信息列表（id和shell_number）

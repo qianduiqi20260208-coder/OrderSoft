@@ -22,7 +22,8 @@ public:
     // 入库操作：更新encryption_key_history表中的入库时间和状态
     bool returnOperation(const std::string& clientName,
                         const std::string& shellNumber,
-                        const std::string& returnDate) override;
+                        const std::string& inTime,
+                        const std::string& outTime) override;
 
     // 获取可交付的外壳号列表
     std::vector<std::pair<int, std::string>> getAvailableShellNumbers() override;

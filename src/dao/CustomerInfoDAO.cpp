@@ -216,6 +216,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             shellInfo.shellNumber = shellNumber;
             shellInfo.deviceType = row[1] ? row[1] : "";
             shellInfo.deviceNote = row[2] ? row[2] : "";
+            shellInfo.inTime = row[3] ? row[3] : "";
+
             shellInfo.authCount = 0; // 初始化授权数量为0
             
             shellNumberMap[shellNumber] = shellInfo;
