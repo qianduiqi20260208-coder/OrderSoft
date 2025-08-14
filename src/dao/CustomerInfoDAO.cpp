@@ -265,6 +265,9 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         }
         
         res = mysql_store_result(mysql);
+
+        Authorization latestAuth;  // 存储最新的授权信息
+        bool hasValidAuth = false;
         
         // 处理查询结果，构建Authorization列表
         while (row = mysql_fetch_row(res))
@@ -281,12 +284,23 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
                 
                 // 添加授权信息到对应的ShellNumber 只添加最后一个
 
-                //shellNumberMap[shellNumber].authorizationList.push_back(auth);
-                shellNumberMap[shellNumber].authorizationList[0] = auth;
+                // shellNumberMap[shellNumber].authorizationList.push_back(auth);
+                // shellNumberMap[shellNumber].authorizationList[0] = auth;
                 shellNumberMap[shellNumber].authCount++;
+                // 如果只需要最新的一个授权，保存到临时变量
+                latestAuth = auth;
+                hasValidAuth = true;
             }
         }
         mysql_free_result(res);
+
+        // 安全地添加授权信息
+        if (hasValidAuth) {
+            // 清空现有的授权列表（如果只要最新的）
+            shellNumberMap[shellNumber].authorizationList.clear();
+            // 添加最新的授权
+            shellNumberMap[shellNumber].authorizationList.push_back(latestAuth);
+        } 
     }
     
     // 将map中的ShellNumber转换为vector
