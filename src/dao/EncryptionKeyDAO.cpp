@@ -496,6 +496,16 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         authorizationId = strtoull(row[0], NULL, 10);
         mysql_free_result(res);
 
+        // 更新product_authorization表的客户信息
+        snprintf(sql, SQL_MAX_, "UPDATE product_authorization SET customer_name = '%s' WHERE id = %llu",
+                 clientName.c_str(), authorizationId);
+        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            printf("[error] function:createAuthorization 更新授权表客户信息失败！失败原因：%s\n", mysql_error(mysql));
+            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+
         // 更新product_authorization_info表
         snprintf(sql, SQL_MAX_,
                  "UPDATE product_authorization_info SET encryption_type = '%s', authorization_start_date = '%s', "
@@ -506,8 +516,8 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         if (res) mysql_free_result(res);
 
         // 插入product_authorization表
-        snprintf(sql, SQL_MAX_, "INSERT INTO product_authorization (encryption_key, authorization_code) VALUES ('%s', '%s')",
-                 shellNumber.c_str(), authId.c_str());
+        snprintf(sql, SQL_MAX_, "INSERT INTO product_authorization (encryption_key, authorization_code, customer_name) VALUES ('%s', '%s', '%s')",
+                 shellNumber.c_str(), authId.c_str(), clientName.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:createAuthorization 插入授权表失败！失败原因：%s\n", mysql_error(mysql));
