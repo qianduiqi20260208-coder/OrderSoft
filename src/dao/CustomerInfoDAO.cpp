@@ -254,7 +254,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             "LEFT JOIN "
             "    product_authorization_info pai ON pa.id = pai.authorization_id "
             "WHERE "
-            "    ci.customer_name = '%s' AND ek.shell_number = '%s' AND ekh.status = '出库' ;",
+            "    ci.customer_name = '%s' AND ek.shell_number = '%s' AND ekh.status = '出库' AND pa.return = '0' ;",
+
             // "    AND (pa.generate_time IS NULL OR pa.generate_time >= ekh.out_storage_time)", 
             clientName.c_str(), shellNumber.c_str());
         
@@ -265,10 +266,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         }
         
         res = mysql_store_result(mysql);
-
-        Authorization latestAuth;  // 存储最新的授权信息
-        bool hasValidAuth = false;
-        
+        bool haveAuth = false;
+        Authorization lastAuth;
         // 处理查询结果，构建Authorization列表
         while (row = mysql_fetch_row(res))
         {
@@ -282,25 +281,20 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
                 auth.authType = row[3] ? row[3] : "";
                 auth.authNote = row[4] ? row[4] : "";
                 
-                // 添加授权信息到对应的ShellNumber 只添加最后一个
-
-                // shellNumberMap[shellNumber].authorizationList.push_back(auth);
-                // shellNumberMap[shellNumber].authorizationList[0] = auth;
                 shellNumberMap[shellNumber].authCount++;
-                // 如果只需要最新的一个授权，保存到临时变量
-                latestAuth = auth;
-                hasValidAuth = true;
+
+                // 添加授权信息到对应的ShellNumber 只添加最后一个
+                haveAuth = true;
+                lastAuth = auth;
+                //shellNumberMap[shellNumber].authorizationList.push_back(auth);
             }
         }
+        if (haveAuth)
+        {
+            shellNumberMap[shellNumber].authorizationList.push_back(lastAuth);
+        }
+        
         mysql_free_result(res);
-
-        // 安全地添加授权信息
-        if (hasValidAuth) {
-            // 清空现有的授权列表（如果只要最新的）
-            shellNumberMap[shellNumber].authorizationList.clear();
-            // 添加最新的授权
-            shellNumberMap[shellNumber].authorizationList.push_back(latestAuth);
-        } 
     }
     
     // 将map中的ShellNumber转换为vector
