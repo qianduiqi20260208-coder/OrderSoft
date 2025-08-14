@@ -103,7 +103,7 @@ std::vector<std::pair<int, std::string>> EncryptionKey::getAvailableShellNumbers
                      "FROM encryption_key_history ekh2 "
                      "WHERE ekh2.encryption_key = ekh1.encryption_key"
                  ") "
-                 "AND ekh1.status = '出库'"
+                 "AND (ekh1.status = '出库' OR ekh1.status = '损坏' OR ekh1.status = '丢失')"
              ") "
              "ORDER BY ek.id");
 
