@@ -25,6 +25,12 @@ public:
     // 创建授权处理函数
     crow::response handleCreateAuthorization(const crow::request& req);
     
+    // 处理更新授权截止日期请求
+    crow::response handleUpdateAuthorizationEndDates(const crow::request& req);
+
+    // 处理更新外壳号设备信息请求
+    crow::response handleUpdateShellDeviceInfo(const crow::request& req);
+
 private:
     std::shared_ptr<IEncryptionKeyService> encryptionKeyService_;
     

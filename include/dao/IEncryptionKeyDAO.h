@@ -36,6 +36,18 @@ public:
                                      const std::string& startDate,
                                      const std::string& endDate,
                                      const std::string& authNote) = 0;
+
+    // 批量更新授权截止日期
+    // 参数：客户名称、更新列表（外壳号、授权ID、新的截止日期）
+    virtual bool updateAuthorizationEndDates(const std::string& clientName,
+                                             const std::vector<std::tuple<std::string, std::string, std::string>>& changes) = 0;
+
+    // 更新指定客户的指定外壳号的设备信息
+    // 参数：客户名称、外壳号、设备类型、设备备注
+    virtual bool updateShellDeviceInfo(const std::string& clientName,
+                                       const std::string& shellNumber,
+                                       const std::string& deviceType,
+                                       const std::string& deviceNote) = 0;
 };
 
 inline IEncryptionKey::~IEncryptionKey() = default;
