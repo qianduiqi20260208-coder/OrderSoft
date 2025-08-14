@@ -145,30 +145,30 @@ target_compile_definitions(ModelLifeManager PRIVATE
 # 运行时文件复制
 # ==============================================================================
 
-# # 创建必要的目录
-# file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-# file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/logs")
+# 创建必要的目录
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/logs")
 
-# # 自动复制运行时需要的 DLL 文件
-# add_custom_command(TARGET ModelLifeManager POST_BUILD
-#     # MySQL 动态库
-#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#         "${MYSQL_LIB_DIR}/libmysql.dll"
-#         $<TARGET_FILE_DIR:ModelLifeManager>
+# 自动复制运行时需要的 DLL 文件
+add_custom_command(TARGET ModelLifeManager POST_BUILD
+    # MySQL 动态库
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${MYSQL_LIB_DIR}/libmysql.dll"
+        $<TARGET_FILE_DIR:ModelLifeManager>
     
-#     # MinGW 运行时库
-#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#         "${MINGW_BIN_DIR}/libgcc_s_seh-1.dll"
-#         $<TARGET_FILE_DIR:ModelLifeManager>
-#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#         "${MINGW_BIN_DIR}/libstdc++-6.dll"
-#         $<TARGET_FILE_DIR:ModelLifeManager>
-#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#         "${MINGW_BIN_DIR}/libwinpthread-1.dll"
-#         $<TARGET_FILE_DIR:ModelLifeManager>
+    # MinGW 运行时库
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${MINGW_BIN_DIR}/libgcc_s_seh-1.dll"
+        $<TARGET_FILE_DIR:ModelLifeManager>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${MINGW_BIN_DIR}/libstdc++-6.dll"
+        $<TARGET_FILE_DIR:ModelLifeManager>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${MINGW_BIN_DIR}/libwinpthread-1.dll"
+        $<TARGET_FILE_DIR:ModelLifeManager>
     
-#     COMMENT "Copying required runtime DLLs to executable directory"
-# )
+    COMMENT "Copying required runtime DLLs to executable directory"
+)
 
 # ==============================================================================
 # 构建信息显示

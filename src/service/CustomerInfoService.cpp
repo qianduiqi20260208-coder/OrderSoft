@@ -69,7 +69,7 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
             {
                 status = "过期";
             }
-            // 如果结束日期在当前日期的30天内，则状态为"临期"
+            // 如果结束日期在当前日期的5天内，则状态为"临期"
             else if (!auth.endDate.empty())
             {
                 // 计算结束日期与当前日期的差值（简化处理）
@@ -86,7 +86,7 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
                     double seconds = difftime(endTime, now);
                     double days = seconds / (60 * 60 * 24);
                     
-                    if (days <= 30 && days > 0)
+                    if (days <= 5 && days > 0)
                     {
                         status = "临期";
                     }

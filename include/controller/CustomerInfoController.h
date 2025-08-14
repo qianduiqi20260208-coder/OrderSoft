@@ -27,7 +27,4 @@ public:
     
 private:
     std::shared_ptr<ICustomerInfoService> customerInfoService_;
-    
-    // 检查token是否有效
-    bool checkToken(const crow::request& req);
 };

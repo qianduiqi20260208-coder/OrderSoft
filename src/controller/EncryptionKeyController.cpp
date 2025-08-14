@@ -7,213 +7,426 @@ EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyS
 {
 }
 
-void EncryptionKeyController::registerRoutes(crow::SimpleApp& app)
-{
-    // 注册交付操作路由
-    CROW_ROUTE(app, "/encryption-key/delivery").methods("POST"_method)
+void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
+    // 获取加密狗列表
+    CROW_ROUTE(app, "/dongle/list").methods("GET"_method)
         ([this](const crow::request& req) {
-            return handleDeliveryOperation(req);
-        });
-    
-    // 注册入库操作路由
-    CROW_ROUTE(app, "/encryption-key/return").methods("POST"_method)
-        ([this](const crow::request& req) {
-            return handleReturnOperation(req);
-        });
-    
-    // 注册获取可交付外壳号列表路由
-    CROW_ROUTE(app, "/encryption-key/available-shells").methods("GET"_method)
-        ([this](const crow::request& req) {
-            return handleGetAvailableShellNumbers(req);
-        });
-    
-    // 注册创建授权路由
-    CROW_ROUTE(app, "/encryption-key/authorization").methods("POST"_method)
-        ([this](const crow::request& req) {
-            return handleCreateAuthorization(req);
-        });
-}
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
 
-crow::response EncryptionKeyController::handleDeliveryOperation(const crow::request& req)
-{
-    // JWT校验
-    if (!checkToken(req)) {
-        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    }
-    
-    // 解析请求体JSON
-    auto body = nlohmann::json::parse(req.body, nullptr, false);
-    if (body.is_discarded()) {
-        return crow::response(400, R"({"status":0,"error":"无效的JSON格式","data":{}})");
-    }
-    
-    // 获取请求参数
-    std::string clientName = body.value("clientName", "");
-    std::string shellNumber = body.value("shellNumber", "");
-    std::string deviceType = body.value("deviceType", "");
-    std::string deviceNote = body.value("deviceNote", "");
-    
-    // 参数验证
-    if (clientName.empty() || shellNumber.empty() || deviceType.empty()) {
-        return crow::response(400, R"({"status":0,"error":"客户名称、外壳号和设备类型不能为空","data":{}})");
-    }
-    
-    // 调用Service层执行交付操作
-    bool success = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote);
-    
-    // 构建响应
-    nlohmann::json response;
-    if (success) {
-        response = {
+        // 调用加密狗服务获取加密狗列表
+        std::vector<DongleInfo> dongleList = encryptionKeyService_->getDongleInfo();
+
+        // 构建返回的JSON数据
+        nlohmann::json dongleArray = nlohmann::json::array();
+
+        for(auto dongle : dongleList)
+        {
+            dongleArray.push_back(dongle.to_json());
+        }
+        
+        nlohmann::json resp = {
             {"status", 1},
             {"error", ""},
-            {"data", {{"message", "交付操作成功"}}}
+            {"data", {
+                {"success", true},
+                {"message", "获取加密狗列表成功"},
+                {"list", dongleArray},
+                {"total", dongleArray.size()}
+            }}
         };
-    } else {
-        response = {
-            {"status", 0},
-            {"error", "交付操作失败"},
-            {"data", nlohmann::json::object()}
-        };
-    }
-    
-    return crow::response{response.dump()};
-}
-
-crow::response EncryptionKeyController::handleReturnOperation(const crow::request& req)
-{
-    // JWT校验
-    if (!checkToken(req)) {
-        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    }
-    
-    // 解析请求体JSON
-    auto body = nlohmann::json::parse(req.body, nullptr, false);
-    if (body.is_discarded()) {
-        return crow::response(400, R"({"status":0,"error":"无效的JSON格式","data":{}})");
-    }
-    
-    // 获取请求参数
-    std::string clientName = body.value("clientName", "");
-    std::string shellNumber = body.value("shellNumber", "");
-    std::string returnDate = body.value("returnDate", "");
-    
-    // 参数验证
-    if (clientName.empty() || shellNumber.empty() || returnDate.empty()) {
-        return crow::response(400, R"({"status":0,"error":"客户名称、外壳号和入库日期不能为空","data":{}})");
-    }
-    
-    // 调用Service层执行入库操作
-    bool success = encryptionKeyService_->returnOperation(clientName, shellNumber, returnDate);
-    
-    // 构建响应
-    nlohmann::json response;
-    if (success) {
-        response = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {{"message", "入库操作成功"}}}
-        };
-    } else {
-        response = {
-            {"status", 0},
-            {"error", "入库操作失败"},
-            {"data", nlohmann::json::object()}
-        };
-    }
-    
-    return crow::response{response.dump()};
-}
-
-crow::response EncryptionKeyController::handleGetAvailableShellNumbers(const crow::request& req)
-{
-    // JWT校验
-    if (!checkToken(req)) {
-        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    }
-    
-    // 调用Service层获取可交付外壳号列表
-    auto availableShells = encryptionKeyService_->getAvailableShellNumbers();
-    
-    // 构建响应数据
-    nlohmann::json shellList = nlohmann::json::array();
-    for (const auto& shell : availableShells) {
-        shellList.push_back({
-            {"id", shell.first},
-            {"shellNumber", shell.second}
+        return crow::response{ resp.dump() };
         });
-    }
-    
-    // 构建响应
-    nlohmann::json response = {
-        {"status", 1},
-        {"error", ""},
-        {"data", {
-            {"shells", shellList},
-            {"count", availableShells.size()}
-        }}
-    };
-    
-    return crow::response{response.dump()};
-}
 
-bool EncryptionKeyController::checkToken(const crow::request& req)
-{
-    // 使用全局的token验证函数
-    return ::checkToken(req);
-}
+    // 创建加密狗
+    CROW_ROUTE(app, "/dongle/create").methods("POST"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
 
-crow::response EncryptionKeyController::handleCreateAuthorization(const crow::request& req)
-{
-    // JWT校验
-    if (!checkToken(req)) {
-        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-    }
-    
-    // 解析请求体JSON
-    auto body = nlohmann::json::parse(req.body, nullptr, false);
-    if (body.is_discarded()) {
-        return crow::response(400, R"({"status":0,"error":"无效的JSON格式","data":{}})");
-    }
-    
-    // 获取请求参数
-    std::string clientName = body.value("clientName", "");
-    std::string shellNumber = body.value("shellNumber", "");
-    std::string authId = body.value("authId", "");
-    std::string authType = body.value("authType", "");
-    std::string startDate = body.value("startDate", "");
-    std::string endDate = body.value("endDate", "");
-    std::string authNote = body.value("authNote", "");
-    
-    // 参数验证
-    if (clientName.empty() || shellNumber.empty() || authId.empty() || 
-        authType.empty() || startDate.empty() || endDate.empty()) {
-        return crow::response(400, R"({"status":0,"error":"客户名称、外壳号、授权ID、授权类型、授权开始日期和授权结束日期不能为空","data":{}})");
-    }
-    
-    // 验证授权类型是否有效
-    if (authType != "本地锁" && authType != "网络锁" && authType != "软锁授权") {
-        return crow::response(400, R"({"status":0,"error":"授权类型必须是：本地锁、网络锁或软锁授权","data":{}})");
-    }
-    
-    // 调用Service层执行创建授权操作
-    bool success = encryptionKeyService_->createAuthorization(clientName, shellNumber, authId, authType, startDate, endDate, authNote);
-    
-    // 构建响应
-    nlohmann::json response;
-    if (success) {
-        response = {
+        try {
+            // 解析请求体
+            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            
+            // 参数验证
+            if (!reqData.contains("shellCode") || !reqData.contains("shellSerial")) {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "缺少必要参数：shellCode 或 shellSerial"},
+                    {"data", {}}
+                };
+                return crow::response(400, resp.dump());
+            }
+
+            std::string shellCode = reqData["shellCode"];
+            std::string shellSerial = reqData["shellSerial"];
+
+            printf("[DEBUG] 创建加密狗，shellCode: %s, shellSerial: %s\n", 
+                   shellCode.c_str(), shellSerial.c_str());
+
+            // TODO: 调用服务层创建加密狗
+            bool result = encryptionKeyService_->createEncryptionKey(shellCode, shellSerial);
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "加密狗创建成功"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+            else{
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "加密狗创建失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "加密狗创建失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+        } catch (const std::exception& e) {
+            printf("[ERROR] 创建加密狗失败: %s\n", e.what());
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "参数解析失败或服务器内部错误"},
+                {"data", {}}
+            };
+            return crow::response(500, resp.dump());
+        }
+        });
+
+    // 更新加密狗信息
+    CROW_ROUTE(app, "/delivery/dongles/update").methods("PUT"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        try {
+            // 解析请求体
+            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            
+            // 参数验证
+            if (!reqData.contains("dongleId") || !reqData.contains("shellCode") || !reqData.contains("shellSerial")) {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "缺少必要参数：dongleId、shellCode 或 shellSerial"},
+                    {"data", {}}
+                };
+                return crow::response(400, resp.dump());
+            }
+
+            std::string dongleId = reqData["dongleId"];
+            std::string shellCode = reqData["shellCode"];
+            std::string shellSerial = reqData["shellSerial"];
+
+            int dongleIdInt;
+
+            if(dongleId != "")
+            {
+                dongleIdInt = std::stoi(dongleId);
+            }
+
+            printf("[DEBUG] 更新加密狗信息，dongleId: %d, shellCode: %s, shellSerial: %s\n", 
+                   dongleIdInt, shellCode.c_str(), shellSerial.c_str());
+
+            // 调用服务层更新加密狗信息
+            bool result = encryptionKeyService_->updateEncryptionKey(dongleIdInt, shellCode, shellSerial);
+            
+            if(result)
+            {
+                nlohmann::json resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {
+                    {"success", true},
+                    {"message", "加密狗信息更新成功"}
+                }}
+            };
+            
+            return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "加密狗信息更新失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "加密狗信息更新失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+
+        } catch (const std::exception& e) {
+            printf("[ERROR] 更新加密狗信息失败: %s\n", e.what());
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "参数解析失败或服务器内部错误"},
+                {"data", {}}
+            };
+            return crow::response(500, resp.dump());
+        }
+        });
+
+    // 交付外壳
+    CROW_ROUTE(app, "/shell/deliver").methods("POST"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        try {
+            // 解析请求体
+            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            
+            // 参数验证
+            if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+                !reqData.contains("deviceType") || !reqData.contains("deviceNote")) {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
+                    {"data", {}}
+                };
+                return crow::response(400, resp.dump());
+            }
+
+            std::string clientName = reqData["clientName"];
+            std::string shellNumber = reqData["shellNumber"];
+            std::string deviceType = reqData["deviceType"];
+            std::string deviceNote = reqData["deviceNote"];
+
+            printf("[DEBUG] 交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str());
+
+            // TODO: 调用服务层交付外壳
+            bool result = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote);
+
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "外壳交付成功"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "外壳交付失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "外壳交付失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+        } catch (const std::exception& e) {
+            printf("[ERROR] 交付外壳失败: %s\n", e.what());
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "参数解析失败或服务器内部错误"},
+                {"data", {}}
+            };
+            return crow::response(500, resp.dump());
+        }
+        });
+
+    // 归还外壳
+    CROW_ROUTE(app, "/shell/return").methods("POST"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        try {
+            // 解析请求体
+            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            
+            // 参数验证
+            if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+                !reqData.contains("returnDate")) {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "缺少必要参数：clientName、shellNumber 或 returnDate"},
+                    {"data", {}}
+                };
+                return crow::response(400, resp.dump());
+            }
+
+            std::string clientName = reqData["clientName"];
+            std::string shellNumber = reqData["shellNumber"];
+            std::string returnDate = reqData["returnDate"];
+
+            printf("[DEBUG] 归还外壳，clientName: %s, shellNumber: %s, returnDate: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), returnDate.c_str());
+
+            // TODO: 调用服务层归还外壳
+            // bool result = shellService->returnShell(clientName, shellNumber, returnDate);
+            bool result = encryptionKeyService_->returnOperation(clientName, shellNumber, returnDate);
+
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "外壳归还成功"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "外壳归还失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "外壳归还失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+        } catch (const std::exception& e) {
+            printf("[ERROR] 归还外壳失败: %s\n", e.what());
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "参数解析失败或服务器内部错误"},
+                {"data", {}}
+            };
+            return crow::response(500, resp.dump());
+        }
+        });
+
+    // 新建授权信息
+    CROW_ROUTE(app, "/auth/create").methods("POST"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        try {
+            // 解析请求体
+            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            
+            // 参数验证
+            if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+                !reqData.contains("authType") || !reqData.contains("startDate") || 
+                !reqData.contains("endDate") || !reqData.contains("authNote")) {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "缺少必要参数：clientName、shellNumber、authType、startDate、endDate 或 authNote"},
+                    {"data", {}}
+                };
+                return crow::response(400, resp.dump());
+            }
+
+            std::string clientName = reqData["clientName"];
+            std::string shellNumber = reqData["shellNumber"];
+            std::string authId = reqData.value("authId", ""); // 可选参数
+            std::string authType = reqData["authType"];
+            std::string startDate = reqData["startDate"];
+            std::string endDate = reqData["endDate"];
+            std::string authNote = reqData["authNote"];
+
+            printf("[DEBUG] 新建授权信息，clientName: %s, shellNumber: %s, authId: %s, authType: %s, startDate: %s, endDate: %s, authNote: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), authId.c_str(), authType.c_str(), 
+                   startDate.c_str(), endDate.c_str(), authNote.c_str());
+
+            // TODO: 调用服务层创建授权
+            bool result = encryptionKeyService_->createAuthorization(clientName, shellNumber, authId, authType, startDate, endDate, authNote);
+
+            if(result)
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"success", true},
+                        {"message", "授权信息创建成功"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+            else
+            {
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", "授权信息创建失败"},
+                    {"data", {
+                        {"success", false},
+                        {"message", "授权信息创建失败"}
+                    }}
+                };
+                return crow::response{ resp.dump() };
+            }
+
+        } catch (const std::exception& e) {
+            printf("[ERROR] 新建授权信息失败: %s\n", e.what());
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "参数解析失败或服务器内部错误"},
+                {"data", {}}
+            };
+            return crow::response(500, resp.dump());
+        }
+        });
+        
+    // 获取可交付的外壳号列表
+    CROW_ROUTE(app, "/delivery/available-shells").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        
+        // 调用Service层获取可交付外壳号列表
+        auto availableShells = encryptionKeyService_->getAvailableShellNumbers();
+        
+        // 构建响应数据
+        nlohmann::json shellList = nlohmann::json::array();
+        for (const auto& shell : availableShells) {
+            shellList.push_back({
+                {"id", shell.first},
+                {"shellNumber", shell.second}
+            });
+        }
+        
+        // 构建响应
+        nlohmann::json response = {
             {"status", 1},
             {"error", ""},
-            {"data", {{"message", "创建授权成功"}}}
+            {"data", {
+                {"shells", shellList},
+                {"count", availableShells.size()}
+            }}
         };
-    } else {
-        response = {
-            {"status", 0},
-            {"error", "创建授权失败"},
-            {"data", nlohmann::json::object()}
-        };
-    }
-    
-    return crow::response{response.dump()};
+        
+        return crow::response{response.dump()};
+        });
 }
