@@ -382,7 +382,7 @@ struct ShellNumber
    std::string shellNumber;
    std::string deviceType;
    std::string deviceNote;
-   std::string inTime;
+   std::string outTime;
    int authCount;
    std::vector<Authorization> authorizationList;
 };

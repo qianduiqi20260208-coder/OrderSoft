@@ -41,7 +41,7 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
         shellInfo["shellNumber"] = shellNumber.shellNumber;
         shellInfo["deviceType"] = shellNumber.deviceType;
         shellInfo["deviceNote"] = shellNumber.deviceNote;
-        shellInfo["inTime"] = shellNumber.inTime;
+        shellInfo["outTime"] = shellNumber.outTime;
         shellInfo["authCount"] = shellNumber.authCount;
         shellInfo["authorizationList"] = nlohmann::json::array();
         
