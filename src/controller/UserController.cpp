@@ -203,14 +203,14 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         });
 
     // 获取审批人信息列表
-    CROW_ROUTE(app, "/approver/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+    CROW_ROUTE(app, "/approver/list/<string>").methods("GET"_method)
+        ([this](const crow::request& req, const std::string& modelId) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json approvers = retMap["审批人"];
 
         nlohmann::json resp = {
@@ -231,7 +231,10 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        auto params = crow::query_string(req.url_params);
+        std::string modelId = params.get("modelId") ? params.get("modelId") : "";
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json distributors = retMap["分发人"];
 
         nlohmann::json resp = {
@@ -251,7 +254,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+
+        auto params = crow::query_string(req.url_params);
+        std::string modelId = params.get("modelId") ? params.get("modelId") : "";
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json executors = retMap["执行人"];
 
         nlohmann::json resp = {
@@ -272,7 +279,10 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole();
+        auto params = crow::query_string(req.url_params);
+        std::string modelId = params.get("modelId") ? params.get("modelId") : "";
+
+        std::map<std::string, std::vector<int>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json transferExecutors = retMap["执行人"];
         
         nlohmann::json resp = {

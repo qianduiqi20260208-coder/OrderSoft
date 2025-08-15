@@ -23,8 +23,8 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     // 如果没有找到客户信息或加密狗信息为空
     if (client.clientName.empty() || client.shellNumbers.empty())
     {
-        result["error"] = "未找到客户信息或该客户没有加密狗授权信息";
-        result["status"] = 0;
+        // result["error"] = "未找到客户信息或该客户没有加密狗授权信息";
+        // result["status"] = 1;
         return result;
     }
     
