@@ -23,6 +23,9 @@ public:
     // 获取指定客户和外壳号的授权信息
     nlohmann::json getShellAuthorizationInfoJson(const std::string& clientName, const std::string& shellNumber) override;
 
+    // 获取客户列表及统计信息
+    nlohmann::json getClientList() override;
+
 private:
     std::shared_ptr<ICustomerInfoDAO> customerInfoDAO_;
 };
