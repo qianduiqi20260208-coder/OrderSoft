@@ -1,13 +1,17 @@
 #pragma once
 #include "ICustomerInfoDAO.h"
 #include <mysql.h>
+<<<<<<< HEAD
 #define SQL_MAX 1024		// sql语句字符数组最大值
+=======
+#define SQL_MAX 1024	
+>>>>>>> 0eaec90c81addbbfe928de01cdade0e2ea8c0a25
 
 class CustomerInfoDAO : public ICustomerInfoDAO
 {
 public:
-    CustomerInfoDAO(MYSQL* m);
-    
+    CustomerInfoDAO(MYSQL* ms);
+
     bool createClient(std::string,std::string) override;
     //第一个string是原客户名称，第二个string是新客户名称，第三个string是客户信息备注
     bool updateClient(std::string,std::string,std::string) override;
@@ -19,12 +23,24 @@ public:
     //第一个元素是有效授权数量 第二个元素是临期授权数量 第三个元素是过期授权数量
     std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) override;
 
+<<<<<<< HEAD
     //根据客户筛选出所有的发送记录 vector里依次是模型名称、模型版本号、工单号、发送时间
     std::vector<std::vector<std::string>> selectAllSendRecordByClient(std::string) override;
 
     std::vector<std::vector<std::string>> selectLatestModelVersionByClient(std::string client) override;
+=======
+    // 根据客户名称获取客户信息和加密狗授权信息
+    Client getClientAuthInfo(const std::string& clientName) override;
+
+    // 获取所有客户名称列表
+    std::vector<std::string> getAllClientNames() override;
+
+    // 获取指定客户和外壳号的授权信息
+    std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) override;
+>>>>>>> 0eaec90c81addbbfe928de01cdade0e2ea8c0a25
 
     ~CustomerInfoDAO();
+
 private:
     MYSQL* mysql;
     char sql[SQL_MAX];		// 存储sql语句
@@ -32,4 +48,3 @@ private:
     MYSQL_ROW row;
     int ret;
 };
-

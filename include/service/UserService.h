@@ -16,6 +16,7 @@ public:
 
     //获取工单中的角色
     std::map<std::string,std::vector<int>> getOrderRole() override;
+    std::map<std::string, std::vector<int>> getOrderRole_(const std::string& modelName) override;  // 新方法
 
     /**
      * @brief 用户登录
@@ -42,4 +43,6 @@ public:
     
 private:
     std::shared_ptr<IUserDAO> userDAO_;
+
+    std::vector<User> users_; // 存储用户列表
 };

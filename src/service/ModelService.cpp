@@ -85,13 +85,13 @@ std::vector<std::shared_ptr<Ticket>> ModelService::findOrdersByTargetVersion(std
     //查询功能开发类工单
     ruleMap["type"] = "功能开发";
     const auto& ret3 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
-    for(const auto& ele:ret1)
+    for(const auto& ele:ret3)
     {
         const auto& transfered = std::static_pointer_cast<const TicketFeature>(ele);
         if(transfered->newModelVersion == targetModelVersion)
         {
             retVec.push_back(ele);
-        }
+        }   
     }
 
     return retVec;

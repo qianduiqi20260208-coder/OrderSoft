@@ -9,6 +9,8 @@ public:
     virtual std::vector<User> getUser() =0;
     virtual std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)=0;
 
+    virtual std::vector<std::string> getUserResponsibleModels(int userId) = 0;
+
     virtual std::vector<int> getOrderApprover() = 0;
     virtual std::vector<int> getOrderDispatcher() = 0;
     virtual std::vector<int> getOrderExecutor() = 0;
