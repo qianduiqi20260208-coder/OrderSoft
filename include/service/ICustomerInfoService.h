@@ -23,6 +23,9 @@ public:
     // 获取指定客户和外壳号的授权信息
     virtual nlohmann::json getShellAuthorizationInfoJson(const std::string& clientName, const std::string& shellNumber) = 0;
 
+    // 获取客户列表及统计信息
+    virtual nlohmann::json getClientList() = 0;
+
     virtual ~ICustomerInfoService() = 0;
 
 };
