@@ -202,22 +202,30 @@ CREATE TABLE IF NOT EXISTS encryption_key (
     shell_serial_number VARCHAR(64) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS product_authorization (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    encryption_key VARCHAR(64),
-    authorization_code VARCHAR(64),  -- 授权ID，如2025071010
-	generate_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
-			ON DELETE CASCADE
-	ON UPDATE CASCADE,
-	UNIQUE(encryption_key,authorization_code)
-);
-
 CREATE TABLE IF NOT EXISTS customer_info (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_name VARCHAR(128) NOT NULL UNIQUE,
 	remarks TEXT
 );
+
+
+CREATE TABLE IF NOT EXISTS product_authorization (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    encryption_key VARCHAR(64),
+    authorization_code VARCHAR(64),  -- 授权ID，如2025071010
+	generate_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	client VARCHAR(64) NOT NULL,
+
+    FOREIGN KEY (encryption_key) REFERENCES encryption_key(shell_number)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	    FOREIGN KEY (client) REFERENCES customer_info(customer_name)
+			ON DELETE CASCADE
+	ON UPDATE CASCADE,
+	
+	UNIQUE(encryption_key,authorization_code)
+);
+
 
 
 CREATE TABLE IF NOT EXISTS product_authorization_info (
@@ -237,11 +245,11 @@ CREATE TABLE IF NOT EXISTS product_authorization_info (
 CREATE TABLE IF NOT EXISTS encryption_key_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     encryption_key VARCHAR(64) NOT NULL,
-    in_storage_time DATETIME ,
-    out_storage_time DATETIME ,
+    in_storage_time DATETIME,
+    out_storage_time DATETIME NOT NULL ,
 	status ENUM('出库', '入库', '损坏', '丢失') NOT NULL,
-    customer VARCHAR(64) NOT NULL, -- 外键，引用客户信息表中的客户名字
-    customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS') NOT NULL,
+    customer VARCHAR(64),NOT NULL -- 外键，引用客户信息表中的客户名字
+    customer_device_type ENUM('lab', 'IPT', 'FTD', 'FFS'),
     customer_pc_remark TEXT,
     remark TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

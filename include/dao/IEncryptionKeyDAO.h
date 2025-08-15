@@ -9,6 +9,12 @@ public:
     virtual ~IEncryptionKey() = 0;
     virtual bool createEncryptionKey(std::string,std::string) = 0;
     virtual bool updateEncryptionKey(int id,std::string,std::string) = 0;
+
+    virtual std::vector<std::vector<std::string>> selectAllEncryptionHistoryByEK(std::string) = 0;
+
+    virtual std::vector<std::vector<std::string>> selectAllAuthInfoByClientEK(std::string,std::string) = 0;
+
+
 };
 
 inline IEncryptionKey::~IEncryptionKey() = default;

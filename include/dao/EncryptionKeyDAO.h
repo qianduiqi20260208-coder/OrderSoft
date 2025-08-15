@@ -12,6 +12,14 @@ public:
     bool createEncryptionKey(std::string,std::string) override;
 
     bool updateEncryptionKey(int id,std::string,std::string) override;
+
+    //根据加密狗筛选加密历史记录
+    std::vector<std::vector<std::string>> selectAllEncryptionHistoryByEK(std::string) override;
+
+    //根据客户筛选授权信息
+    std::vector<std::vector<std::string>> selectAllAuthInfoByClientEK(std::string,std::string) override;
+
+
     ~EncryptionKey();
 private:
     MYSQL* mysql;

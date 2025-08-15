@@ -11,6 +11,10 @@ public:
     bool createEncryptionKey(std::string,std::string) override;
     bool updateEncryptionKey(int id,std::string,std::string) override;
 
+    std::vector<std::pair<EncryptionKeyHistory,std::vector<AuthInfo>>> getEncryptionKeyHistoryWithAuthRecordByEK(std::string) override;
+
+
 private:
+
     std::shared_ptr<IEncryptionKey> encryptionKeyDAO_;
 };

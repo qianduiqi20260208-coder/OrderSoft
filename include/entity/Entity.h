@@ -344,5 +344,3 @@ struct TicketReproduceAttachment
     std::string fileName;
     std::string uploadTime;
 };
- 
-
