@@ -344,7 +344,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
 
     // 3. 检查是否存在未归还的出库记录并获取设备信息（status='出库'且in_storage_time为NULL）
     snprintf(sql, SQL_MAX_,
-             "SELECT id, customer_device_type, customer_pc_remark FROM encryption_key_history WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' AND in_storage_time IS NULL ORDER BY created_at DESC LIMIT 1",
+             "SELECT id, customer_device_type, customer_pc_remark FROM encryption_key_history WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' ORDER BY created_at DESC LIMIT 1",
              shellNumber.c_str(), clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
@@ -725,7 +725,6 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     snprintf(sql, SQL_MAX_,
         "SELECT id FROM encryption_key_history "
         "WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' "
-        "AND in_storage_time IS NULL "
         "ORDER BY id DESC LIMIT 1",
         shellNumber.c_str(), clientName.c_str());
     
