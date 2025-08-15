@@ -35,7 +35,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
         di.shellSerial = row[2];
         
         //根据外壳号去加密狗历史信息表里查询与加密狗关联的诸多信息
-        snprintf(sql, SQL_MAX_, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
+        snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getDongleInfo 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
@@ -217,6 +217,7 @@ std::vector<std::vector<std::string>> EncryptionKey::selectAllAuthInfoByClientEK
     mysql_free_result(res);
 
     return retVec;
+}
 bool EncryptionKey::deliveryOperation(const std::string& clientName,
                                      const std::string& shellNumber,
                                      const std::string& deviceType,
@@ -564,7 +565,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         mysql_free_result(res);
 
         // 更新product_authorization表的客户信息
-        snprintf(sql, SQL_MAX_, "UPDATE product_authorization SET customer_name = '%s' WHERE id = %llu",
+        snprintf(sql, SQL_MAX_, "UPDATE product_authorization SET client = '%s' WHERE id = %llu",
                  clientName.c_str(), authorizationId);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
@@ -583,7 +584,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         if (res) mysql_free_result(res);
 
         // 插入product_authorization表
-        snprintf(sql, SQL_MAX_, "INSERT INTO product_authorization (encryption_key, authorization_code, customer_name) VALUES ('%s', '%s', '%s')",
+        snprintf(sql, SQL_MAX_, "INSERT INTO product_authorization (encryption_key, authorization_code, client) VALUES ('%s', '%s', '%s')",
                  shellNumber.c_str(), authId.c_str(), clientName.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
@@ -676,7 +677,7 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
             "WHERE pa.encryption_key = '%s' AND pa.authorization_code = '%s' "
             "AND ekh.customer = '%s' AND ekh.status = '出库'",
             shellNumber.c_str(), authId.c_str(), clientName.c_str());
-        
+
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:updateAuthorizationEndDates 查询授权记录失败！失败原因：%s\n", mysql_error(mysql));
@@ -686,13 +687,13 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 
         res = mysql_store_result(mysql);
         if (!res || mysql_num_rows(res) == 0) {
-            printf("[error] function:updateAuthorizationEndDates 授权记录不存在或不属于客户 %s：外壳号=%s, 授权ID=%s\n", 
+            printf("[error] function:updateAuthorizationEndDates 授权记录不存在或不属于客户 %s：外壳号=%s, 授权ID=%s\n",
                    clientName.c_str(), shellNumber.c_str(), authId.c_str());
             if (res) mysql_free_result(res);
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
-        
+
         MYSQL_ROW row = mysql_fetch_row(res);
         std::string authInfoId = row[0];
         mysql_free_result(res);
@@ -703,7 +704,7 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
             "SET authorization_end_date = '%s' "
             "WHERE id = %s",
             newEndDate.c_str(), authInfoId.c_str());
-        
+
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:updateAuthorizationEndDates 更新授权截止日期失败！失败原因：%s\n", mysql_error(mysql));
@@ -794,7 +795,7 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
         "WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' "
         "ORDER BY id DESC LIMIT 1",
         shellNumber.c_str(), clientName.c_str());
-    
+
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:updateShellDeviceInfo 查询外壳号出库记录失败！失败原因：%s\n", mysql_error(mysql));
@@ -804,13 +805,13 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
 
     res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:updateShellDeviceInfo 外壳号 %s 未分配给客户 %s 或已归还\n", 
+        printf("[error] function:updateShellDeviceInfo 外壳号 %s 未分配给客户 %s 或已归还\n",
                shellNumber.c_str(), clientName.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
-    
+
     MYSQL_ROW row = mysql_fetch_row(res);
     std::string historyId = row[0];
     mysql_free_result(res);
@@ -821,7 +822,7 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
         "SET customer_device_type = '%s', customer_pc_remark = '%s' "
         "WHERE id = %s",
         deviceType.c_str(), deviceNote.c_str(), historyId.c_str());
-    
+
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:updateShellDeviceInfo 更新设备信息失败！失败原因：%s\n", mysql_error(mysql));

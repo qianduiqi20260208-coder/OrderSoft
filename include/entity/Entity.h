@@ -363,10 +363,10 @@ struct TicketReproduceAttachment
     std::string fileName;
     std::string uploadTime;
 };
- 
 
-// 
-struct Authorization 
+
+//
+struct Authorization
 {
     std::string authId;
     std::string startDate;
@@ -376,9 +376,9 @@ struct Authorization
     // std::string status; 暂不定义
 };
 //
-struct ShellNumber 
+struct ShellNumber
 {
-   
+
    std::string shellNumber;
    std::string deviceType;
    std::string deviceNote;

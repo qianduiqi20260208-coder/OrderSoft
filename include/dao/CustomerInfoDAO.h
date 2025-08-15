@@ -1,11 +1,7 @@
 #pragma once
 #include "ICustomerInfoDAO.h"
 #include <mysql.h>
-<<<<<<< HEAD
 #define SQL_MAX 1024		// sql语句字符数组最大值
-=======
-#define SQL_MAX 1024	
->>>>>>> 0eaec90c81addbbfe928de01cdade0e2ea8c0a25
 
 class CustomerInfoDAO : public ICustomerInfoDAO
 {
@@ -23,12 +19,10 @@ public:
     //第一个元素是有效授权数量 第二个元素是临期授权数量 第三个元素是过期授权数量
     std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) override;
 
-<<<<<<< HEAD
     //根据客户筛选出所有的发送记录 vector里依次是模型名称、模型版本号、工单号、发送时间
     std::vector<std::vector<std::string>> selectAllSendRecordByClient(std::string) override;
 
     std::vector<std::vector<std::string>> selectLatestModelVersionByClient(std::string client) override;
-=======
     // 根据客户名称获取客户信息和加密狗授权信息
     Client getClientAuthInfo(const std::string& clientName) override;
 
@@ -37,7 +31,6 @@ public:
 
     // 获取指定客户和外壳号的授权信息
     std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) override;
->>>>>>> 0eaec90c81addbbfe928de01cdade0e2ea8c0a25
 
     ~CustomerInfoDAO();
 
@@ -48,3 +41,4 @@ private:
     MYSQL_ROW row;
     int ret;
 };
+

@@ -1,5 +1,7 @@
 #include "IEncryptionKeyDAO.h"
 #include <mysql.h>
+#define SQL_MAX 512		// sql语句字符数组最大值
+#define SQL_MAX_ 1024	
 #define SQL_MAX_ 1024		// sql语句字符数组最大值
 
 
