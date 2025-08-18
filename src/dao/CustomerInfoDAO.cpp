@@ -1,12 +1,5 @@
 #include "CustomerInfoDAO.h"
 #include "DBConnectionManager.h"
-#include <ctime>
-#include <iomanip>
-#include <sstream>
-#include <cstdio>
-#include <cstring>
-#include <map>
-#include <string>
 
 CustomerInfoDAO::CustomerInfoDAO(MYSQL *m):mysql(m)
 {
@@ -148,13 +141,152 @@ std::pair<int, int> CustomerInfoDAO::selectModelAndModelVersionCountByClient(std
     return pr;
 }
 
+
 std::vector<int> CustomerInfoDAO::selectAuthorizationCountByEncryptionKey(std::string encryptionKey)
 {
     std::vector<int> retVec;
 
+    //筛选出有效授权的数量
+    snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and CURDATE() BETWEEN authorization_start_date AND authorization_end_date; ",encryptionKey.c_str());
+    printf("sql:%s\n",sql);
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        return {-1};
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    //筛选出临期授权的数量
+    snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and DATEDIFF(authorization_end_date, CURDATE()) BETWEEN 0 AND 5; ",encryptionKey.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        return {-1};
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    //筛选出过期授权的数量
+    snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and authorization_end_date < CURDATE();  ",encryptionKey.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        return {-1};
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
 
     return retVec;
 }
+
+std::vector<std::vector<std::string>> CustomerInfoDAO::selectAllSendRecordByClient(std::string client)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        //返回的数组中有一个空的元素代表查询失败
+        return {};
+    }
+
+    std::vector<std::vector<std::string>> retVec;
+
+    snprintf(sql, SQL_MAX,
+        "SELECT wo.model, mv.version, wo.id, wo.completed_at "
+        "FROM work_order AS wo "
+        "INNER JOIN model_version AS mv ON wo.model_version_id = mv.id "
+        "LEFT JOIN delivery_send AS ds ON ds.work_order_id = wo.id "
+        "LEFT JOIN package_send AS ps ON ps.work_order_id = wo.id "
+        "WHERE (ds.target_customer = '%s' OR ps.target_customer = '%s') "
+        "AND wo.completed_at IS NOT NULL "
+        "ORDER BY wo.completed_at DESC;",
+        client.c_str(), client.c_str()
+    );
+
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectAllSendRecordByClient 失败原因：%s\n", mysql_error(mysql));
+        return {{}};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back({row[0],row[1],row[2],row[3]});
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
+std::vector<std::vector<std::string>> CustomerInfoDAO::selectLatestModelVersionByClient(std::string client)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        //返回的数组中有一个空的元素代表查询失败
+        return {};
+    }
+
+    std::vector<std::vector<std::string>> retVec;
+
+    snprintf(sql, SQL_MAX,
+    "SELECT wo.model, wo.id, mv.version, wo.completed_at "
+    "FROM work_order AS wo "
+    "JOIN model_version AS mv ON wo.model_version_id = mv.id "
+    "JOIN ("
+    "  SELECT w2.model, MAX(w2.completed_at) AS latest_completed_at "
+    "  FROM work_order AS w2 "
+    "  WHERE w2.completed_at IS NOT NULL "
+    "    AND ("
+    "      EXISTS (SELECT 1 FROM delivery_send ds2 "
+    "              WHERE ds2.work_order_id = w2.id "
+    "                AND ds2.target_customer = '%s') "
+    "      OR EXISTS (SELECT 1 FROM package_send ps2 "
+    "              WHERE ps2.work_order_id = w2.id "
+    "                AND ps2.target_customer = '%s') "
+    "    ) "
+    "  GROUP BY w2.model"
+    ") t ON t.model = wo.model AND t.latest_completed_at = wo.completed_at "
+    "WHERE wo.completed_at IS NOT NULL "
+    "  AND ("
+    "    EXISTS (SELECT 1 FROM delivery_send ds "
+    "            WHERE ds.work_order_id = wo.id "
+    "              AND ds.target_customer = '%s') "
+    "    OR EXISTS (SELECT 1 FROM package_send ps "
+    "            WHERE ps.work_order_id = wo.id "
+    "              AND ps.target_customer = '%s') "
+    "  ) "
+    "ORDER BY wo.completed_at DESC;",
+    client.c_str(), client.c_str(),   // 子查询里的两个 %s
+    client.c_str(), client.c_str()    // 外层条件的两个 %s
+    );
+
+
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectLatestModelVersionByClient 失败原因：%s\n", mysql_error(mysql));
+        return {{}};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back({row[0],row[1],row[2],row[3]});
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
 Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
 {
     Client client;

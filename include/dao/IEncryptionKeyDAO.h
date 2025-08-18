@@ -10,6 +10,11 @@ public:
     virtual bool createEncryptionKey(std::string,std::string) = 0;
     virtual bool updateEncryptionKey(int id,std::string,std::string) = 0;
 
+    virtual std::vector<std::vector<std::string>> selectAllEncryptionHistoryByEK(std::string) = 0;
+
+    virtual std::vector<std::vector<std::string>> selectAllAuthInfoByClientEK(std::string,std::string) = 0;
+
+
     // 交付操作：向encryption_key表和encryption_key_history表插入数据
     // 参数：客户名称、外壳号、客户设备类型、客户设备备注
     virtual bool deliveryOperation(const std::string& clientName,

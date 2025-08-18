@@ -8,8 +8,8 @@ UserService::UserService(std::shared_ptr<IUserDAO> sp):userDAO_(sp)
 User UserService::getUserByJobNumber(int jobNumber)
 {
     User user;
-    users_ = userDAO_->getUser();
-    for(auto ele:users_)
+    auto ret = userDAO_->getUser();
+    for(auto ele:ret)
     {
         if(ele.jobNumber == jobNumber)
             user = ele;
@@ -39,7 +39,7 @@ std::map<std::string, std::vector<int>> UserService::getOrderRole()
 std::map<std::string, std::vector<int>> UserService::getOrderRole_(const std::string& modelName)
 {
     std::map<std::string, std::vector<int>> retMap;
-    
+
     if (modelName.empty()) {
         // 如果没有传入模型名，返回所有角色的用户
         retMap["审批人"] = userDAO_->getOrderApprover();
@@ -48,7 +48,7 @@ std::map<std::string, std::vector<int>> UserService::getOrderRole_(const std::st
     } else {
         // // ✅ 所有角色都根据模型筛选
         // printf("[info] getOrderRole 开始筛选模型 %s 的相关角色\n", modelName.c_str());
-        
+
         // 筛选审批人
         std::vector<int> filteredApprovers;
         std::vector<int> allApprovers = userDAO_->getOrderApprover();
@@ -61,7 +61,7 @@ std::map<std::string, std::vector<int>> UserService::getOrderRole_(const std::st
             }
         }
         retMap["审批人"] = filteredApprovers;
-        
+
         // 筛选分发人
         std::vector<int> filteredDispatchers;
         std::vector<int> allDispatchers = userDAO_->getOrderDispatcher();
@@ -74,7 +74,7 @@ std::map<std::string, std::vector<int>> UserService::getOrderRole_(const std::st
             }
         }
         retMap["分发人"] = filteredDispatchers;
-        
+
         // 筛选执行人
         std::vector<int> filteredExecutors;
         std::vector<int> allExecutors = userDAO_->getOrderExecutor();
@@ -87,11 +87,11 @@ std::map<std::string, std::vector<int>> UserService::getOrderRole_(const std::st
             }
         }
         retMap["执行人"] = filteredExecutors;
-        
-        // printf("[info] getOrderRole 模型 %s 筛选结果：审批人 %zu 个，分发人 %zu 个，执行人 %zu 个\n", 
+
+        // printf("[info] getOrderRole 模型 %s 筛选结果：审批人 %zu 个，分发人 %zu 个，执行人 %zu 个\n",
         //        modelName.c_str(), filteredApprovers.size(), filteredDispatchers.size(), filteredExecutors.size());
     }
-    
+
     return retMap;
 }
 //如果登录验证成功返回的是非空的optional对象

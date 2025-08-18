@@ -64,7 +64,7 @@ INSERT INTO encryption_key_history (
 ) VALUES 
 (
     'qwer1234',
-    '2025-08-01 10:00:00',
+    '2025-08-20 10:00:00',
     '2025-08-05 15:30:00',
     '出库',
     '华为',
@@ -74,8 +74,8 @@ INSERT INTO encryption_key_history (
 ),
 (
     'asdf1234',
-    '2025-07-20 09:00:00',
-    NULL,
+    '2025-08-20 09:00:00',
+    '2024-07-20 09:00:00',
     '入库',
     '中兴',
     'FTD',
@@ -88,6 +88,16 @@ INSERT INTO encryption_key_history (
 -- 授权ID
 insert into product_authorization(encryption_key,authorization_code) values('qwer1234','333444555');
 insert into product_authorization(encryption_key,authorization_code) values('asdf1234','333444555');
+
+INSERT INTO product_authorization_info 
+(authorization_id, encryption_type, authorization_start_date, authorization_end_date, remark)
+VALUES
+(2, '本地锁', '2025-01-01', '2026-01-01', '测试本地锁授权'),
+(2, '网络锁', '2025-02-15', '2026-02-15', '客户A网络锁授权'),
+(2, '软锁授权', '2025-03-01', '2025-12-31', '年度软锁授权'),
+(2, '网络锁', '2025-04-10', '2026-04-10', '二次授权网络锁'),
+(2, '本地锁', '2025-05-20', '2026-05-20', '长期本地锁授权');
+
 
 -- 指定用户身份
 insert into user_multi_role(user_id,role) values(666666,'模型工程师');
@@ -221,9 +231,9 @@ INSERT INTO work_order (
     approved_at, task_priority, dispatched_at, completed_at, reject_reason
 ) VALUES 
 (
-    666666, NOW(), '交付发送','ATA04_Aerodynamics', 1,
+    666666, NOW(), '交付发送','ATA04_Aerodynamics', 3,
     '待审批', 666666, '一般', NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, '2025-8-14 09:12:23', NULL
 );
 SET @wid = LAST_INSERT_ID();
 
@@ -236,7 +246,7 @@ INSERT INTO delivery_send (
     TRUE,
     '包含部分未公开接口文档',
     TRUE,
-    'qwer1234',
+    '华为',
 	1,
     '经CAE验证，已交付客户'
 );
@@ -247,9 +257,9 @@ INSERT INTO work_order (
     approved_at, task_priority, dispatched_at, completed_at, reject_reason
 ) VALUES 
 (
-    666666, NOW(), '直接封装+发送','ATA04_Aerodynamics', 1,
+    666666, NOW(), '直接封装+发送','ATA08_WeightBalance', 4,
     '待审批', 666666, '一般', NULL,
-    NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, '2025-8-13 09:12:23', NULL
 );
 SET @wid = LAST_INSERT_ID();
 INSERT INTO package_send (
@@ -262,7 +272,38 @@ INSERT INTO package_send (
     '优化数据传输协议，新增压缩选项',
     '请打包为tar.gz格式，附带部署文档',
     TRUE,
-    'zhangsan',
+    '华为',
+    TRUE,
+    '涉及通信加密算法，内容敏感',
+    2,
+    TRUE,
+    'qwer1234',
+    1,
+    '完成打包并通知客户，等待验收'
+);
+
+INSERT INTO work_order (
+    creator_id, created_at, type, model, model_version_id,
+    status, approver_id, priority, dispatcher_id,
+    approved_at, task_priority, dispatched_at, completed_at, reject_reason
+) VALUES 
+(
+    666666, NOW(), '直接封装+发送','ATA08_WeightBalance', 6,
+    '待审批', 666666, '一般', NULL,
+    NULL, NULL, NULL, '2025-8-13 09:12:23', NULL
+);
+SET @wid = LAST_INSERT_ID();
+INSERT INTO package_send (
+    work_order_id, coordination_id, update_content, packaging_requirements, interface_changed,
+    target_customer, validated_by_cae, sensitive_info, new_model_version_id,
+    is_encrypted, encryption_key, product_authorization_id, remarks
+) VALUES (
+    @wid,
+    'COORD-20250729-003',
+    '优化数据传输协议，新增压缩选项',
+    '请打包为tar.gz格式，附带部署文档',
+    TRUE,
+    '华为',
     TRUE,
     '涉及通信加密算法，内容敏感',
     2,

@@ -91,7 +91,7 @@ std::vector<std::shared_ptr<Ticket>> ModelService::findOrdersByTargetVersion(std
         if(transfered->newModelVersion == targetModelVersion)
         {
             retVec.push_back(ele);
-        }   
+        }
     }
 
     return retVec;

@@ -40,9 +40,10 @@ bool TicketDAO::createConcreteTicket(Ticket &ticket)
             return false;
     }else if(ticket.ticketType == "版本迭代")
     {
+        //借用一个具体工单表里的remark字段 暂时保存前三位的版本号
         TicketVersion& tv = dynamic_cast<TicketVersion&>(ticket);
-        snprintf(sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed) "
-        "VALUES(%d,'%s','%s', '%s',%d);",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged);
+        snprintf(sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,remarks) "
+        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.remark.c_str());
     }else if(ticket.ticketType == "交付发送")
     {
         TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
@@ -51,13 +52,13 @@ bool TicketDAO::createConcreteTicket(Ticket &ticket)
     }else if(ticket.ticketType == "直接封装+发送")
     {
         TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
-        snprintf(sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info) "
-        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str());        
+        snprintf(sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,remarks) "
+        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.remark.c_str());        
     }else if(ticket.ticketType == "功能开发")
     {
         TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);
-        snprintf(sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create) "
-        "VALUES(%d,'%s');", ticket.Ticket::id,tf.featureInit.c_str());
+        snprintf(sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create,description_completed) "
+        "VALUES(%d,'%s','%s');", ticket.Ticket::id,tf.featureInit.c_str(),tf.featureFinal.c_str());
     }else if(ticket.ticketType == "其他")
     {
         TicketOther& to = dynamic_cast<TicketOther&>(ticket);

@@ -11,6 +11,9 @@ public:
     bool createEncryptionKey(std::string,std::string) override;
     bool updateEncryptionKey(int id,std::string,std::string) override;
 
+    std::vector<std::pair<EncryptionKeyHistory,std::vector<AuthInfo>>> getEncryptionKeyHistoryWithAuthRecordByEK(std::string) override;
+
+
     // 交付操作：向encryption_key表和encryption_key_history表插入数据
     bool deliveryOperation(const std::string& clientName,
                           const std::string& shellNumber,
@@ -48,5 +51,6 @@ public:
 
     ~EncryptionKeyService();
 private:
+
     std::shared_ptr<IEncryptionKey> encryptionKeyDAO_;
 };

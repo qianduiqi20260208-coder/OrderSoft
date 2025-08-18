@@ -99,36 +99,36 @@ std::vector<User> UserDAO::getUser()
 std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
 {
     std::vector<std::string> responsibleModels;
-    
+
     // 检查数据库连接状态
     if (!DBConnectionManager::ensureConnected(mysql)) {
         printf("[error] function:getUserResponsibleModels() 数据库连接失败！\n");
         return responsibleModels;
     }
-    
+
     // 参数验证
     if (userId <= 0) {
         printf("[error] function:getUserResponsibleModels() 无效的用户ID：%d\n", userId);
         return responsibleModels;
     }
-    
+
     // 查询用户负责的模型
     snprintf(sql, SQL_MAX, "SELECT model FROM user_model WHERE username = %d", userId);
-    
+
     // printf("[debug] getUserResponsibleModels SQL: %s\n", sql);
-    
+
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getUserResponsibleModels() 查询user_model表失败！失败原因：%s\n", mysql_error(mysql));
         return responsibleModels;
     }
-    
+
     MYSQL_RES* res = mysql_store_result(mysql);
     if (!res) {
         printf("[error] function:getUserResponsibleModels() mysql_store_result失败：%s\n", mysql_error(mysql));
         return responsibleModels;
     }
-    
+
     MYSQL_ROW row;
     while ((row = mysql_fetch_row(res)) != nullptr) {
         if (row[0]) {  // 确保模型名称不为空
@@ -137,12 +137,12 @@ std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
             // printf("[debug] 用户 %d 负责模型: %s\n", userId, modelName.c_str());
         }
     }
-    
+
     mysql_free_result(res);
-    
-    // printf("[info] function:getUserResponsibleModels() 用户 %d 共负责 %zu 个模型\n", 
+
+    // printf("[info] function:getUserResponsibleModels() 用户 %d 共负责 %zu 个模型\n",
     //        userId, responsibleModels.size());
-    
+
     return responsibleModels;
 }
 
@@ -365,6 +365,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->updateNote = row[3];
             tmp->packRequirement = row[4];
             tmp->interfaceChanged = atoi(row[5]);
+            tmp->remark = (row[7]?row[7]:"");
         }
         mysql_free_result(res);
 
@@ -391,7 +392,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->targetClient = row[6];
             tmp->validatedByCAE =atoi(row[7]);
             tmp->sensitiveInfo = row[8];
-
+            tmp->remark = (row[13]?row[13]:"");
 
         }
         mysql_free_result(res);
@@ -434,7 +435,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         while(row = mysql_fetch_row(res))
         {
             tmp->featureInit = row[2];
-            
+            tmp->featureFinal = (row[3]?row[3]:"");
         }
         mysql_free_result(res);
 

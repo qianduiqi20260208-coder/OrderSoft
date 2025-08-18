@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "Entity.h"
 #include <vector>
 #include <memory>
@@ -25,6 +26,10 @@ public:
 
     // 获取指定客户和外壳号的授权信息
     virtual std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) = 0;
+
+    virtual std::vector<std::vector<std::string>> selectAllSendRecordByClient(std::string) = 0;
+
+    virtual std::vector<std::vector<std::string>> selectLatestModelVersionByClient(std::string client) =0;
 
     virtual ~ICustomerInfoDAO() = default;
 };
