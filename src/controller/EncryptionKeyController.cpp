@@ -41,11 +41,24 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
         });
 
     // 获取特定加密狗的历史记录
-    CROW_ROUTE(app, "/dongle/<string>/history").methods("GET"_method)
-        ([this](const crow::request& req, const std::string& dongleId) {
+    CROW_ROUTE(app, "/dongle/history").methods("GET"_method)
+        ([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        // 获取 GET 参数 dongleId
+        auto params = crow::query_string(req.url_params);
+        std::string dongleId = params.get("dongleId") ? params.get("dongleId") : "";
+
+        if (dongleId.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：dongleId"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
         }
 
         // 获取历史记录
@@ -53,7 +66,7 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
 
         nlohmann::json historyArray = nlohmann::json::array();
         for (const auto& historyPair : historyList) {
-            const auto& history = historyPair.first;   // EncryptionKeyHistory: [id, outTime, inTime, clientName]
+            const auto& history = historyPair.first;   // EncryptionKeyHistory: [outTime, inTime, clientName]
             const auto& authList = historyPair.second; // vector<AuthInfo>: [generateDate, authId, startDate, endDate, authType, authNote]
 
             nlohmann::json authArray = nlohmann::json::array();
@@ -71,9 +84,9 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
 
             historyArray.push_back({
                 {"id",         history.size() > 0 ? history[0] : ""},
-                {"outTime",    history.size() > 1 ? history[1] : "未知"},
-                {"inTime",     history.size() > 2 ? history[2] : "未知"},
-                {"clientName", history.size() > 3 ? history[3] : "暂无客户"},
+                {"outTime",    history.size() > 0 ? history[0] : "未知"},
+                {"inTime",     history.size() > 1 ? history[1] : "未知"},
+                {"clientName", history.size() > 2 ? history[2] : "暂无客户"},
                 {"authorizations", authArray}
             });
         }

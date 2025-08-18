@@ -34,6 +34,11 @@ public:
     // 获取客户列表及统计信息
     virtual nlohmann::json getClientList() = 0;
 
+    // 获取指定客户下的外壳号
+    virtual std::vector<std::string> getEncryptionKeyByClient(const std::string& clientName) = 0;
+
+    // 获取指定客户、指定外壳号下的授权信息
+    virtual std::vector<Authorization> getShellAuthorization(const std::string& clientName, const std::string& shellNumber) = 0;
 
     virtual std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getSendRecordByClientPagedByDate(std::string,int,int) = 0;
 
