@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#define SQL_MAX 512		// sql语句字符数组最大值
+#define SQL_MAX 1024		// sql语句字符数组最大值
 
 //使用mysql数据库的DAO
 class TicketDAO :public ITicketDAO
