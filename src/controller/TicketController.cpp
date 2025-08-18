@@ -330,6 +330,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketversion.createTime = body.value("startTime", ""); // 发起时间
         ticketversion.model = body.value("modelID", "");  // 关联模型
         ticketversion.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketversion.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketversion.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -416,6 +417,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketpackage.createTime = body.value("startTime", ""); // 发起时间
         ticketpackage.model = body.value("modelID", ""); // 关联模型
         ticketpackage.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketpackage.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketpackage.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketpackage.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketpackage.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -463,6 +465,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketfeature.createTime = body.value("startTime", ""); // 发起时间
         ticketfeature.model = body.value("modelID", ""); // 关联模型
         ticketfeature.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketfeature.featureFinal = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketfeature.featureInit = body.value("featureDesc", ""); // 功能描述
         ticketfeature.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
 
