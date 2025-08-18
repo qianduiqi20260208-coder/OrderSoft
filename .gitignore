@@ -1,2 +1,9 @@
 build
 extern
+fantastic-admin/node_modules
+.DS_Store
+**dist*
+fantastic-admin/dist-ssr
+*.local
+.eslintcache
+.stylelintcache

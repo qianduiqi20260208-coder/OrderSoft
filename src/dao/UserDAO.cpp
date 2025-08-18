@@ -38,7 +38,7 @@ std::vector<User> UserDAO::getUser()
         if(row[12]!=nullptr)
             user.lastUsedModel = atoi(row[12]);
         //查询用户负责的模型
-        snprintf(sql, SQL_MAX, "select model from user_model where username=%d;",user.jobNumber);
+        snprintf(sql, SQL_MAX, "select DISTINCT model from user_model where username=%d;",user.jobNumber);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getUser() 查询user_model表失败！失败原因：%s\n", mysql_error(mysql));
