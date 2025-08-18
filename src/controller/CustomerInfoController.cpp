@@ -8,29 +8,6 @@ CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoServ
 
 void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
-    // 获取特定加密狗的历史记录
-    CROW_ROUTE(app, "/dongle/<string>/history").methods("GET"_method)
-        ([this](const crow::request& req, const std::string& dongleId) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-
-        // // TODO: 调用服务层获取历史记录
-        // // auto historyList = dongleService->getDongleHistory(dongleId);
-
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0}
-            }}
-        };
-
-        return crow::response{ resp.dump() };
-        });
-
     // 获取客户列表信息-客户管理页加载
     CROW_ROUTE(app, "/client/list").methods("GET"_method)
         ([this](const crow::request& req) {
@@ -42,7 +19,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         printf("[DEBUG] 获取客户列表信息\n");
 
         // TODO: 调用服务层获取客户列表
-        // auto clientList = clientService->getClientList();
+        auto clientList = customerInfoService_->getClientList();
 
         nlohmann::json resp = {
             {"status", 1},

@@ -40,6 +40,56 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
         return crow::response{ resp.dump() };
         });
 
+    // 获取特定加密狗的历史记录
+    CROW_ROUTE(app, "/dongle/<string>/history").methods("GET"_method)
+        ([this](const crow::request& req, const std::string& dongleId) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        // 获取历史记录
+        auto historyList = encryptionKeyService_->getEncryptionKeyHistoryWithAuthRecordByEK(dongleId);
+
+        nlohmann::json historyArray = nlohmann::json::array();
+        for (const auto& historyPair : historyList) {
+            const auto& history = historyPair.first;   // EncryptionKeyHistory: [id, outTime, inTime, clientName]
+            const auto& authList = historyPair.second; // vector<AuthInfo>: [generateDate, authId, startDate, endDate, authType, authNote]
+
+            nlohmann::json authArray = nlohmann::json::array();
+            for (const auto& auth : authList) {
+                // 防止越界，建议加长度判断
+                authArray.push_back({
+                    {"generateDate", auth.size() > 0 ? auth[0] : ""},
+                    {"authId",       auth.size() > 1 ? auth[1] : ""},
+                    {"startDate",    auth.size() > 2 ? auth[2] : ""},
+                    {"endDate",      auth.size() > 3 ? auth[3] : ""},
+                    {"authType",     auth.size() > 4 ? auth[4] : ""},
+                    {"authNote",     auth.size() > 5 ? auth[5] : ""}
+                });
+            }
+
+            historyArray.push_back({
+                {"id",         history.size() > 0 ? history[0] : ""},
+                {"outTime",    history.size() > 1 ? history[1] : "未知"},
+                {"inTime",     history.size() > 2 ? history[2] : "未知"},
+                {"clientName", history.size() > 3 ? history[3] : "暂无客户"},
+                {"authorizations", authArray}
+            });
+        }
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", historyArray},
+                {"total", historyArray.size()}
+            }}
+        };
+
+        return crow::response{ resp.dump() };
+    });
+
     // 创建加密狗
     CROW_ROUTE(app, "/dongle/create").methods("POST"_method)
         ([this](const crow::request& req) {
