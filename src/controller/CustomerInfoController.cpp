@@ -18,19 +18,32 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
         printf("[DEBUG] 获取客户列表信息\n");
 
-        // TODO: 调用服务层获取客户列表
-        auto clientList = customerInfoService_->getClientList();
-
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0}
-            }}
-        };
+        // 调用服务层获取客户列表
+        nlohmann::json clientListResult = customerInfoService_->getClientList();
         
-        return crow::response{ resp.dump() };
+        // 如果获取成功，重新格式化数据结构以匹配前端期望的格式
+        if (clientListResult["status"] == 1) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {
+                    {"list", clientListResult["data"]},
+                    {"total", clientListResult["data"].size()}
+                }}
+            };
+            return crow::response{ resp.dump() };
+        } else {
+            // 如果获取失败，返回错误信息
+            nlohmann::json resp = {
+                {"status", 0},
+                {"error", clientListResult["error"]},
+                {"data", {
+                    {"list", nlohmann::json::array()},
+                    {"total", 0}
+                }}
+            };
+            return crow::response{ resp.dump() };
+         }
         });
 
     // 新建客户
