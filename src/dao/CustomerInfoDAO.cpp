@@ -543,6 +543,31 @@ std::vector<Authorization> CustomerInfoDAO::getShellAuthorizationInfo(const std:
     return authorizationList;
 }
 
+std::vector<std::string> CustomerInfoDAO::selectAuthorizationByEncryptionKey(std::string encryptionKey)
+{
+    if (!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+    
+    std::vector<std::string> retVec;
+    snprintf(sql, SQL_MAX, "select authorization_code from product_authorization pa inner join product_authorization_info pai on pai.authorization_id = pa.id where pa.encryption_key = '%s' and CURDATE() BETWEEN pai.authorization_start_date AND pai.authorization_end_date; ",encryptionKey.c_str());
+    printf("sql:%s\n",sql);
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:selectAuthorizationByEncryptionKey 查询 product_authorization 表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    if(row = mysql_fetch_row(res))
+    {
+        retVec.push_back(row[0]);
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
 CustomerInfoDAO::~CustomerInfoDAO()
 {
     DBConnectionManager::closeConnection(mysql);

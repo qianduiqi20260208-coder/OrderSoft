@@ -6,6 +6,7 @@
 
 class ITicketService
 {
+protected:
 public:
     virtual bool createTicket(Ticket& ticket){return true;};
     virtual bool approveTicket(const Ticket& ticket){return true;};
@@ -19,6 +20,8 @@ public:
     virtual unsigned long long getOrderCount() = 0;
 
     virtual std::vector<std::string> getClient() = 0;
+
+    virtual std::vector<std::vector<std::pair<std::string,int>>> getOrderStatisticsByCondition(int,std::string,std::vector<std::string>) = 0;
 
     virtual ~ITicketService() =0;
     

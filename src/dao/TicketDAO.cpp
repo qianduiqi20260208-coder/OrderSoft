@@ -819,6 +819,91 @@ std::vector<std::string> TicketDAO::getOrderClient()
     return retVec;
 }
 
+std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStatisticsByCondition(int timeRange, std::string ticketType, std::vector<std::string> clientName)
+{
+    std::vector<std::vector<std::pair<std::string,int>>> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+
+    //遍历所有的客户，针对每一个客户做一次查询
+    for(const std::string& client: clientName)
+    {
+        std::vector<std::pair<std::string,int>> tmpVec;
+
+        //查询不同时间段的sql分开编写 不同类型的工单分开编写，有的工单没有客户
+        std::stringstream ss;
+
+        //根据不同的时间段做不同的筛选 0是筛选出一周的数据 1是筛选出一个月的数据 2是筛选出半年的数据
+        if(timeRange == 0)
+        {
+            ss<<"select DATE(wo.completed_at) as day, count(*) from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join version_iteration vi on vi.work_order_id = wo.id"
+            " left join package_send ps on ps.work_order_id = wo.id where wo.type in('"<<ticketType<<"','直接封装+发送')";
+
+            
+            if(ticketType == "版本迭代")
+            {
+                
+            }else if(ticketType == "交付发送")
+            {
+                ss<<" and (ds.target_customer = '"<<client<<"' or ps.target_customer ='"<<client<<"')";
+            }
+
+            ss<<" and wo.completed_at is not null and wo.completed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY day order by day;";
+
+        }else if(timeRange == 1)
+        {
+            ss<<"select FLOOR( (DAYOFMONTH(completed_at) - 1) / 7 ) + 1 as week_of_month, count(*) from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join version_iteration vi on vi.work_order_id = wo.id"
+            " left join package_send ps on ps.work_order_id = wo.id where wo.type in('"<<ticketType<<"','直接封装+发送')";
+
+            
+            if(ticketType == "版本迭代")
+            {
+                
+            }else if(ticketType == "交付发送")
+            {
+                ss<<" and (ds.target_customer = '"<<client<<"' or ps.target_customer ='"<<client<<"')";
+            }
+
+            ss<<" and wo.completed_at is not null and wo.completed_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) GROUP BY week_of_month ORDER BY week_of_month;";
+        }else if(timeRange == 2)
+        {
+            ss<<"select DATE_FORMAT(completed_at, '%Y-%m') as ym, count(*) from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join version_iteration vi on vi.work_order_id = wo.id"
+            " left join package_send ps on ps.work_order_id = wo.id where wo.type in('"<<ticketType<<"','直接封装+发送')";
+
+            //判断是什么类型的工单
+            if(ticketType == "版本迭代")
+            {
+                
+            }else if(ticketType == "交付发送")
+            {
+                ss<<" and (ds.target_customer = '"<<client<<"' or ps.target_customer ='"<<client<<"')";
+            }
+
+            ss<<" and wo.completed_at is not null and wo.completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym;";
+        }
+
+        printf("sql:%s",ss.str().c_str());
+        ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
+        if (ret) {
+            printf("[error] function:selectOrderStatisticsByCondition() 查询 work_order 表失败！失败原因：%s\n", mysql_error(mysql));
+            return  {};
+        }
+
+        res = mysql_store_result(mysql);
+        while(row = mysql_fetch_row(res))
+        {
+            tmpVec.push_back({row[0],atoi(row[1])});
+        }
+        mysql_free_result(res);
+        retVec.push_back(tmpVec);
+    }
+
+    return retVec;
+}
+
 TicketDAO::~TicketDAO()
 {
     DBConnectionManager::closeConnection(mysql);

@@ -21,6 +21,9 @@ public:
     virtual bool orderTransfer(const TicketExecutor& executor) = 0;
     virtual unsigned long long getOrderCount() = 0 ;
     virtual std::vector<std::string> getOrderClient() = 0;
+
+    virtual std::vector<std::vector<std::pair<std::string,int>>> selectOrderStatisticsByCondition(int,std::string,std::vector<std::string>) = 0;
+
     virtual ~ITicketDAO() = 0;
 
 };

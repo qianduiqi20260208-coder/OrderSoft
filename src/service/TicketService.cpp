@@ -69,3 +69,11 @@ std::vector<std::string> TicketService::getClient()
 {
     return ticketDAO->getOrderClient();
 }
+
+std::vector<std::vector<std::pair<std::string,int>>> TicketService::getOrderStatisticsByCondition(int time_range, std::string ticketType, std::vector<std::string> clientName)
+{
+    
+
+    return ticketDAO->selectOrderStatisticsByCondition(time_range,ticketType,clientName);
+    
+}

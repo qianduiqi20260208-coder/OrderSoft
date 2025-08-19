@@ -28,6 +28,9 @@ public:
     unsigned long long getOrderCount() override;
     std::vector<std::string> getOrderClient() override;
     
+    //第一个筛选条件是时间范围（七天一个月或者半年），第二个是工单类型（版本迭代或者交付发送），第三个是客户的名字（可以为空也可以有多个）
+    std::vector<std::vector<std::pair<std::string,int>>> selectOrderStatisticsByCondition(int,std::string,std::vector<std::string>) override;
+
     ~TicketDAO();
 private:
     //mysql套件

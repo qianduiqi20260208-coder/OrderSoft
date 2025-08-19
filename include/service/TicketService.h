@@ -22,6 +22,10 @@ public:
     bool orderTransfer(const TicketExecutor& executor) override;
     unsigned long long getOrderCount() override;
     std::vector<std::string> getClient() override;
+
+    //第一个参数： 0是筛选出一周的数据 1是筛选出一个月的数据 2是筛选出半年的数据。 筛选版本迭代工单时需要传入的vector数据是:{""}
+    std::vector<std::vector<std::pair<std::string,int>>> getOrderStatisticsByCondition(int,std::string,std::vector<std::string>) override;
+
 private:
 
     std::shared_ptr<ITicketDAO> ticketDAO;

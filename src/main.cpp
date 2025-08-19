@@ -51,14 +51,14 @@ int main() {
     UserController userController(userService);
     TicketController ticketController(ticketService);
     ModelController modelController(modelService);
-    CustomerInfoController customerInfoController;
+    //CustomerInfoController customerInfoController;
 
 
 	crow::SimpleApp app;
     userController.registerRoutes(app);
 	ticketController.registerRoutes(app);
 	modelController.registerRoutes(app);
-    customerInfoController.registerRoutes(app);
+    //customerInfoController.registerRoutes(app);
 
 	app.port(18080).multithreaded().run();
 	

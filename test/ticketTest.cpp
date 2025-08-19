@@ -164,5 +164,12 @@ TEST_CASE("reject encryption2") {
 	ticket.remark ="这是直接封装+发送类工单的备注";
 
 	ticketSvc->completeTicket(ticket);
+}
+
+TEST_CASE("order statistics") {
+	//查询近七天的版本迭代工单
+	auto ret1 = ticketSvc->getOrderStatisticsByCondition(0,"版本迭代",{""});
     
+	//查询最近一周的交付发送类工单
+	auto ret2 = ticketSvc->getOrderStatisticsByCondition(0,"交付发送",{"华为","zhangsan"});
 }

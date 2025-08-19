@@ -1,7 +1,7 @@
 #include "DBConnectionManager.h"
 #include "IniReader.h"
 #include <stdio.h>
-
+#include <filesystem>
 
 bool DBConnectionManager::getConnection(MYSQL*& mysql)
 {
@@ -9,7 +9,8 @@ bool DBConnectionManager::getConnection(MYSQL*& mysql)
     IniReader config;
     if (!config.load("../../config/config.ini")) { 
         printf("[error] function:getConnection 无法读取 config.ini 文件\n");
-        return 0;
+        printf("CWD = %s\n", std::filesystem::current_path().string().c_str());
+        return false;
     }
     std::string dbHost = config.getString("database", "host");
     int dbPort = config.getInt("database", "port");
