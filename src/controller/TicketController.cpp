@@ -1037,4 +1037,89 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         printf("[info] 文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
         return downloadTicketFile(ticketId, filename);
         });
+
+    // 新增复杂工单查询分页接口
+    CROW_ROUTE(app, "/order/details").methods("GET"_method)
+        ([this](const crow::request& req) {
+            try {
+                // 解析查询参数
+                auto page_param = req.url_params.get("page");
+                auto pageSize_param = req.url_params.get("pageSize");
+                auto modelName_param = req.url_params.get("modelID");
+                
+                int page = page_param ? std::stoi(page_param) : 1;
+                int pageSize = pageSize_param ? std::stoi(pageSize_param) : 10;
+                std::string modelName = modelName_param ? std::string(modelName_param) : "ATA04_Aerodynamics";
+                
+                // 计算偏移量
+                int offset = (page - 1) * pageSize;
+                
+                // 获取分页的版本信息
+                std::vector<std::pair<std::string, std::string>> versionInfos = ticketService->getVersionsWithPagination(modelName, offset, pageSize);
+                
+                // 获取总版本数
+                unsigned long long totalVersions = ticketService->getVersionsCount(modelName);
+                
+                // 提取版本列表
+                std::vector<std::string> versions;
+                for (const auto& versionInfo : versionInfos) {
+                    versions.push_back(versionInfo.first);
+                }
+                
+                // 使用版本列表查询所有相关工单
+                std::vector<nlohmann::json> allOrders = ticketService->getWorkOrdersWithDetailsByVersions(modelName, versions);
+                
+                // 按版本分组工单
+                std::map<std::string, nlohmann::json> versionGroups;
+                
+                // 为每个版本创建分组
+                for (const auto& versionInfo : versionInfos) {
+                    const std::string& version = versionInfo.first;
+                    const std::string& updateTime = versionInfo.second;
+                    
+                    nlohmann::json versionGroup;
+                    versionGroup["version"] = version;
+                    versionGroup["modelID"] = modelName;
+                    versionGroup["updateTime"] = updateTime;
+                    versionGroup["orders"] = nlohmann::json::array();
+                    
+                    versionGroups[version] = versionGroup;
+                }
+                
+                // 将工单分配到对应的版本组
+                for (const auto& order : allOrders) {
+                    std::string orderVersion = order["version"];
+                    if (versionGroups.find(orderVersion) != versionGroups.end()) {
+                        versionGroups[orderVersion]["orders"].push_back(order);
+                    }
+                }
+                
+                // 构建返回的JSON结构
+                nlohmann::json list = nlohmann::json::array();
+                for (const auto& versionInfo : versionInfos) {
+
+                    list.push_back(versionGroups[versionInfo.first]);
+                }
+                
+                // 构建响应
+                nlohmann::json resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {
+                        {"list", list},
+                        {"total", totalVersions}
+                    }}
+                };
+                
+                return crow::response(200, resp.dump());
+            }
+            catch (const std::exception& e) {
+                
+                nlohmann::json error = {
+                    {"status", 1},
+                    {"error", "查询工单失败"}
+                };
+                return crow::response(500, error.dump());
+            }
+        });
 }

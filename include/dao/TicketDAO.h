@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <nlohmann/json.hpp>
 
 #define SQL_MAX 1024		// sql语句字符数组最大值
 
@@ -30,6 +31,13 @@ public:
     
     //第一个筛选条件是时间范围（七天一个月或者半年），第二个是工单类型（版本迭代或者交付发送），第三个是客户的名字（可以为空也可以有多个）
     std::vector<std::vector<std::pair<std::string,int>>> selectOrderStatisticsByCondition(int,std::string,std::vector<std::string>) override;
+
+    // 新增：版本分页查询方法
+    std::vector<nlohmann::json> getVersionsWithPagination(const std::string& modelName, int offset, int pageSize) override;
+    unsigned long long getVersionsCount(const std::string& modelName) override;
+
+    // 新增：基于版本列表的工单查询方法
+    std::vector<nlohmann::json> getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions) override;
 
     ~TicketDAO();
 private:

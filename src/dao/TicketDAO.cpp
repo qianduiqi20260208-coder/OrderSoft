@@ -588,6 +588,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             tmp->remark = (row[7]?row[7]:"");
         }
         mysql_free_result(res);
+        // todo
         if(tmp->newModelVersion !="")
         {
             int modelVersionId = stoi(tmp->newModelVersion);
@@ -819,6 +820,421 @@ std::vector<std::string> TicketDAO::getOrderClient()
     return retVec;
 }
 
+
+
+std::vector<nlohmann::json> TicketDAO::getVersionsWithPagination(const std::string& modelName, int offset, int pageSize)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+    
+    std::vector<nlohmann::json> retVec;
+    
+    // 构建版本分页查询SQL
+    std::stringstream ss;
+    ss << "SELECT version, update_time as updateTime "
+       << "FROM model_version "
+       << "WHERE model = '" << modelName << "' "
+       << "AND version IS NOT NULL "
+       << "ORDER BY id DESC "
+       << "LIMIT " << offset << ", " << pageSize << ";";
+
+    printf("sql:%s\n", ss.str().c_str());
+    ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
+    
+    if (ret) {
+        printf("[error] function:getVersionsWithPagination() 查询失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        nlohmann::json versionJson;
+        versionJson["version"] = row[0] ? std::string(row[0]) : "";
+        versionJson["updateTime"] = row[1] ? std::string(row[1]) : "";
+        retVec.push_back(versionJson);
+    }
+    
+    mysql_free_result(res);
+    return retVec;
+}
+
+unsigned long long TicketDAO::getVersionsCount(const std::string& modelName)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return 0;
+    }
+    
+    // 构建版本计数查询SQL
+    std::stringstream ss;
+    ss << "SELECT COUNT(DISTINCT version) "
+       << "FROM model_version "
+       << "WHERE model = '" << modelName << "' "
+       << "AND version IS NOT NULL;";
+
+    printf("sql:%s\n", ss.str().c_str());
+    ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
+    
+    if (ret) {
+        printf("[error] function:getVersionsCount() 查询失败！失败原因：%s\n", mysql_error(mysql));
+        return 0;
+    }
+    
+    res = mysql_store_result(mysql);
+    unsigned long long count = 0;
+    if(row = mysql_fetch_row(res))
+    {
+        count = row[0] ? std::stoull(row[0]) : 0;
+    }
+    
+    mysql_free_result(res);
+    return count;
+}
+
+std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+    
+    if(versions.empty())
+    {
+        return {};
+    }
+    
+    std::vector<nlohmann::json> retVec;
+    
+    // 构建版本IN子句
+    std::stringstream versionInClause;
+    versionInClause << "(";
+    for(size_t i = 0; i < versions.size(); ++i)
+    {
+        if(i > 0) versionInClause << ", ";
+        versionInClause << "'" << versions[i] << "'";
+    }
+    versionInClause << ")";
+    
+    // 构建复杂的SQL查询，使用UNION来正确处理版本迭代工单
+    std::stringstream ss;
+    ss << "("
+       << "SELECT DISTINCT "
+       << "wo.id, "
+       << "mv.id as mv_id, "
+       << "mv.version, "
+       << "mv.update_time, "
+       << "wo.creator_id as creatorId, "
+       << "wo.created_at as createTime, "
+       << "wo.type as ticketType, "
+       << "wo.model, "
+       << "(SELECT version FROM model_version WHERE id = wo.model_version_id) as modelVersion, "
+       << "wo.status, "
+       << "wo.approver_id as approverId, "
+       << "wo.priority as priorityHint, "
+       << "wo.dispatcher_id as distributorId, "
+       << "woe.executor_id as executor_id, "
+       << "wo.approved_at as approvedTime, "
+       << "wo.task_priority as priorityTask, "
+       << "wo.dispatched_at as distributedTime, "
+       << "wo.completed_at as completedTime, "
+       << "wo.reject_reason as rejectReason, "
+       << "CASE "
+       << "  WHEN wo.type = '问题复现' THEN ir.coordination_id "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.coordination_id "
+       << "  ELSE NULL "
+       << "END AS coordinationId, "
+       << "CASE "
+       << "  WHEN wo.type = '问题复现' THEN ir.description "
+       << "  ELSE NULL "
+       << "END AS content, "
+       << "CASE "
+       << "  WHEN wo.type = '其他' THEN owo.description "
+       << "  ELSE NULL "
+       << "END AS description, "
+       << "CASE "
+       << "  WHEN wo.type = '问题复现' THEN ir.phenomenon "
+       << "  ELSE NULL "
+       << "END AS phenomenon, "
+       << "CASE "
+       << "  WHEN wo.type = '问题复现' THEN ir.remarks "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.remarks "
+       << "  WHEN wo.type = '交付发送' THEN ds.remarks "
+       << "  WHEN wo.type = '其他' THEN owo.remarks "
+       << "  ELSE NULL "
+       << "END AS remark, "
+       << "CASE "
+       << "  WHEN wo.type = '问题复现' THEN ira.file_name "
+       << "  ELSE NULL "
+       << "END AS fileName, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.update_content "
+       << "  ELSE NULL "
+       << "END AS updateNote, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.packaging_requirements "
+       << "  ELSE NULL "
+       << "END AS packRequirement, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.interface_changed "
+       << "  ELSE NULL "
+       << "END AS interfaceChanged, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.new_model_version_id "
+       << "  WHEN wo.type = '功能开发' THEN fd.new_model_version_id "
+       << "  ELSE NULL "
+       << "END AS newModelVersion, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.target_customer "
+       << "  WHEN wo.type = '交付发送' THEN ds.target_customer "
+       << "  ELSE NULL "
+       << "END AS targetClient, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.validated_by_cae "
+       << "  WHEN wo.type = '交付发送' THEN ds.validated_by_cae "
+       << "  ELSE NULL "
+       << "END AS validatedByCae, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.sensitive_info "
+       << "  WHEN wo.type = '交付发送' THEN ds.sensitive_info "
+       << "  ELSE NULL "
+       << "END AS sensitiveInfo, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.is_encrypted "
+       << "  WHEN wo.type = '交付发送' THEN ds.is_encrypted "
+       << "  ELSE NULL "
+       << "END AS encrypted, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.encryption_key "
+       << "  ELSE NULL "
+       << "END AS dongle, "
+       << "CASE "
+       << "  WHEN wo.type = '交付发送' THEN ds.shell_code "
+       << "  ELSE NULL "
+       << "END AS dongleId, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.product_authorization_id "
+       << "  ELSE NULL "
+       << "END AS license, "
+       << "CASE "
+       << "  WHEN wo.type = '交付发送' THEN ds.authorization_id "
+       << "  ELSE NULL "
+       << "END AS licenseId, "
+       << "CASE "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_create "
+       << "  ELSE NULL "
+       << "END AS featureInit, "
+       << "CASE "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_completed "
+       << "  ELSE NULL "
+       << "END AS featureFinal "
+       << "FROM model_version mv "
+       << "LEFT JOIN work_order wo ON mv.id = wo.model_version_id "
+       << "LEFT JOIN work_order_executor woe ON woe.work_order_id = wo.id "
+       << "LEFT JOIN issue_reproduction ir ON ir.work_order_id = wo.id "
+       << "LEFT JOIN issue_reproduction_attachment ira ON ira.ticket_id = ir.work_order_id "
+       << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id "
+       << "LEFT JOIN delivery_send ds ON ds.work_order_id = wo.id "
+       << "LEFT JOIN function_development fd ON fd.work_order_id = wo.id "
+       << "LEFT JOIN other_work_order owo ON owo.work_order_id = wo.id "
+       << "WHERE mv.model = '" << modelName << "' "
+       << "AND mv.version IS NOT NULL "
+       << "AND mv.version IN " << versionInClause.str() << " "
+       << "AND wo.type != '版本迭代' "
+       << ") UNION ("
+       << "SELECT DISTINCT "
+       << "wo.id, "
+       << "mv.id as mv_id, "
+       << "mv.version, "
+       << "mv.update_time, "
+       << "wo.creator_id as creatorId, "
+       << "wo.created_at as createTime, "
+       << "wo.type as ticketType, "
+       << "wo.model, "
+       << "(SELECT version FROM model_version WHERE id = wo.model_version_id) as modelVersion, "
+       << "wo.status, "
+       << "wo.approver_id as approverId, "
+       << "wo.priority as priorityHint, "
+       << "wo.dispatcher_id as distributorId, "
+       << "woe.executor_id as executor_id, "
+       << "wo.approved_at as approvedTime, "
+       << "wo.task_priority as priorityTask, "
+       << "wo.dispatched_at as distributedTime, "
+       << "wo.completed_at as completedTime, "
+       << "wo.reject_reason as rejectReason, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN vi.coordination_id "
+       << "  WHEN wo.type = '功能开发' THEN NULL "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.coordination_id "
+       << "  ELSE NULL "
+       << "END AS coordinationId, "
+       << "NULL AS content, "
+       << "CASE "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_create "
+       << "  ELSE NULL "
+       << "END AS description, "
+       << "NULL AS phenomenon, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN vi.remarks "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_completed "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.remarks "
+       << "  ELSE NULL "
+       << "END as remark, "
+       << "NULL AS fileName, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN vi.update_content "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.update_content "
+       << "  ELSE NULL "
+       << "END AS updateNote, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN vi.packaging_requirements "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.packaging_requirements "
+       << "  ELSE NULL "
+       << "END AS packRequirement, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN vi.interface_changed "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.interface_changed "
+       << "  ELSE NULL "
+       << "END AS interfaceChanged, "
+       << "CASE "
+       << "  WHEN wo.type = '版本迭代' THEN (SELECT version FROM model_version WHERE id = vi.new_model_version_id) "
+       << "  WHEN wo.type = '功能开发' THEN (SELECT version FROM model_version WHERE id = fd.new_model_version_id) "
+       << "  WHEN wo.type = '直接封装+发送' THEN (SELECT version FROM model_version WHERE id = ps.new_model_version_id) "
+       << "  ELSE NULL "
+       << "END AS newModelVersion, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.target_customer "
+       << "  ELSE NULL "
+       << "END AS targetClient, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.validated_by_cae "
+       << "  ELSE NULL "
+       << "END AS validatedByCae, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.sensitive_info "
+       << "  ELSE NULL "
+       << "END AS sensitiveInfo, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.is_encrypted "
+       << "  ELSE NULL "
+       << "END AS encrypted, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.encryption_key "
+       << "  ELSE NULL "
+       << "END AS dongle, "
+       << "NULL AS dongleId, "
+       << "CASE "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.product_authorization_id "
+       << "  ELSE NULL "
+       << "END AS license, "
+       << "NULL AS licenseId, "
+       << "CASE "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_create "
+       << "  ELSE NULL "
+       << "END AS featureInit, "
+       << "CASE "
+       << "  WHEN wo.type = '功能开发' THEN fd.description_completed "
+       << "  ELSE NULL "
+       << "END AS featureFinal "
+       << "FROM model_version mv "
+       << "INNER JOIN ("
+       << "  SELECT vi.new_model_version_id as target_version_id, vi.work_order_id, '版本迭代' as work_type FROM version_iteration vi "
+       << "  UNION ALL "
+       << "  SELECT fd.new_model_version_id as target_version_id, fd.work_order_id, '功能开发' as work_type FROM function_development fd "
+       << "  UNION ALL "
+       << "  SELECT ps.new_model_version_id as target_version_id, ps.work_order_id, '直接封装+发送' as work_type FROM package_send ps "
+       << ") target_works ON mv.id = target_works.target_version_id "
+       << "INNER JOIN work_order wo ON wo.id = target_works.work_order_id "
+       << "LEFT JOIN version_iteration vi ON vi.work_order_id = wo.id AND wo.type = '版本迭代' "
+       << "LEFT JOIN function_development fd ON fd.work_order_id = wo.id AND wo.type = '功能开发' "
+       << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id AND wo.type = '直接封装+发送' "
+       << "LEFT JOIN work_order_executor woe ON woe.work_order_id = wo.id "
+       << "WHERE mv.model = '" << modelName << "' "
+       << "AND mv.version IS NOT NULL "
+       << "AND mv.version IN " << versionInClause.str() << " "
+       << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') "
+       << ") ORDER BY id DESC;";
+
+    printf("sql:%s\n", ss.str().c_str());
+    ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
+    
+    if (ret) {
+        printf("[error] function:getWorkOrdersWithDetailsByVersions() 查询失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        nlohmann::json orderJson;
+        
+        // 基本字段（与原方法相同的字段映射逻辑）
+        orderJson["orderID"] = row[0] ? std::string(row[0]) : "";
+        orderJson["mv_id"] = row[1] ? std::string(row[1]) : "";
+        orderJson["version"] = row[2] ? std::string(row[2]) : "";
+        orderJson["update_time"] = row[3] ? std::string(row[3]) : "";
+        orderJson["creatorId"] = row[4] ? std::string(row[4]) : "";
+        orderJson["promoterID"] = row[4] ? std::string(row[4]) : ""; // 发起人ID
+        orderJson["startTime"] = row[5] ? std::string(row[5]) : ""; // 发起时间
+        orderJson["createTime"] = row[5] ? std::string(row[5]) : "";
+        orderJson["ticketType"] = row[6] ? std::string(row[6]) : "";
+        orderJson["model"] = row[7] ? std::string(row[7]) : "";
+        orderJson["modelVersion"] = row[8] ? std::string(row[8]) : "";
+        orderJson["status"] = row[9] ? std::string(row[9]) : "";
+        orderJson["approverID"] = row[10] ? std::string(row[10]) : "";
+        orderJson["priorityHint"] = row[11] ? std::string(row[11]) : "";
+        orderJson["referencePriority"] = row[11] ? std::string(row[11]) : ""; // 参考优先级
+        orderJson["distributorID"] = row[12] ? std::string(row[12]) : "";
+        orderJson["executorID"] = row[13] ? std::string(row[13]) : "";
+        orderJson["approvedTime"] = row[14] ? std::string(row[14]) : "";
+        orderJson["priorityTask"] = row[15] ? std::string(row[15]) : "";
+        orderJson["distributedTime"] = row[16] ? std::string(row[16]) : "";
+        orderJson["distributeTime"] = row[16] ? std::string(row[16]) : ""; // 分发时间
+        orderJson["completedTime"] = row[17] ? std::string(row[17]) : "";
+        orderJson["rejectReason"] = row[18] ? std::string(row[18]) : "";
+        
+        // 条件字段
+        orderJson["coordinationID"] = row[19] ? std::string(row[19]) : "";
+        orderJson["content"] = row[20] ? std::string(row[20]) : "";
+        orderJson["description"] = row[21] ? std::string(row[21]) : "";
+        orderJson["phenomenon"] = row[22] ? std::string(row[22]) : "";
+        orderJson["finishPhenomenon"] = row[22] ? std::string(row[22]) : ""; // 复现现象
+        orderJson["remark"] = row[23] ? std::string(row[23]) : "";
+        std::string fileName = row[24] ? std::string(row[24]) : "";
+        orderJson["fileName"] = fileName;
+        
+        // 根据Entity.h中的逻辑添加fileUrl和hasAttachment
+        if (!fileName.empty()) {
+            orderJson["fileUrl"] = "/files/ticket/" + (row[0] ? std::string(row[0]) : "") + "/" + fileName;
+            orderJson["hasAttachment"] = true;
+        } else {
+            orderJson["hasAttachment"] = false;
+        }
+        
+        orderJson["updateNote"] = row[25] ? std::string(row[25]) : "";
+        orderJson["packRequirement"] = row[26] ? std::string(row[26]) : "";
+        orderJson["interfaceChanged"] = row[27] ? std::string(row[27]) : "";
+        orderJson["newModelVersion"] = row[28] ? std::string(row[28]) : "";
+        orderJson["targetClient"] = row[29] ? std::string(row[29]) : "";
+        orderJson["validatedByCae"] = row[30] ? std::string(row[30]) : "";
+        orderJson["sensitiveInfo"] = row[31] ? std::string(row[31]) : "";
+        orderJson["encrypted"] = row[32] ? std::string(row[32]) : "";
+        orderJson["dongle"] = row[33] ? std::string(row[33]) : "";
+        orderJson["dongleId"] = row[34] ? std::string(row[34]) : "";
+        orderJson["license"] = row[35] ? std::string(row[35]) : "";
+        orderJson["licenseId"] = row[36] ? std::string(row[36]) : "";
+        orderJson["featureInit"] = row[37] ? std::string(row[37]) : "";
+        orderJson["featureFinal"] = row[38] ? std::string(row[38]) : "";
+        
+        retVec.push_back(orderJson);
+    }
+    
+    mysql_free_result(res);
+    return retVec;
+}
+
 std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStatisticsByCondition(int timeRange, std::string ticketType, std::vector<std::string> clientName)
 {
     std::vector<std::vector<std::pair<std::string,int>>> retVec;
@@ -903,6 +1319,8 @@ std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStati
 
     return retVec;
 }
+
+
 
 TicketDAO::~TicketDAO()
 {

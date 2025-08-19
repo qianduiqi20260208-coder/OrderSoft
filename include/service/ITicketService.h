@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 class ITicketService
 {
@@ -15,6 +16,16 @@ public:
 
 
     virtual std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string,std::string> filter, int offset, int pageSize) = 0;
+
+    // 新增：复杂工单查询方法（支持分页）
+
+    
+    // 新增：版本分页查询方法
+    virtual std::vector<std::pair<std::string, std::string>> getVersionsWithPagination(const std::string& modelName, int offset, int pageSize) = 0;
+    virtual unsigned long long getVersionsCount(const std::string& modelName) = 0;
+    
+    // 新增：基于版本列表的工单查询方法
+    virtual std::vector<nlohmann::json> getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions) = 0;
 
     virtual bool orderTransfer(const TicketExecutor& executor) = 0;
     virtual unsigned long long getOrderCount() = 0;
