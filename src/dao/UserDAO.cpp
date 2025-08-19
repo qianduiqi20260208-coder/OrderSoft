@@ -38,7 +38,7 @@ std::vector<User> UserDAO::getUser()
         if(row[12]!=nullptr)
             user.lastUsedModel = atoi(row[12]);
         //查询用户负责的模型
-        snprintf(sql, SQL_MAX, "select model from user_model where username=%d;",user.jobNumber);
+        snprintf(sql, SQL_MAX, "select DISTINCT model from user_model where username=%d;",user.jobNumber);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:getUser() 查询user_model表失败！失败原因：%s\n", mysql_error(mysql));
@@ -237,7 +237,7 @@ std::vector<int> UserDAO::getOrderApprover()
     }
     
     // 查出用户身份
-    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '审批人';");
+    snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '审批人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getOrderApprover() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -265,7 +265,7 @@ std::vector<int> UserDAO::getOrderDispatcher()
     std::vector<int> retVec;
 
     // 查出用户身份
-    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '分发人';");
+    snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '分发人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getOrderDispatcher() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -292,7 +292,7 @@ std::vector<int> UserDAO::getOrderExecutor()
     std::vector<int> retVec;
 
     // 查出用户身份
-    snprintf(sql, SQL_MAX, "select user_id from user_multi_role where role = 'null' and work_order_id is null and flow_role = '执行人';");
+    snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '执行人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         printf("[error] function:getOrderExecutor() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));

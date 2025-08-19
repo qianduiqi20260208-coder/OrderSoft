@@ -37,6 +37,20 @@ std::string UserController::convertRoleToEnglish(const std::string& chineseRole)
     return "Guest"; // 默认返回访客
 }
 
+// 流程角色转换函数
+std::string UserController::convertFlowRoleToEnglish(const std::string& chineseFlowRole) const {
+    if (chineseFlowRole == "分发") {
+        return "Dispatcher";
+    } else if (chineseFlowRole == "审批") {
+        return "Approver";
+    } else if (chineseFlowRole == "执行人") {
+        return "Executor";
+    } else if (chineseFlowRole == "观察者") {
+        return "Observer";
+    }
+    return "Observer"; // 默认返回观察者
+}
+
 void UserController::registerRoutes(crow::SimpleApp& app) {
 	// 用户登录
     CROW_ROUTE(app, "/user/login").methods("POST"_method)
@@ -83,7 +97,7 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             nlohmann::json j;
             j["account"] = std::to_string(user.jobNumber); // 返回工号 
             j["token"] = token; // 返回token
-            j["role"] = "SuperUser"; // 返回用户角色
+            j["role"] = user.roleVec; // 返回用户角色
             j["models"] = user.responsibleModel; // 返回用户关联的模型
 
             // 登录成功，返回用户信息
@@ -123,6 +137,12 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             printf("[info] function:convertRoleToEnglish() role: %s\n", role.c_str());
             std::string role_ = convertRoleToEnglish(role); // 转换为英文角色名称
             permissions.push_back(role_);
+        }
+
+        for(const auto& flowRole : user.flowRoleVec) {
+            printf("[info] function:convertFlowRoleToEnglish() flowRole: %s\n", flowRole.c_str());
+            std::string flowRole_ = convertFlowRoleToEnglish(flowRole); // 转换为英文流程角色名称
+            permissions.push_back(flowRole_);
         }
 
         // 获取用户关联的模型
@@ -185,8 +205,8 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         nlohmann::json list = nlohmann::json::array();
         for (const auto& ticketPtr : tickets) {
             if (ticketPtr) {
-                // 多态调用 to_json()
-                list.push_back(ticketPtr->to_json());
+                // 多态调用 to_json_order_manage()
+                list.push_back(ticketPtr->to_json_order_manage());
             }
         }
 

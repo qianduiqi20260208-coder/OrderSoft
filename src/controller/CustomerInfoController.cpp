@@ -8,29 +8,6 @@ CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoServ
 
 void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
-    // 获取特定加密狗的历史记录
-    CROW_ROUTE(app, "/dongle/<string>/history").methods("GET"_method)
-        ([this](const crow::request& req, const std::string& dongleId) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-
-        // // TODO: 调用服务层获取历史记录
-        // // auto historyList = dongleService->getDongleHistory(dongleId);
-
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0}
-            }}
-        };
-
-        return crow::response{ resp.dump() };
-        });
-
     // 获取客户列表信息-客户管理页加载
     CROW_ROUTE(app, "/client/list").methods("GET"_method)
         ([this](const crow::request& req) {
@@ -41,19 +18,32 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
         printf("[DEBUG] 获取客户列表信息\n");
 
-        // TODO: 调用服务层获取客户列表
-        // auto clientList = clientService->getClientList();
-
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0}
-            }}
-        };
+        // 调用服务层获取客户列表
+        nlohmann::json clientListResult = customerInfoService_->getClientList();
         
-        return crow::response{ resp.dump() };
+        // 如果获取成功，重新格式化数据结构以匹配前端期望的格式
+        if (clientListResult["status"] == 1) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {
+                    {"list", clientListResult["data"]},
+                    {"total", clientListResult["data"].size()}
+                }}
+            };
+            return crow::response{ resp.dump() };
+        } else {
+            // 如果获取失败，返回错误信息
+            nlohmann::json resp = {
+                {"status", 0},
+                {"error", clientListResult["error"]},
+                {"data", {
+                    {"list", nlohmann::json::array()},
+                    {"total", 0}
+                }}
+            };
+            return crow::response{ resp.dump() };
+         }
         });
 
     // 新建客户
@@ -84,10 +74,8 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             printf("[DEBUG] 新建客户，clientName: %s, clientInfo: %s\n", 
                    clientName.c_str(), clientInfo.c_str());
 
-            // // TODO: 调用服务层创建客户
-            // bool result = customerInfoService->addClientInfo(clientName, clientInfo);
-
-            bool result = true;
+            // TODO: 调用服务层创建客户
+            bool result = customerInfoService_->addClientInfo(clientName, clientInfo);
 
             if(result)
             {
@@ -157,10 +145,8 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             printf("[DEBUG] 编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
                    originalClientName.c_str(), clientName.c_str(), clientInfo.c_str());
 
-            // // TODO: 调用服务层更新客户信息
-            // bool result = customerInfoService->alterClientInfo(originalClientName, clientName, clientInfo);
-
-            bool result = true;
+            // TODO: 调用服务层更新客户信息
+            bool result = customerInfoService_->alterClientInfo(originalClientName, clientName, clientInfo);
 
             if(result)
             {
@@ -251,23 +237,12 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        // 从查询参数中获取参数
+        // 获取参数
         auto params = crow::query_string(req.url_params);
-        std::string clientName = "";
-        int page = 1;
-        int pageSize = 10;
+        std::string clientName = params.get("clientName") ? params.get("clientName") : "";
+        int page = params.get("page") ? std::stoi(params.get("page")) : 1;
+        int pageSize = params.get("pageSize") ? std::stoi(params.get("pageSize")) : 10;
 
-        if (params.get("clientName") != nullptr) {
-            clientName = params.get("clientName");
-        }
-        if (params.get("page") != nullptr) {
-            page = std::stoi(params.get("page"));
-        }
-        if (params.get("pageSize") != nullptr) {
-            pageSize = std::stoi(params.get("pageSize"));
-        }
-
-        // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
                 {"status", 1},
@@ -277,25 +252,48 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取发送详情（分页），clientName: %s, page: %d, pageSize: %d\n", 
-               clientName.c_str(), page, pageSize);
+        // 获取分页数据
+        auto pagedSendDetail = customerInfoService_->getSendRecordByClientPagedByDate(clientName, page - 1, pageSize);
 
-        // TODO: 调用服务层获取分页发送详情
-        // auto sendDetailList = customerInfoService->getSendDetailWithPagination(clientName, page, pageSize);
+        nlohmann::json dailySendRecords = nlohmann::json::array();
+        for (const auto& groupPair : pagedSendDetail) {
+            const auto& overview = groupPair.first; // SendOverview: [date, sendCount]
+            const auto& records = groupPair.second; // vector<SendRecord>: [modelId, modelVersionId, orderId, sendTime]
+
+            nlohmann::json recordArray = nlohmann::json::array();
+            for (const auto& record : records) {
+                recordArray.push_back({
+                    {"modelId",        record.size() > 0 ? record[0] : ""},
+                    {"modelVersionId", record.size() > 1 ? record[1] : ""},
+                    {"orderId",        record.size() > 2 ? record[2] : ""},
+                    {"sendTime",       record.size() > 3 ? record[3] : ""}
+                });
+            }
+
+            dailySendRecords.push_back({
+                {"date",      overview.size() > 0 ? overview[0] : ""},
+                {"sendCount", overview.size() > 1 ? std::stoi(overview[1]) : static_cast<int>(records.size())},
+                {"records",   recordArray}
+            });
+        }
+
+        // 总数建议由服务层返回或单独统计
+        int total = customerInfoService_->getAllSendRecordGroupedCountByClient(clientName);
 
         nlohmann::json resp = {
             {"status", 1},
             {"error", ""},
             {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0},
+                {"clientName", clientName},
+                {"dailySendRecords", dailySendRecords},
+                {"total", total},
                 {"page", page},
                 {"pageSize", pageSize}
             }}
         };
-        
+
         return crow::response{ resp.dump() };
-        });
+    });
 
     // 获取发送总览（各模型最新版本）
     CROW_ROUTE(app, "/client/send/overview").methods("GET"_method)
@@ -305,39 +303,46 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        // 从查询参数中获取clientName
+        // 获取参数
         auto params = crow::query_string(req.url_params);
-        std::string clientName = "";
-        if (params.get("clientName") != nullptr) {
-            clientName = params.get("clientName");
-        }
+        std::string clientName = params.get("clientName") ? params.get("clientName") : "";
 
         // 参数验证
         if (clientName.empty()) {
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "缺少必要参数：clientName"},
-                {"data", {}}
+                {"data", {{"success", false}, {"latestVersionRecords", nlohmann::json::array()}}}
             };
             return crow::response(400, resp.dump());
         }
 
         printf("[DEBUG] 获取发送总览，clientName: %s\n", clientName.c_str());
 
-        // TODO: 调用服务层获取发送总览
-        // auto sendOverview = customerInfoService->getSendOverview(clientName);
+        // 获取各模型最新版本发送记录
+        auto sendOverview = customerInfoService_->getAllModelLatestVesrionByClient(clientName);
+
+        nlohmann::json latestVersionRecords = nlohmann::json::array();
+        for (const auto& record : sendOverview) {
+            latestVersionRecords.push_back({
+                {"modelId",        record.size() > 0 ? record[0] : ""},
+                {"orderId",        record.size() > 1 ? record[1] : ""},
+                {"modelVersionId", record.size() > 2 ? record[2] : ""},
+                {"sendTime",       record.size() > 3 ? record[3] : ""}
+            });
+        }
 
         nlohmann::json resp = {
             {"status", 1},
             {"error", ""},
             {"data", {
-                {"list", nlohmann::json::array()},
-                {"total", 0}
+                {"success", true},
+                {"latestVersionRecords", latestVersionRecords}
             }}
         };
-        
+
         return crow::response{ resp.dump() };
-        });
+    });
 
     // 获取授权详情信息
     CROW_ROUTE(app, "/client/auth/detail").methods("GET"_method)
@@ -407,6 +412,99 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 调用服务层获取外壳号授权列表
         nlohmann::json resp = customerInfoService_->getShellAuthorizationInfoJson(clientName, shellNumber);
         
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取外壳号列表-填写发送工单使用
+    CROW_ROUTE(app, "/order/shell-numbers").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        // 从查询参数中获取targetCustomer
+        std::string targetCustomer = "";
+        auto params = crow::query_string(req.url_params);
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+
+        // 参数验证
+        if (targetCustomer.empty()) {
+            nlohmann::json resp = {
+                {"status", 0},
+                {"error", "缺少必要参数：targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+        std::vector<std::string> shellNumber_ = customerInfoService_->getEncryptionKeyByClient(targetCustomer);
+        nlohmann::json shellNumberJson = nlohmann::json::array();
+        for (const auto& sn : shellNumber_) {
+            shellNumberJson.push_back(sn);
+        }
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", shellNumberJson}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        });
+
+    // 获取授权ID列表-填写发送工单使用
+    CROW_ROUTE(app, "/order/auth-ids").methods("GET"_method)
+        ([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        // 从查询参数中获取参数
+        auto params = crow::query_string(req.url_params);
+        std::string targetCustomer = "";
+        std::string shellNumber = "";
+
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+        if (params.get("shellNumber") != nullptr) {
+            shellNumber = params.get("shellNumber");
+        }
+
+        // 参数验证
+        if (targetCustomer.empty() || shellNumber.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：targetCustomer 或 shellNumber"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+        printf("[DEBUG] 获取外壳号授权列表，targetCustomer: %s, shellNumber: %s\n", 
+               targetCustomer.c_str(), shellNumber.c_str());
+        
+        nlohmann::json authIDList = nlohmann::json::array();
+        std::vector<Authorization> authList = customerInfoService_->getShellAuthorization(targetCustomer, shellNumber);
+        for (const auto& auth : authList) {
+            authIDList.push_back({
+                {"authId", auth.authId},
+                {"endDate", auth.endDate},
+                {"deviceType", auth.authType},
+                {"description", auth.authNote}
+            });
+        }
+        
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", authIDList}
+            }}
+        };
         return crow::response{ resp.dump() };
         });
 

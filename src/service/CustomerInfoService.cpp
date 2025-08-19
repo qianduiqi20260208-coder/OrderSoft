@@ -295,6 +295,18 @@ std::vector<std::string> CustomerInfoService::getAllClientNames()
     return customerInfoDAO_->getAllClientNames();
 }
 
+std::vector<std::string> CustomerInfoService::getEncryptionKeyByClient(const std::string &clientName)
+{
+    // 调用DAO层获取指定客户的加密狗列表
+    return customerInfoDAO_->selectEncryptionKeyByClient(clientName);
+}
+
+std::vector<Authorization> CustomerInfoService::getShellAuthorization(const std::string &clientName, const std::string &shellNumber)
+{
+    std::vector<Authorization> authorizationList = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+    return authorizationList;
+}
+
 nlohmann::json CustomerInfoService::getShellAuthorizationInfoJson(const std::string& clientName, const std::string& shellNumber)
 {
     nlohmann::json result;

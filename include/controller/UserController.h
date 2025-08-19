@@ -28,6 +28,7 @@ public:
      * @return 对应的英文角色名称
      */
     std::string convertRoleToEnglish(const std::string& chineseRole) const;
+    std::string convertFlowRoleToEnglish(const std::string& chineseFlowRole) const;
 private:
     std::shared_ptr<IUserService> userService;
     std::shared_ptr<UserService> userService_test;

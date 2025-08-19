@@ -117,6 +117,57 @@ struct Ticket {
 
         return j;
     }
+
+    virtual nlohmann::json to_json_order_manage() const {
+        nlohmann::json j;
+		j["orderID"] = (id != 0 ? std::to_string(id) : ""); // 工单ID 增加条件运算符，因为int型变量不能为空，当id为0时，需要返回空字符串
+		j["promoterID"] = std::to_string(creatorId); // 发起人ID
+		j["startTime"] = createTime; // 发起时间
+		j["type"] = ticketType; // 工单类型
+		j["modelID"] = model; // 关联模型ID
+		j["modelVersionID"] = modelVersion; // 关联模型版本ID
+		j["status"] = status; // 工单状态
+		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
+		j["referencePriority"] = priorityHint; // 参考优先级
+		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
+		j["approveTime"] = approvedTime; // 审批时间
+		j["taskPriority"] = priorityTask; // 任务优先级
+		j["distributeTime"] = distributedTime; // 分发时间
+		j["finishTime"] = completedTime; // 完成时间
+        j["rejectReason"] = rejectReason; // 拒绝原因
+
+        // 序列化 executor 流转信息（倒序）
+        j["transfers"] = nlohmann::json::array();
+
+        // 安全检查：确保数组不为空且大小一致
+        if (!executor.executor.empty() && 
+            !executor.timestamp.empty() && 
+            !executor.reason.empty()) {
+            
+            size_t transferCount = std::min({
+                executor.executor.size(),
+                executor.timestamp.size(), 
+                executor.reason.size()
+            });
+
+            j["executorID"] = (executorId != -1 ? std::to_string(executorId) : executor.executor[0]); // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
+            
+            // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
+            if (transferCount > 1) {
+                // 倒序遍历：从最新的流转记录开始，跳过第一条记录
+                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                    nlohmann::json transfer;
+                    transfer["transferExecutorID"] = executor.executor[i];
+                    transfer["transferReason"] = executor.reason[i];
+                    transfer["transferTime"] = executor.timestamp[i];
+                    j["transfers"].push_back(transfer);
+                }
+            }
+            // 如果只有一条记录，j["transfers"] 保持为空数组
+        }
+
+        return j;
+    }
     virtual ~Ticket() = default;
 };
 
@@ -138,6 +189,26 @@ struct TicketReproduce :public Ticket{
 
     // 多态序列化接口
     nlohmann::json to_json() const override {
+        nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+        //j["id"] = id; // 如果子类id和基类id不同步，可保留
+        //j["ticketId"] = ticketId;
+		j["coordinationID"] = coordinationId; // 协调单ID
+		j["description"] = content; // 复现内容描述
+		j["fileName"] = attachment.fileName; // 附件信息传文件路径
+        // 提供文件下载URL而不是直接传输文件内容
+        if (!attachment.fileName.empty()) {
+            j["fileUrl"] = "/files/ticket/" + std::to_string(Ticket::id) + "/" + attachment.fileName;
+            j["hasAttachment"] = true;
+        } else {
+            j["hasAttachment"] = false;
+        }
+		j["finishPhenomenon"] = phenomenon; // 复现现象
+		j["finishRemark"] = remark; // 备注
+        return j;
+    }
+
+    // 多态序列化接口order_manage专用
+    nlohmann::json to_json_order_manage() const override {
         nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
         //j["id"] = id; // 如果子类id和基类id不同步，可保留
         //j["ticketId"] = ticketId;
@@ -182,6 +253,21 @@ struct TicketVersion :public Ticket{
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishRemark"] = remark; // 备注
+		return j;
+	}
+
+        // 多态序列化接口 order_manage专用
+	nlohmann::json to_json_order_manage() const override {
+		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		//j["id"] = id; // 如果子类id和基类id不同步，可保留
+		//j["ticketId"] = ticketId;
+		j["coordinationID"] = coordinationId; // 协调单ID
+		j["updateNotes"] = updateNote; // 更新内容
+		j["packageRequirement"] = packRequirement; // 封装要求
+		j["apiChanged"] = interfaceChanged ? "是" : "否"; // 接口是否变化（是/否）
+		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
+		j["completeModelVersion"] = remark; // 备注
 		return j;
 	}
 };
@@ -229,6 +315,28 @@ struct TicketPackage :public Ticket{
 		j["finishRemark"] = remark; // 备注
 		return j;
 	}
+
+    // 多态序列化接口 order_manage专用
+    nlohmann::json to_json_order_manage() const override {
+		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		//j["id"] = id; // 如果子类id和基类id不同步，可保留
+		//j["ticketId"] = ticketId;
+        j["type"] = "版本迭代+交付发送"; // 工单类型，子类重写
+		j["coordinationID"] = coordinationId; // 协调单ID
+		j["updateNotes"] = updateNote; // 更新内容
+		j["packageRequirement"] = packRequirement; // 封装要求
+		j["apiChanged"] = interfaceChanged ? "是" : "否"; // 接口是否变化（是/否）
+		j["targetCustomer"] = targetClient; // 目标客户
+		j["isCAEChecked"] = validatedByCAE ? "是" : "否"; // 是否经过CAE检查（是/否）
+		j["hasSensitiveInfo"] = sensitiveInfo; // 是否包含敏感信息（是/否）
+		j["finishModelVersion"] = newModelVersion; // 升级后模型版本ID
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
+		j["isEncrypted"] = encrypted ? "是" : "否"; // 是否加密（是/否）
+		j["finishShellNo"] = dongle; // 外壳号
+		j["finishAuthId"] = license; // 授权ID
+		j["completeModelVersion"] = remark; // 备注
+		return j;
+	}
 };
 
 
@@ -246,6 +354,21 @@ struct TicketDelivery :public Ticket{
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
+		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		//j["id"] = id; // 如果子类id和基类id不同步，可保留
+		//j["ticketId"] = ticketId;
+		j["targetCustomer"] = targetClient;  // 目标客户
+		j["isCAEChecked"] = validatedByCAE ? "是" : "否"; // 是否经过CAE检查（是/否）
+		j["hasSensitiveInfo"] = sensitiveInfo; // 是否包含敏感信息（是/否）
+		j["isEncrypted"] = encrypted ? "是" : "否"; // 是否加密（是/否）
+		j["finishShellNo"] = dongleId; // 外壳号
+		j["finishAuthId"] = licenseId; // 授权ID
+		j["finishRemark"] = remark; // 备注
+		return j;
+	}
+
+        // 多态序列化接口order manage专用
+	nlohmann::json to_json_order_manage() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
@@ -281,6 +404,18 @@ struct TicketFeature :public Ticket{
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
 		return j;
 	}
+
+    // 多态序列化接口order manage专用
+	nlohmann::json to_json_order_manage() const override {
+		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		//j["id"] = id; // 如果子类id和基类id不同步，可保留
+		//j["ticketId"] = ticketId;
+		j["featureDesc"] = featureInit; // 功能描述
+		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
+        j["baseModelVersion"] = baseModelVersion; // 模型父版本
+		j["completeModelVersion"] = featureFinal; // 完成功能描述
+		return j;
+	}
 };
 
 
@@ -293,6 +428,16 @@ struct TicketOther :public Ticket{
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
+		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		//j["id"] = id; // 如果子类id和基类id不同步，可保留
+		//j["ticketId"] = ticketId;
+		j["contentDesc"] = description; // 内容描述
+		j["finishRemarkOther"] = remark; // 备注
+		return j;
+	}
+
+    // 多态序列化接口order manage专用
+	nlohmann::json to_json_order_manage() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;

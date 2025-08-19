@@ -1,9 +1,6 @@
 #include "IEncryptionKeyDAO.h"
 #include <mysql.h>
-#define SQL_MAX 512		// sql语句字符数组最大值
-#define SQL_MAX_ 1024	
-#define SQL_MAX_ 1024		// sql语句字符数组最大值
-
+#define SQL_MAX 1024	
 
 class EncryptionKey : public IEncryptionKey
 {
@@ -60,7 +57,7 @@ public:
     ~EncryptionKey();
 private:
     MYSQL* mysql;
-    char sql[SQL_MAX_];		// 存储sql语句
+    char sql[SQL_MAX];		// 存储sql语句
     MYSQL_RES* res;
     MYSQL_ROW row;
     int ret;

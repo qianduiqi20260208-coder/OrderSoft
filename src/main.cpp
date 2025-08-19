@@ -4,11 +4,9 @@
 
 #include <memory>
 #include <mysql.h>
-
 #include <iostream>
 #include <locale>
-
-#include "crow.h" // Crow framework for web applications
+#include "crow.h"
 // 工单模块
 #include "TicketDAO.h"
 #include "TicketService.h"
@@ -22,9 +20,12 @@
 #include "ModelService.h"
 #include "ModelController.h"
 // 交付模块
-// #include "CustomerInfoDAO.h"
-// #include "CustomerInfoService.h"
+#include "CustomerInfoDAO.h"
+#include "CustomerInfoService.h"
 #include "CustomerInfoController.h"
+#include "EncryptionKeyDAO.h"
+#include "EncryptionKeyService.h"
+#include "EncryptionKeyController.h"
 
 
 int main() {
@@ -41,24 +42,29 @@ int main() {
     auto userDAO = std::make_shared<UserDAO>(&mysql);
     auto ticketDAO = std::make_shared<TicketDAO>(&mysql);
     auto modelDAO = std::make_shared<ModelDAO>(&mysql);  // 添加 ModelDAO
+    auto customerInfoDAO = std::make_shared<CustomerInfoDAO>(&mysql);
+    auto encryptionKeyDAO = std::make_shared<EncryptionKey>(&mysql);
 
-    // 创建 Service 对象，传递正确的参数
+    // 创建 Service 对象
     auto userService = std::make_shared<UserService>(userDAO);
     auto ticketService = std::make_shared<TicketService>(ticketDAO, modelDAO);  // 传递两个参数
     auto modelService = std::make_shared<ModelService>(modelDAO, ticketDAO);
+    auto customerInfoService = std::make_shared<CustomerInfoService>(customerInfoDAO);
+    auto encryptionKeyService = std::make_shared<EncryptionKeyService>(encryptionKeyDAO);
 
-    // 创建控制器
+    // 创建 Controller 对象
     UserController userController(userService);
     TicketController ticketController(ticketService);
     ModelController modelController(modelService);
-    //CustomerInfoController customerInfoController;
-
+    CustomerInfoController customerInfoController(customerInfoService);
+    EncryptionKeyController encryptionKeyController(encryptionKeyService);
 
 	crow::SimpleApp app;
     userController.registerRoutes(app);
 	ticketController.registerRoutes(app);
 	modelController.registerRoutes(app);
-    //customerInfoController.registerRoutes(app);
+    customerInfoController.registerRoutes(app);
+    encryptionKeyController.registerRoutes(app);
 
 	app.port(18080).multithreaded().run();
 	

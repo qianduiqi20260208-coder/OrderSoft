@@ -330,6 +330,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketversion.createTime = body.value("startTime", ""); // 发起时间
         ticketversion.model = body.value("modelID", "");  // 关联模型
         ticketversion.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketversion.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketversion.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -416,6 +417,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketpackage.createTime = body.value("startTime", ""); // 发起时间
         ticketpackage.model = body.value("modelID", ""); // 关联模型
         ticketpackage.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketpackage.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketpackage.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketpackage.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketpackage.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -463,6 +465,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketfeature.createTime = body.value("startTime", ""); // 发起时间
         ticketfeature.model = body.value("modelID", ""); // 关联模型
         ticketfeature.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
+        ticketfeature.featureFinal = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketfeature.featureInit = body.value("featureDesc", ""); // 功能描述
         ticketfeature.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
 
@@ -1022,116 +1025,6 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
     //     return crow::response{ resp.dump() };
     //     });
 
-    // 获取外壳号列表
-    CROW_ROUTE(app, "/order/shell-numbers").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        // 从查询参数中获取targetCustomer
-        std::string targetCustomer = "";
-        auto params = crow::query_string(req.url_params);
-        if (params.get("targetCustomer") != nullptr) {
-            targetCustomer = params.get("targetCustomer");
-        }
-
-        // 参数验证
-        if (targetCustomer.empty()) {
-            nlohmann::json resp = {
-                {"status", 0},
-                {"error", "缺少必要参数：targetCustomer"},
-                {"data", {}}
-            };
-            return crow::response(400, resp.dump());
-        }
-
-        nlohmann::json shellNumber = shellNumberList_;
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", shellNumber}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
-
-    // 获取授权ID列表
-    CROW_ROUTE(app, "/order/auth-ids").methods("GET"_method)
-        ([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-        // 从查询参数中获取shellNumber
-        std::string shellNumber = "";
-        auto params = crow::query_string(req.url_params);
-        if (params.get("shellNumber") != nullptr) {
-            shellNumber = params.get("shellNumber");
-        }
-
-        // 参数验证
-        if (shellNumber.empty()) {
-            nlohmann::json resp = {
-                {"status", 0},
-                {"error", "缺少必要参数：targetCustomer"},
-                {"data", {}}
-            };
-            return crow::response(400, resp.dump());
-        }
-        
-        // 根据不同客户返回不同的Mock授权ID数据
-        nlohmann::json authIDList = nlohmann::json::array();
-        
-        if (shellNumber == "qwer1234") {
-            authIDList = {
-                {
-                    {"authId", "333444555"},
-                    {"endDate", "2025-10-01"},
-                    {"deviceType", "FTD"},
-                    {"description", "张三个人授权"}
-                },
-                {
-                    {"authId", "2025071005"},
-                    {"endDate", "2025-05-20"},
-                    {"deviceType", "FFS"},
-                    {"description", "张三测试授权"}
-                }
-            };
-        }
-        else if (shellNumber == "asdf1234") {
-            authIDList = {
-                {
-                    {"authId", "333444555"},
-                    {"endDate", "2025-07-15"},
-                    {"deviceType", "lab"},
-                    {"description", "李四开发授权"}
-                },
-                {
-                    {"authId", "2025071007"},
-                    {"endDate", "2024-12-01"},
-                    {"deviceType", "FTD"},
-                    {"description", "李四临时授权"}
-                },
-                {
-                    {"authId", "2025071003"},
-                    {"endDate", "2025-12-31"},
-                    {"deviceType", "IPT"},
-                    {"description", "华模测试授权"}
-                }
-            };
-        }
-    
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", authIDList}
-            }}
-        };
-        return crow::response{ resp.dump() };
-        });
 
     // 工单附件文件下载接口
     CROW_ROUTE(app, "/files/ticket/<int>/<string>").methods("GET"_method)
