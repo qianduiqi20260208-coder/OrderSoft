@@ -99,9 +99,11 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 list(LENGTH SOURCES SOURCE_COUNT)
 message(STATUS "Found ${SOURCE_COUNT} source files")
 
-# ==============================================================================
-# 可执行文件生成
-# ==============================================================================
+# 测试程序1
+add_executable(TicketTest test/ticketTest.cpp)
+target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
 
 # 生成可执行文件
 add_executable(ModelLifeManager ${SOURCES})
@@ -123,79 +125,5 @@ target_link_libraries(ModelLifeManager PRIVATE libmysql)
 # 链接 Windows 网络相关库（用于 socket 支持）
 target_link_libraries(ModelLifeManager PRIVATE ws2_32 mswsock)
 
-# 链接 OpenSSL 加密库（JWT 等依赖）
-target_link_libraries(ModelLifeManager PRIVATE ssl crypto)
-
-# ==============================================================================
-# 编译定义和包含路径
-# ==============================================================================
-
-# 添加私有包含路径（避免污染全局）
-target_include_directories(ModelLifeManager PRIVATE 
-    "${EXTERN_DIR}/Crow-master/include"
-)
-
-# 定义编译时宏
-target_compile_definitions(ModelLifeManager PRIVATE 
-    LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt"     # 日志文件路径
-    $<$<CONFIG:Debug>:DEBUG_MODE=1>                # Debug 模式宏
-)
-
-# ==============================================================================
-# 运行时文件复制
-# ==============================================================================
-
-# 创建必要的目录
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/logs")
-
-# 自动复制运行时需要的 DLL 文件
-add_custom_command(TARGET ModelLifeManager POST_BUILD
-    # MySQL 动态库
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MYSQL_LIB_DIR}/libmysql.dll"
-        $<TARGET_FILE_DIR:ModelLifeManager>
-    
-    # MinGW 运行时库
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MINGW_BIN_DIR}/libgcc_s_seh-1.dll"
-        $<TARGET_FILE_DIR:ModelLifeManager>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MINGW_BIN_DIR}/libstdc++-6.dll"
-        $<TARGET_FILE_DIR:ModelLifeManager>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MINGW_BIN_DIR}/libwinpthread-1.dll"
-        $<TARGET_FILE_DIR:ModelLifeManager>
-    
-    COMMENT "Copying required runtime DLLs to executable directory"
-)
-
-# ==============================================================================
-# 构建信息显示
-# ==============================================================================
-
-# 显示重要的构建信息
-message(STATUS "=== Build Configuration ===")
-message(STATUS "Project: ${PROJECT_NAME} v${PROJECT_VERSION}")
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")
-message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
-message(STATUS "MySQL: ${MYSQL_ROOT}")
-message(STATUS "Output directory: ${CMAKE_BINARY_DIR}/bin")
-message(STATUS "Source files: ${SOURCE_COUNT}")
-message(STATUS "=============================")
-
-# ==============================================================================
-# 可选：安装配置（如果需要打包分发）
-# ==============================================================================
-
-# 设置安装路径
-# install(TARGETS ModelLifeManager
-#     RUNTIME DESTINATION bin
-#     COMPONENT Runtime
-# )
-
-# install(FILES config.ini
-#     DESTINATION bin
-#     COMPONENT Configuration
-# )
+# #宏定义 给出日志文件输出的位置
+# target_compile_definitions(ModelLifeManager PRIVATE LOG_PATH="${CMAKE_BINARY_DIR}/logs/log.txt")

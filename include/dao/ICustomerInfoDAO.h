@@ -31,5 +31,7 @@ public:
 
     virtual std::vector<std::vector<std::string>> selectLatestModelVersionByClient(std::string client) =0;
 
+    virtual std::vector<std::string> selectAuthorizationByEncryptionKey(std::string encryptionKey) = 0;
+
     virtual ~ICustomerInfoDAO() = default;
 };

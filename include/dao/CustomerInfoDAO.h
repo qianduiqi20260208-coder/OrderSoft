@@ -32,6 +32,8 @@ public:
     // 获取指定客户和外壳号的授权信息
     std::vector<Authorization> getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber) override;
 
+    std::vector<std::string> selectAuthorizationByEncryptionKey(std::string encryptionKey) override;
+
     ~CustomerInfoDAO();
 
 private:

@@ -101,3 +101,18 @@ int ModelService::getModelVersionCount(std::string model)
 {
     return modelDAO_->getModelVersionCount(model);
 }
+
+std::vector<std::string> ModelService::getModelVersionByPartialModelVersion(std::string modelName, std::string partialModelVersion)
+{
+    const auto& ret = modelDAO_->getModelVersionByModel(modelName);
+    std::vector<std::string> retVec;
+    for(const auto& ele: ret)
+    {
+        if(ele.find(partialModelVersion)!= std::string::npos)
+        {
+            retVec.push_back(ele);
+        }
+    }
+
+    return retVec;
+}

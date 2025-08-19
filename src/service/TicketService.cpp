@@ -69,3 +69,37 @@ std::vector<std::string> TicketService::getClient()
 {
     return ticketDAO->getOrderClient();
 }
+
+
+
+std::vector<std::pair<std::string, std::string>> TicketService::getVersionsWithPagination(const std::string& modelName, int offset, int pageSize)
+{
+    auto versionJsons = ticketDAO->getVersionsWithPagination(modelName, offset, pageSize);
+    std::vector<std::pair<std::string, std::string>> result;
+    
+    for (const auto& versionJson : versionJsons) {
+        std::string version = versionJson.contains("version") ? versionJson["version"].get<std::string>() : "";
+        std::string updateTime = versionJson.contains("updateTime") ? versionJson["updateTime"].get<std::string>() : "";
+        result.emplace_back(version, updateTime);
+    }
+    
+    return result;
+}
+
+unsigned long long TicketService::getVersionsCount(const std::string& modelName)
+{
+    return ticketDAO->getVersionsCount(modelName);
+}
+
+std::vector<nlohmann::json> TicketService::getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions)
+{
+    return ticketDAO->getWorkOrdersWithDetailsByVersions(modelName, versions);
+}
+
+std::vector<std::vector<std::pair<std::string,int>>> TicketService::getOrderStatisticsByCondition(int time_range, std::string ticketType, std::vector<std::string> clientName)
+{
+    
+
+    return ticketDAO->selectOrderStatisticsByCondition(time_range,ticketType,clientName);
+    
+}
