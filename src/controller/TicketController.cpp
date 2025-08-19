@@ -739,6 +739,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
 
         // 检查字段
         ticketversion.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
+        ticketversion.model = body.value("modelID", ""); // 关联模型
         ticketversion.status = "已完成"; // 更新工单状态为已完成
         ticketversion.ticketType = "版本迭代"; // 工单类型 显示指定
         ticketversion.completedTime = body.value("finishTime", ""); // 完成时间
@@ -823,6 +824,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketpackage.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型 显示指定
         ticketpackage.status = "已完成"; // 更新工单状态为已完成
+        ticketpackage.model = body.value("modelID", ""); // 关联模型
         ticketpackage.completedTime = body.value("finishTime", ""); // 完成时间
         ticketpackage.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本ID
         ticketpackage.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
@@ -866,6 +868,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketfeature.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketfeature.status = "已完成"; // 更新工单状态为已完成
         ticketfeature.ticketType = "功能开发"; // 工单类型 显示指定
+        ticketfeature.model = body.value("modelID", ""); // 关联模型
         ticketfeature.completedTime = body.value("finishTime", ""); // 完成时间
         ticketfeature.newModelVersion = body.value("finishModelVersionId", ""); // 升级后模型版本ID
         ticketfeature.featureFinal = body.value("finishFeatureDesc", ""); // 完成功能描述

@@ -15,11 +15,18 @@ public:
     std::vector<std::string> getUserResponsibleModels(int userId) override;
 
     //获取工单中的角色
+    // 查询审批人
     std::vector<int> getOrderApprover() override;
-    std::vector<int> getOrderDispatcher() override;
-    std::vector<int> getOrderExecutor()  override;
+    std::vector<std::pair<int, std::string>> getOrderApprover_() override; // 查询审批人（工号+姓名）
 
-    
+    // 查询分发人
+    std::vector<int> getOrderDispatcher() override;
+    std::vector<std::pair<int, std::string>> getOrderDispatcher_() override; // 查询分发人（工号+姓名）
+
+    // 查询执行人
+    std::vector<int> getOrderExecutor()  override;
+    std::vector<std::pair<int, std::string>> getOrderExecutor_() override; // 查询执行人（工号+姓名）
+
     bool login(std::string account,std::string password) override;
 
     ~UserDAO();

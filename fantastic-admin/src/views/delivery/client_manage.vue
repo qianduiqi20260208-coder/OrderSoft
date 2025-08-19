@@ -456,90 +456,34 @@ onMounted(() => {
           </template>
 
           <!-- 客户信息内容 -->
-          <div class="p-6">
-            <div class="grid grid-cols-2 gap-6">
-              <!-- 设备统计 -->
-              <div class="border border-blue-200 rounded-lg p-4">
-                <h3 class="mb-4 text-center text-lg text-gray-800 font-bold">
-                  设备统计
-                </h3>
-                <div class="flex flex-col items-center">
-                  <div class="text-center">
-                    <div class="text-3xl text-blue-600 font-bold">
-                      {{ client.dongleCount }}
-                    </div>
-                    <div class="mt-2 text-sm text-gray-600">
-                      加密狗数量
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 模型统计 -->
-              <div class="border border-green-200 rounded-lg p-4">
-                <h3 class="mb-4 text-center text-lg text-gray-800 font-bold">
-                  模型统计
-                </h3>
-                <div class="flex flex-col items-center space-y-4">
-                  <div class="text-center">
-                    <div class="text-3xl text-green-600 font-bold">
-                      {{ client.modelCount }}
-                    </div>
-                    <div class="mt-2 text-sm text-gray-600">
-                      发送模型ATA章节号数量
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-3xl text-green-600 font-bold">
-                      {{ client.modelVersionCount }}
-                    </div>
-                    <div class="mt-2 text-sm text-gray-600">
-                      发送模型子版本数量
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 授权统计 -->
-              <div class="col-span-2 border border-orange-200 rounded-lg p-4">
-                <h3 class="mb-4 text-lg text-gray-800 font-bold">
-                  授权ID统计
-                </h3>
-                <div class="grid grid-cols-4 gap-4">
-                  <div class="text-center">
-                    <div class="text-2xl text-green-500 font-bold">
-                      {{ client.licenseStats.validCount }}
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      有效授权
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-2xl text-yellow-500 font-bold">
-                      {{ client.licenseStats.expiringCount }}
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      临期授权
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-2xl text-gray-400 font-bold">
-                      {{ client.licenseStats.expiredCount }}
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      过期授权
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-2xl text-black font-bold">
-                      {{ getTotalLicenseCount(client) }}
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      总授权数
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div class="px-4 py-2">
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-2">
+              <span class="text-sm text-blue-700 font-bold">
+                加密狗：<span class="text-base text-blue-600">{{ client.dongleCount }}</span>
+              </span>
+              <span class="text-sm text-green-700 font-bold">
+                模型章节号：<span class="text-base text-green-600">{{ client.modelCount }}</span>
+              </span>
+              <span class="text-sm text-green-700 font-bold">
+                子版本：<span class="text-base text-green-600">{{ client.modelVersionCount }}</span>
+              </span>
+            </div>
+            <div class="mt-1 flex flex-wrap items-center gap-x-8 gap-y-2">
+              <span class="text-sm text-gray-700 font-bold">
+                有效授权：<span class="text-base text-green-500">{{ client.licenseStats.validCount }}</span>
+              </span>
+              <span class="text-sm text-yellow-700 font-bold">
+                临期授权：<span class="text-base text-yellow-500">{{ client.licenseStats.expiringCount }}</span>
+              </span>
+              <span class="text-sm text-gray-700 font-bold">
+                过期授权：<span class="text-base text-gray-400">{{ client.licenseStats.expiredCount }}</span>
+              </span>
+              <span class="text-sm text-black font-bold">
+                总授权：<span class="text-base text-black">{{ getTotalLicenseCount(client) }}</span>
+              </span>
+              <span v-if="client.clientinfo" class="max-w-[300px] truncate text-sm text-gray-500 font-normal">
+                备注：{{ client.clientinfo }}
+              </span>
             </div>
           </div>
         </FaPageMain>

@@ -25,8 +25,8 @@ const emits = defineEmits<{
 // 用户数据仓库
 const userStore = useUserStore()
 
-// 系统标题
-const title = import.meta.env.VITE_APP_TITLE
+// // 系统标题
+// const title = import.meta.env.VITE_APP_TITLE
 // 登录按钮加载状态
 const loading = ref(false)
 
@@ -66,12 +66,15 @@ const onSubmit = form.handleSubmit((values) => {
 <template>
   <div class="min-h-500px w-full flex-col-stretch-center p-12">
     <div class="mb-6 space-y-2">
-      <h3 class="text-4xl color-[var(--el-text-color-primary)] font-bold">
+      <p class="text text-muted-foreground lg:text-base">
         欢迎使用
-      </h3>
-      <p class="text-sm text-muted-foreground lg:text-base">
-        {{ title }}
       </p>
+      <h3 class="text-2xl color-[var(--el-text-color-primary)] font-bold">
+        C909飞行模拟机数据包
+      </h3>
+      <h3 class="text-2xl color-[var(--el-text-color-primary)] font-bold">
+        工单管理软件
+      </h3>
     </div>
     <div v-show="type === 'default'">
       <form @submit="onSubmit">

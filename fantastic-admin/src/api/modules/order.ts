@@ -30,14 +30,14 @@ export default {
       params, // 请求参数（用于筛选工单）
     }),
 
-  // 获取当前用户近期发送工单
-  fetchUserRecentOrderList: (params?: {
-    userID?: string // 用户ID（当前登录用户）
-  }) =>
-    api.get('order/recent', {
-      baseURL: '/mock/', // mock数据接口地址
-      params, // 请求参数（用于筛选工单）
-    }),
+  // // 获取当前用户近期发送工单
+  // fetchUserRecentOrderList: (params?: {
+  //   userID?: string // 用户ID（当前登录用户）
+  // }) =>
+  //   api.get('order/recent', {
+  //     baseURL: '/mock/', // mock数据接口地址
+  //     params, // 请求参数（用于筛选工单）
+  //   }),
 
   // 提交问题复现工单（支持FormData格式上传文件）
   submitProblemOrder: (data: FormData) =>
@@ -191,6 +191,7 @@ export default {
   // 版本迭代工单完成接口
   finishIterOrder: (data: {
     orderID: string // 工单ID
+    modelID: string // 模型ID
     status: string // 工单状态（已完成）
     finishTime: string // 完成时间
     finishModelVersion: string // 升级后模型版本
@@ -218,6 +219,7 @@ export default {
   finishIterDeliverOrder: (data: {
     orderID: string // 工单ID
     status: string // 工单状态（已完成）
+    modelID: string // 模型ID
     finishTime: string // 完成时间
     finishModelVersion: string // 升级后模型版本
     isEncrypted: string // 是否加密（是/否）
@@ -233,6 +235,7 @@ export default {
   finishDevOrder: (data: {
     orderID: string // 工单ID
     status: string // 工单状态（已完成）
+    modelID: string // 模型ID
     modelVersion: string // 升级后模型版本
     finishTime: string // 完成时间
     finishModelVersionId: string // 完成后模型版本ID

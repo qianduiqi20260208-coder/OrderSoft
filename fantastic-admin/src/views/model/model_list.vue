@@ -28,6 +28,7 @@ interface Order {
   orderID: string // 关联工单ID
   // type: 'function' | 'reproduce' | 'delivery' | 'iteration' // 工单类型: 功能开发 | 问题复现 | 交付发送 | 版本迭代
   type: '问题复现' | '版本迭代' | '交付发送' | '版本迭代+交付发送' | '功能开发' | '其他'
+  status?: string // 工单状态
   startTime?: string // 发起时间
   promoterID?: string // 发起人ID
   coordinationID?: string // 协调单ID
@@ -147,66 +148,55 @@ function preprocessOrders(list: Model[]): Model[] {
 
 // 获取模型列表及工单信息，带分页参数
 async function apiFetchUserModels() {
-  const modelRouteName = route.matched[0].name // 获取当前页面对应的模型名称
+  const modelRouteName = route.matched[0].name
   const params = {
     page: page.value,
     pageSize: pageSize.value,
-    modelID: modelRouteName ? String(modelRouteName) : '', // 传递模型名称作为参数，确保为字符串
-  } // 构造分页参数
-  const res = await modelApi.getModelList(params) // 调用后端接口
-
+    modelID: modelRouteName ? String(modelRouteName) : '',
+  }
+  const res = await modelApi.getModelList(params)
+  console.warn('获取模型列表数据:', res)
   if (res?.data) {
-    // 数据映射处理 - 将后端字段映射到前端期望的字段
+    // 数据映射处理
     const mappedData = {
       list: (res.data.list || []).map((model: any) => ({
-        modelID: model.modelID || '', // 模型id，就是模型名称
-        version: model.version || '', // 模型版本ID
-        updatetime: model.updatetime || '', // 模型此版本的更新时间
+        modelID: model.modelID || model.model || '', // 模型ID
+        version: model.version || '', // 模型版本号
+        updatetime: model.updateTime || '', // 模型更新时间
         orders: (model.orders || []).map((order: any) => ({
-          // 通用字段
-          orderID: order.orderID || '', // 工单ID
-          type: order.type || '其他', // 工单类型
-          startTime: order.startTime || '', // 工单发起时间
-          promoterID: order.promoterID || '', // 工单发起人
-          coordinationID: order.coordinationID || '', // 协调单ID
-          baseModelVersion: order.baseModelVersion || '', // 模型父版本
-          finishTime: order.finishTime || '', // 工单完成时间
-          executorID: order.executorID || '', // 工单完成人ID
-
-          // 完成工单相关字段
-          finishRemark: order.finishRemark || '', // 工单完成备注
-
-          // 问题复现类
-          finishPhenomenon: order.finishPhenomenon || '', // 问题复现现象
-
-          // 版本迭代类
-          updateNotes: order.updateNotes || '', // updatenotes
-          packingRequirement: order.packageRequirement || '', // 封装要求
-          apiChanged: order.apiChanged || false, // 接口是否变化
-          finishModelVersion: order.finishModelVersion || '', // 升级后模型版本ID（可选，主要用于版本迭代类工单）
-
-          // 交付发送类
-          isCAEChecked: order.isCAEChecked || false, // 是否通过CAE验证
-          isEncrypted: order.isEncrypted || false, // 是否加密
-          targetCustomer: order.targetCustomer || '', // 目标客户
-          finishAuthId: order.finishAuthId || '', // 授权ID
-          finishShellNo: order.finishShellNo || '', // 外壳号
-
-          // 功能开发类
-          finishFeatureDesc: order.finishFeatureDesc || '', // 功能描述
-          finishModelVersionId: order.finishModelVersionId || '', // 升级后模型版本ID（可选，主要用于功能开发类工单）
-
-          // 其他 - Mock数据中没有这个字段，保留兼容性
-          finishRemarkOther: order.finishRemarkOther || order.description || '', // 其他类工单备注
+          orderID: order.orderID || '',
+          type: order.ticketType || '其他', // 工单类型
+          status: order.status || '', // 工单状态
+          startTime: order.startTime || order.createTime || '', // 发起时间
+          promoterID: order.promoterID || order.creatorId || '', // 发起人ID
+          coordinationID: order.coordinationID || '', // 协调单
+          baseModelVersion: order.modelVersion || order.mv_id || '', // 模型基准版本
+          finishTime: order.completedTime || '', // 完成时间
+          executorID: order.executorID || '',
+          finishRemark: order.remark || '', // 完成备注
+          finishPhenomenon: order.finishPhenomenon || order.phenomenon || '', // 复现现象
+          updateNotes: order.updateNote || '', // 更新内容
+          packingRequirement: order.packRequirement || '', // 封装要求
+          apiChanged: order.interfaceChanged === '1', // 接口变化
+          finishModelVersion: order.newModelVersion || order.version || '', // 升级后模型版本
+          isCAEChecked: order.validatedByCae === '1', // CAE验证
+          isEncrypted: order.encrypted === '1', // 是否加密
+          targetCustomer: order.targetClient || '', // 目标客户
+          finishAuthId: order.licenseId || '', // 授权ID
+          finishShellNo: order.dongleId || '', // 外壳号
+          finishFeatureDesc: order.featureFinal || order.featureInit || '', // 功能描述
+          finishModelVersionId: order.newModelVersion || '', // 升级后模型版本ID（功能开发类）
+          finishRemarkOther: order.description || '', // 其他备注
         })),
       })),
-      total: res.data.total || 0, // 模型版本数量
+      total: res.data.total || 0,
     }
 
+    console.warn('获取模型列表数据:', mappedData)
     return mappedData
   }
-
-  return { list: [], total: 0 } // 返回默认空数据
+  console.warn('获取模型列表数据失败，返回默认空数据')
+  return { list: [], total: 0 }
 }
 
 // 加载模型数据并处理 loading 状态
@@ -454,17 +444,17 @@ function expandModel(version: string, expand: boolean) {
                   >
                 </div>
                 <!-- 升级后模型版本 -->
-                <div class="flex items-start gap-2">
+                <!-- <div class="flex items-start gap-2">
                   <span class="w-32 text-black font-semibold">升级后模型版本</span>
                   <input
                     class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
                     :value="order.finishModelVersion"
                     readonly
                   >
-                </div>
-                <!-- 模型父版本 -->
+                </div> -->
+                <!-- 基准版本 -->
                 <div class="flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">模型父版本</span>
+                  <span class="w-32 text-black font-semibold">基准版本</span>
                   <input
                     class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
                     :value="order.baseModelVersion"
@@ -490,6 +480,7 @@ function expandModel(version: string, expand: boolean) {
         <FaModal
           v-model="showFunctionDialog"
           title="封装功能"
+          :style="{ width: '50vw' }"
           :maximizable="modalConfig.maximizable"
           :closable="modalConfig.closable"
           :draggable="modalConfig.draggable"
@@ -509,7 +500,7 @@ function expandModel(version: string, expand: boolean) {
                     readonly
                   >
                 </div>
-                <div class="flex items-start gap-2">
+                <!-- <div class="flex items-start gap-2">
                   <span class="w-32 text-black font-semibold">升级后模型版本</span>
                   <textarea
                     class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
@@ -517,9 +508,18 @@ function expandModel(version: string, expand: boolean) {
                     rows="3"
                     readonly
                   />
+                </div> -->
+                <div class="flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">工单状态</span>
+                  <textarea
+                    class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
+                    :value="order.status"
+                    rows="3"
+                    readonly
+                  />
                 </div>
                 <div class="flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">模型父版本</span>
+                  <span class="w-32 text-black font-semibold">基准版本</span>
                   <textarea
                     class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
                     :value="order.baseModelVersion"

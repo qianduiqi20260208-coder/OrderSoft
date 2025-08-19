@@ -97,15 +97,15 @@ function getRemainingDaysColor(endDate: string): string {
   }
 }
 
-// 获取状态圆点颜色
-function getStatusDotColor(status: string): string {
-  switch (status) {
-    case '有效': return 'bg-green-500'
-    case '临期': return 'bg-orange-500'
-    case '过期': return 'bg-gray-400'
-    default: return 'bg-gray-400'
-  }
-}
+// // 获取状态圆点颜色
+// function getStatusDotColor(status: string): string {
+//   switch (status) {
+//     case '有效': return 'bg-green-500'
+//     case '临期': return 'bg-orange-500'
+//     case '过期': return 'bg-gray-400'
+//     default: return 'bg-gray-400'
+//   }
+// }
 
 // 获取外壳号状态圆点颜色（考虑懒加载情况）
 function getShellStatusDotColor(shell: ShellInfo): string {
@@ -906,21 +906,6 @@ function getBatchUpdateRemainingDaysColor(endDate: string): string {
 // 添加懒加载状态管理
 const shellLoadingMap = ref<Record<string, boolean>>({}) // 各外壳号的加载状态
 
-// 检查外壳号是否已完全加载
-function isShellFullyLoaded(shellNumber: string): boolean {
-  const shell = authDetail.value?.shellNumbers.find(s => s.shellNumber === shellNumber)
-  return shell?.isFullyLoaded || false
-}
-
-// 修改展开函数，实现懒加载
-async function expandShell(shellNumber: string, expand: boolean) {
-  if (expand && !isShellFullyLoaded(shellNumber)) {
-    // 需要展开且未完全加载，先加载完整数据
-    await loadFullAuthList(shellNumber)
-  }
-  expandedMap.value[shellNumber] = expand
-}
-
 // 加载完整的授权列表
 async function loadFullAuthList(shellNumber: string) {
   if (shellLoadingMap.value[shellNumber]) {
@@ -1133,7 +1118,6 @@ function handleBackToClientManage() {
                       {{ shell.shellNumber }}
                     </span>
                   </div>
-
                   <!-- 右上角按钮组 -->
                   <div class="mr-4 flex items-center gap-2">
                     <FaButton
@@ -1150,14 +1134,8 @@ function handleBackToClientManage() {
                     </FaButton>
                   </div>
                 </div>
-
-                <!-- 展开/收起按钮和外壳号信息行 -->
+                <!-- 设备类型和备注 -->
                 <div class="ml-2 mt-2 flex items-center gap-6">
-                  <FaIcon
-                    name="expand"
-                    class="mr-2 cursor-pointer text-xl"
-                    @click.stop="expandShell(shell.shellNumber, !expandedMap[shell.shellNumber])"
-                  />
                   <span class="text-base text-black">
                     <span class="font-bold">设备类型：</span>{{ shell.deviceType }}
                   </span>
@@ -1168,184 +1146,61 @@ function handleBackToClientManage() {
               </div>
             </template>
 
-            <!-- 外壳号内容区域 -->
+            <!-- 外壳号内容区域：始终展示所有授权信息 -->
             <div class="space-y-4">
-              <!-- 折叠状态下显示第一条授权信息 -->
-              <div v-if="!expandedMap[shell.shellNumber] && shell.authorizationList.length > 0">
-                <div class="border border-gray-200 rounded-lg bg-white shadow-sm">
-                  <!-- 授权ID标题区域 -->
-                  <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <!-- 状态圆点 -->
-                        <div
-                          class="h-3 w-3 flex-shrink-0 rounded-full"
-                          :class="getStatusDotColor(shell.authorizationList[0].status)"
-                        />
-                        <span class="text-lg text-black font-bold">{{ shell.authorizationList[0].authId }}</span>
-
-                        <!-- 显示信息提示 - 修改为显示总数量 -->
-                        <span class="flex items-center gap-1 text-base text-gray-500 font-medium">
-                          <i class="i-mdi-information-outline text-blue-500" />
-                          (当前显示第1条授权信息，共{{ shell.authCount }}条)
-                        </span>
-                      </div>
-                      <div />
-                    </div>
-                  </div>
-
-                  <!-- 授权信息内容区域 -->
-                  <div class="p-4 space-y-3">
-                    <!-- 第一行：其他信息 -->
-                    <div class="grid grid-cols-4 gap-4">
-                      <div class="flex items-center gap-2">
-                        <span class="w-20 text-sm text-gray-600">剩余天数：</span>
-                        <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm font-bold"
-                          :class="getRemainingDaysColor(shell.authorizationList[0].endDate)"
-                          :value="calculateRemainingDays(shell.authorizationList[0].endDate)"
-                          readonly
-                        >
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span class="w-20 text-sm text-gray-600">开始日期：</span>
-                        <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                          :value="shell.authorizationList[0].startDate"
-                          readonly
-                        >
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span class="w-20 text-sm text-gray-600">结束日期：</span>
-                        <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                          :value="shell.authorizationList[0].endDate"
-                          readonly
-                        >
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span class="w-20 text-sm text-gray-600">授权类型：</span>
-                        <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                          :value="shell.authorizationList[0].authType"
-                          readonly
-                        >
-                      </div>
-                    </div>
-
-                    <!-- 第二行：授权备注 -->
-                    <div class="flex items-start gap-2">
-                      <span class="mt-2 w-20 flex-shrink-0 text-sm text-gray-600">授权备注：</span>
-                      <textarea
-                        class="flex-1 resize-none overflow-y-auto border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                        :value="shell.authorizationList[0].authNote"
-                        readonly
-                        rows="2"
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div v-if="shell.authorizationList.length === 0" class="py-6 text-center text-gray-400">
+                暂无授权信息
               </div>
-
-              <!-- 展开状态下显示所有授权信息 -->
-              <div v-else-if="expandedMap[shell.shellNumber]">
-                <!-- 加载状态 -->
-                <div v-if="shellLoadingMap[shell.shellNumber]" class="flex justify-center py-8">
-                  <el-skeleton :loading="true" animated>
-                    <template #template>
-                      <div class="space-y-4">
-                        <el-skeleton-item variant="rect" style="width: 100%; height: 120px;" />
-                        <el-skeleton-item variant="rect" style="width: 100%; height: 120px;" />
-                        <el-skeleton-item variant="rect" style="width: 100%; height: 120px;" />
-                      </div>
-                    </template>
-                  </el-skeleton>
-                  <div class="ml-4 text-gray-500">
-                    正在加载该外壳号的完整授权信息...
-                  </div>
-                </div>
-
-                <!-- 完整授权列表 -->
-                <div v-else>
-                  <div
-                    v-for="auth in shell.authorizationList"
-                    :key="auth.authId"
-                    class="border border-gray-200 rounded-lg bg-white shadow-sm"
-                  >
-                    <!-- 授权ID标题区域 -->
-                    <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                      <div class="flex items-center gap-2">
-                        <!-- 状态圆点 -->
-                        <div
-                          class="h-3 w-3 flex-shrink-0 rounded-full"
-                          :class="getStatusDotColor(auth.status)"
-                        />
-                        <span class="text-lg text-black font-bold">{{ auth.authId }}</span>
-                      </div>
+              <el-table
+                v-else
+                :data="shell.authorizationList"
+                border
+                style="width: 100%;"
+                size="small"
+                class="bg-white"
+              >
+                <el-table-column prop="authId" label="授权ID" min-width="120">
+                  <template #default="scope">
+                    <div class="flex items-center gap-2">
+                      <span class="text-black font-bold">{{ scope.row.authId }}</span>
                     </div>
-
-                    <!-- 授权信息内容区域 -->
-                    <div class="p-4 space-y-3">
-                      <!-- 展开状态下的第一行：其他信息 -->
-                      <div class="grid grid-cols-4 gap-4">
-                        <div class="flex items-center gap-2">
-                          <span class="w-20 text-sm text-gray-600">剩余天数：</span>
-                          <input
-                            class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm font-bold"
-                            :class="getRemainingDaysColor(auth.endDate)"
-                            :value="calculateRemainingDays(auth.endDate)"
-                            readonly
-                          >
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <span class="w-20 text-sm text-gray-600">开始日期：</span>
-                          <input
-                            class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                            :value="auth.startDate"
-                            readonly
-                          >
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <span class="w-20 text-sm text-gray-600">结束日期：</span>
-                          <input
-                            class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                            :value="auth.endDate"
-                            readonly
-                          >
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <span class="w-20 text-sm text-gray-600">授权类型：</span>
-                          <input
-                            class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                            :value="auth.authType"
-                            readonly
-                          >
-                        </div>
-                      </div>
-
-                      <!-- 第二行：授权备注 -->
-                      <div class="flex items-start gap-2">
-                        <span class="mt-2 w-20 flex-shrink-0 text-sm text-gray-600">授权备注：</span>
-                        <textarea
-                          class="flex-1 resize-none overflow-y-auto border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-gray-700 font-bold"
-                          :value="auth.authNote"
-                          readonly
-                          rows="2"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="startDate" label="开始日期" min-width="110">
+                  <template #default="scope">
+                    <span class="text-gray-700 font-bold">{{ scope.row.startDate }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="endDate" label="结束日期" min-width="110">
+                  <template #default="scope">
+                    <span class="text-gray-700 font-bold">{{ scope.row.endDate }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="authType" label="授权类型" min-width="100">
+                  <template #default="scope">
+                    <span class="text-gray-700 font-bold">{{ scope.row.authType }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="剩余天数" min-width="100">
+                  <template #default="scope">
+                    <span :class="getRemainingDaysColor(scope.row.endDate)" class="font-bold">
+                      {{ calculateRemainingDays(scope.row.endDate) }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  prop="authNote"
+                  label="授权备注"
+                  min-width="180"
+                  show-overflow-tooltip
+                >
+                  <template #default="scope">
+                    <span class="text-gray-700 font-bold">{{ scope.row.authNote }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
           </FaPageMain>
-        </div>
-
-        <!-- 空状态 -->
-        <div v-else-if="!loading" class="border border-gray-200 rounded-lg bg-white p-6 text-center shadow-sm">
-          <div class="text-gray-500">
-            暂无授权信息
-          </div>
         </div>
 
         <!-- 交付外壳弹窗 -->

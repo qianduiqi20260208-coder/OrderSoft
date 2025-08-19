@@ -99,6 +99,9 @@ interface OrderItem {
   transferReasonEdit?: string
   transferExecutorIDEdit?: string
   transferTimeEdit?: string
+
+  finishModelVersionNumber?: string
+  finishModelVersionLetter?: string
 }
 
 const leaderPriority = ref<'' | '紧急' | '一般'>('')
@@ -287,6 +290,7 @@ async function confirmFinishOrder() {
   else if (confirmOrder.value.type === '版本迭代') {
     res = await orderApi.finishIterOrder({
       orderID: confirmOrder.value.orderID,
+      modelID: confirmOrder.value.modelID,
       status: confirmOrder.value.status,
       finishTime: confirmOrder.value.finishTime,
       finishModelVersion: confirmOrder.value.finishModelVersion ?? '',
@@ -310,6 +314,7 @@ async function confirmFinishOrder() {
     res = await orderApi.finishIterDeliverOrder({
       orderID: confirmOrder.value.orderID,
       status: confirmOrder.value.status,
+      modelID: confirmOrder.value.modelID,
       finishTime: confirmOrder.value.finishTime,
       finishModelVersion: confirmOrder.value.finishModelVersion ?? '',
       isEncrypted: confirmOrder.value.isEncrypted ?? '',
@@ -323,6 +328,7 @@ async function confirmFinishOrder() {
     res = await orderApi.finishDevOrder({
       orderID: confirmOrder.value.orderID,
       status: confirmOrder.value.status,
+      modelID: confirmOrder.value.modelID,
       modelVersion: confirmOrder.value.modelVersionID,
       finishTime: confirmOrder.value.finishTime,
       finishModelVersionId: confirmOrder.value.finishModelVersionId ?? '',
@@ -357,18 +363,18 @@ async function confirmFinishOrder() {
 function isFinishOrderFilled(order: OrderItem): boolean {
   switch (order.type) {
     case '问题复现':
-      return !!order.finishPhenomenon && !!order.finishRemark
+      return !!order.finishPhenomenon
     case '版本迭代':
-      return !!order.finishModelVersion && !!order.finishRemark
+      return !!order.finishModelVersion
     case '交付发送':
       // 修改逻辑：根据是否加密来判断验证条件
       if (order.isEncrypted === '是') {
         // 选择加密：需要填写外壳号、授权ID和备注
-        return !!order.finishAuthId && !!order.finishShellNo && !!order.finishRemark && !!order.isEncrypted
+        return !!order.finishAuthId && !!order.finishShellNo && !!order.isEncrypted
       }
       else if (order.isEncrypted === '否') {
         // 选择不加密：只需要填写备注
-        return !!order.finishRemark && !!order.isEncrypted
+        return !!order.isEncrypted
       }
       else {
         // 未选择是否加密
@@ -378,18 +384,18 @@ function isFinishOrderFilled(order: OrderItem): boolean {
       // 同样修改版本迭代+交付发送的逻辑
       if (order.isEncrypted === '是') {
         // 选择加密：需要填写模型版本、外壳号、授权ID和备注
-        return !!order.finishModelVersion && !!order.finishAuthId && !!order.finishShellNo && !!order.finishRemark && !!order.isEncrypted
+        return !!order.finishModelVersion && !!order.finishAuthId && !!order.finishShellNo && !!order.isEncrypted
       }
       else if (order.isEncrypted === '否') {
         // 选择不加密：只需要填写模型版本和备注
-        return !!order.finishModelVersion && !!order.finishRemark && !!order.isEncrypted
+        return !!order.finishModelVersion && !!order.isEncrypted
       }
       else {
         // 未选择是否加密
         return false
       }
     case '功能开发':
-      return !!order.finishFeatureDesc && !!order.finishModelVersionId
+      return !!order.finishModelVersion
     case '其他':
       return !!order.finishRemarkOther
     default:
@@ -596,10 +602,8 @@ function handleSelectOrder(orderID: string, checked: boolean) {
   }
 }
 
-const distributor = ref<string[]>([]) // 分发人列表
-const executor = ref<string[]>([]) // 执行人列表
-
-// 修改：获取分发人列表 - 接收模型ID参数
+// 获取分发人列表 - 接收模型ID参数
+const distributor = ref<Array<{ id: string, name: string }>>([]) // 分发人列表
 async function fetchDistributorList(modelId?: string) {
   if (!modelId) {
     console.warn('未提供模型ID，无法获取分发人列表')
@@ -609,6 +613,7 @@ async function fetchDistributorList(modelId?: string) {
 
   try {
     const res = await orderApi.fetchDistributorList(modelId)
+    // 返回格式 [{ id: '工号', name: '姓名' }]
     distributor.value = res?.data?.list || []
   }
   catch (error) {
@@ -617,7 +622,8 @@ async function fetchDistributorList(modelId?: string) {
   }
 }
 
-// 修改：获取执行人列表 - 接收模型ID参数
+// 获取执行人列表 - 接收模型ID参数
+const executor = ref<Array<{ id: string, name: string }>>([]) // 执行人列表
 async function fetchExecutorList(modelId?: string) {
   if (!modelId) {
     console.warn('未提供模型ID，无法获取执行人列表')
@@ -627,6 +633,7 @@ async function fetchExecutorList(modelId?: string) {
 
   try {
     const res = await orderApi.fetchExecutorList(modelId)
+    // 返回格式 [{ id: '工号', name: '姓名' }]
     executor.value = res?.data?.list || []
   }
   catch (error) {
@@ -634,7 +641,6 @@ async function fetchExecutorList(modelId?: string) {
     executor.value = []
   }
 }
-
 const shellNumbers = ref<string[]>([]) // 外壳号列表
 
 // 修改获取外壳号列表的方法，根据目标客户获取
@@ -723,10 +729,8 @@ async function downloadFile(fileUrl: string, fileName: string) {
   }
 }
 // -------------流转功能-----------------
-
-const transferExecutor = ref<string[]>([]) // 流转负责人列表
-
-// 修改：获取流转负责人列表 - 接收模型ID参数
+// 获取流转负责人列表 - 接收模型ID参数
+const transferExecutor = ref<Array<{ id: string, name: string }>>([]) // 流转负责人列表
 async function fetchTransferExecutorList(modelId?: string) {
   if (!modelId) {
     console.warn('未提供模型ID，无法获取流转负责人列表')
@@ -736,6 +740,7 @@ async function fetchTransferExecutorList(modelId?: string) {
 
   try {
     const res = await orderApi.fetchTransferExecutorList(modelId)
+    // 返回格式 [{ id: '工号', name: '姓名' }]
     transferExecutor.value = res?.data?.list || []
   }
   catch (error) {
@@ -904,60 +909,19 @@ function parseCompleteModelVersion(completeModelVersion: string) {
 
 // 新增：处理升级后模型版本的输入
 function handleFinishVersionInput(order: OrderItem, field: 'number' | 'letter', value: string) {
-  if (!order.finishModelVersion) {
-    order.finishModelVersion = ''
-  }
-
-  // 解析当前已输入的版本
-  const parts = order.finishModelVersion.split('.')
-  let numberPart = parts[3] || ''
-  let letterPart = parts[4] || ''
-
   if (field === 'number') {
-    // 只保留数字
-    numberPart = value.replace(/\D/g, '')
+    order.finishModelVersionNumber = value.replace(/\D/g, '')
   }
   else if (field === 'letter') {
-    // 只保留字母
-    letterPart = value.replace(/[^A-Z]/gi, '').toUpperCase()
+    order.finishModelVersionLetter = value.replace(/[^A-Z]/gi, '').toUpperCase()
   }
-
-  // 重新组合版本号
-  const completeVersionParts = parseCompleteModelVersion(order.completeModelVersion || '')
-  if (completeVersionParts.first && completeVersionParts.second && completeVersionParts.third) {
-    // 构建完整版本：3.2.1.9A
-    const baseParts = [completeVersionParts.first, completeVersionParts.second, completeVersionParts.third]
-
-    if (numberPart) {
-      baseParts.push(numberPart)
-      if (letterPart) {
-        baseParts.push(letterPart)
-      }
+  const base = parseCompleteModelVersion(order.completeModelVersion || '')
+  if (base.first && base.second && base.third) {
+    let version = `${base.first}.${base.second}.${base.third}`
+    if (order.finishModelVersionNumber) {
+      version += `.${order.finishModelVersionNumber}${order.finishModelVersionLetter || ''}`
     }
-
-    order.finishModelVersion = baseParts.join('.')
-  }
-}
-
-// 新增：获取升级后模型版本的各部分显示
-function getFinishVersionParts(order: OrderItem) {
-  const completeVersionParts = parseCompleteModelVersion(order.completeModelVersion || '')
-
-  // 解析已输入的升级后版本
-  const finishParts = order.finishModelVersion ? order.finishModelVersion.split('.') : []
-
-  return {
-    // 基础部分（来自创建时的completeModelVersion）
-    base: {
-      first: completeVersionParts.first, // 3
-      second: completeVersionParts.second, // 2
-      third: completeVersionParts.third, // 1
-    },
-    // 用户输入部分
-    input: {
-      number: finishParts[3] || '', // 9
-      letter: finishParts[4] || '', // A
-    },
+    order.finishModelVersion = version
   }
 }
 
@@ -1091,7 +1055,7 @@ onMounted(() => {
                     </span>
                     <span>
                       <i class="i-mdi-account mr-1 text-blue-400" />
-                      <span class="text-gray-600">发起人ID：</span>
+                      <span class="text-gray-600">发起人：</span>
                       <span class="text-black font-bold">{{ order.promoterID }}</span>
                     </span>
                     <span>
@@ -1169,7 +1133,9 @@ onMounted(() => {
                   <!-- 问题复现类工单 -->
                   <template v-if="order.type === '问题复现'">
                     <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">复现现象：</span>
+                      <span class="w-32 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        复现现象：</span>
                       <textarea
                         v-model="order.finishPhenomenon"
                         class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -1191,7 +1157,9 @@ onMounted(() => {
                   <!-- 版本迭代类工单 -->
                   <template v-else-if="order.type === '版本迭代'">
                     <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <span class="w-40 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        升级后模型版本：</span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
                         <div v-if="order.status !== '已完成'" class="version-input-container">
@@ -1223,22 +1191,17 @@ onMounted(() => {
                               </div>
                             </template>
 
-                            <!-- 用户输入的数字部分 -->
+                            <!-- 数字输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.number"
+                              v-model="order.finishModelVersionNumber"
                               placeholder="9"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
-
-                            <div class="version-part static">
-                              .
-                            </div>
-
-                            <!-- 用户输入的字母部分 -->
+                            <!-- 字母输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.letter"
+                              v-model="order.finishModelVersionLetter"
                               placeholder="A"
                               maxlength="2"
                               class="version-input"
@@ -1302,7 +1265,9 @@ onMounted(() => {
                   <template v-else-if="order.type === '交付发送'">
                     <!-- 第一行：是否加密 -->
                     <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">是否加密：</span>
+                      <span class="w-32 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        是否加密：</span>
                       <el-select
                         v-model="order.isEncrypted"
                         placeholder="请选择"
@@ -1317,7 +1282,9 @@ onMounted(() => {
                     <!-- 第二行：外壳号和授权ID（只有选择加密时才显示） -->
                     <template v-if="order.isEncrypted === '是'">
                       <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">外壳号：</span>
+                        <span class="w-32 text-black font-semibold">
+                          <span class="mr-1 text-red-500">*</span>
+                          外壳号：</span>
                         <el-select
                           v-model="order.finishShellNo"
                           placeholder="请选择或输入外壳号"
@@ -1339,7 +1306,9 @@ onMounted(() => {
                       </div>
                       <!-- 修改授权ID下拉框部分 -->
                       <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">授权ID：</span>
+                        <span class="w-32 text-black font-semibold">
+                          <span class="mr-1 text-red-500">*</span>
+                          授权ID：</span>
                         <div class="flex flex-1 items-center gap-2">
                           <!-- 显示选中的授权ID -->
                           <el-input
@@ -1378,7 +1347,9 @@ onMounted(() => {
                   <template v-else-if="order.type === '版本迭代+交付发送'">
                     <!-- 第一行：升级后模型版本和是否加密 -->
                     <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <span class="w-40 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        升级后模型版本：</span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
                         <div v-if="order.status !== '已完成'" class="version-input-container">
@@ -1410,22 +1381,17 @@ onMounted(() => {
                               </div>
                             </template>
 
-                            <!-- 用户输入的数字部分 -->
+                            <!-- 数字输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.number"
+                              v-model="order.finishModelVersionNumber"
                               placeholder="9"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
-
-                            <div class="version-part static">
-                              .
-                            </div>
-
-                            <!-- 用户输入的字母部分 -->
+                            <!-- 字母输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.letter"
+                              v-model="order.finishModelVersionLetter"
                               placeholder="A"
                               maxlength="2"
                               class="version-input"
@@ -1476,7 +1442,7 @@ onMounted(() => {
                         <!-- 说明文字 -->
                         <div v-if="order.status !== '已完成'" class="text-xs text-gray-500">
                           <span v-if="order.completeModelVersion">
-                            基于创建版本 <strong>{{ order.completeModelVersion }}</strong>，
+                            基于创建工单时选择的版本 <strong>{{ order.completeModelVersion }}</strong>，
                             请输入第4位数字和第5位字母
                           </span>
                           <span v-else>
@@ -1486,7 +1452,9 @@ onMounted(() => {
                       </div>
                     </div>
                     <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">是否加密：</span>
+                      <span class="w-32 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        是否加密：</span>
                       <el-select
                         v-model="order.isEncrypted"
                         placeholder="请选择"
@@ -1501,7 +1469,9 @@ onMounted(() => {
                     <!-- 第二行：外壳号和授权ID（只有选择加密时才显示） -->
                     <template v-if="order.isEncrypted === '是'">
                       <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">外壳号：</span>
+                        <span class="w-32 text-black font-semibold">
+                          <span class="mr-1 text-red-500">*</span>
+                          外壳号：</span>
                         <el-select
                           v-model="order.finishShellNo"
                           placeholder="请选择或输入外壳号"
@@ -1523,7 +1493,9 @@ onMounted(() => {
                       </div>
                       <!-- 修改授权ID部分 -->
                       <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">授权ID：</span>
+                        <span class="w-32 text-black font-semibold">
+                          <span class="mr-1 text-red-500">*</span>
+                          授权ID：</span>
                         <div class="flex flex-1 items-center gap-2">
                           <!-- 显示选中的授权ID -->
                           <el-input
@@ -1561,7 +1533,10 @@ onMounted(() => {
                   <!-- 功能开发类工单 -->
                   <template v-else-if="order.type === '功能开发'">
                     <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <span class="w-40 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        升级后模型版本：
+                      </span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
                         <div v-if="order.status !== '已完成'" class="version-input-container">
@@ -1590,26 +1565,24 @@ onMounted(() => {
                                 .
                               </div>
                             </template>
-                            <!-- 用户输入的数字部分 -->
+                            <!-- 数字输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.number"
+                              v-model="order.finishModelVersionNumber"
                               placeholder="9"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
-                            <div class="version-part static">
-                              .
-                            </div>
-                            <!-- 用户输入的字母部分 -->
+                            <!-- 字母输入框 -->
                             <el-input
-                              :value="getFinishVersionParts(order).input.letter"
+                              v-model="order.finishModelVersionLetter"
                               placeholder="A"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
                           </template>
+
                           <!-- 如果没有completeModelVersion，显示传统输入框 -->
                           <template v-else>
                             <input
@@ -1619,31 +1592,37 @@ onMounted(() => {
                             >
                           </template>
                         </div>
+
                         <!-- 已完成状态：只读显示 -->
                         <div v-else class="version-input-container">
-                          <template v-if="order.finishModelVersionId">
-                            <template v-for="(char, index) in order.finishModelVersionId.split('')" :key="index">
+                          <template v-if="order.finishModelVersion">
+                            <template v-for="(char, index) in order.finishModelVersion.split('')" :key="index">
+                              <!-- 点号显示为静态样式 -->
                               <div v-if="char === '.'" class="version-part static">
                                 .
                               </div>
+                              <!-- 数字和字母显示为只读样式 -->
                               <div v-else class="version-part readonly">
                                 {{ char }}
                               </div>
                             </template>
                           </template>
+                          <!-- 如果没有完成版本，显示提示 -->
                           <template v-else>
                             <div class="text-gray-500 italic">
                               未填写升级后版本
                             </div>
                           </template>
                         </div>
+
                         <!-- 完整版本预览 -->
-                        <div v-if="order.finishModelVersionId && order.status !== '已完成'" class="text-xs text-gray-600">
+                        <div v-if="order.finishModelVersion && order.status !== '已完成'" class="text-xs text-gray-600">
                           <span class="font-semibold">完整版本:</span>
                           <span class="ml-2 rounded bg-blue-50 px-2 py-1 text-blue-700 font-bold font-mono">
-                            {{ order.finishModelVersionId }}
+                            {{ order.finishModelVersion }}
                           </span>
                         </div>
+
                         <!-- 说明文字 -->
                         <div v-if="order.status !== '已完成'" class="text-xs text-gray-500">
                           <span v-if="order.completeModelVersion">
@@ -1656,8 +1635,9 @@ onMounted(() => {
                         </div>
                       </div>
                     </div>
+
                     <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">完成功能描述：</span>
+                      <span class="w-40 text-black font-semibold">完成功能描述：</span>
                       <textarea
                         v-model="order.finishFeatureDesc"
                         class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -1670,7 +1650,10 @@ onMounted(() => {
                   <!-- 其他类工单 -->
                   <template v-else-if="order.type === '其他'">
                     <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">备注：</span>
+                      <span class="w-32 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        备注：
+                      </span>
                       <textarea
                         v-model="order.finishRemarkOther"
                         class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -1708,12 +1691,14 @@ onMounted(() => {
                       >
                         <el-option
                           v-for="item in transferExecutor"
-                          :key="item"
-                          :label="item"
-                          :value="item"
+                          :key="item.id"
+                          :label="`${item.name} (${item.id})`"
+                          :value="item.id"
                         />
                       </el-select>
-                      <span class="ml-4 w-32 text-black font-semibold">工作记录：</span>
+                      <span class="ml-4 w-32 text-black font-semibold">
+                        <span class="mr-1 text-red-500">*</span>
+                        工作记录：</span>
                       <textarea
                         v-model="order.transferReasonEdit"
                         class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -1856,9 +1841,9 @@ onMounted(() => {
                     >
                       <el-option
                         v-for="item in executor"
-                        :key="item"
-                        :label="item"
-                        :value="item"
+                        :key="item.id"
+                        :label="`${item.name} (${item.id})`"
+                        :value="item.id"
                       />
                     </el-select>
                   </div>
@@ -1964,9 +1949,9 @@ onMounted(() => {
                     >
                       <el-option
                         v-for="item in distributor"
-                        :key="item"
-                        :label="item"
-                        :value="item"
+                        :key="item.id"
+                        :label="`${item.name} (${item.id})`"
+                        :value="item.id"
                       />
                     </el-select>
                   </div>
@@ -2006,6 +1991,11 @@ onMounted(() => {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
+                      <!-- 标签和内容分开显示，标签小且不加粗，内容正常 -->
+                      <span class="ml-3 text-sm text-gray-500">模型：</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
+                      <span class="ml-3 text-sm text-gray-500">基准版本：</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span>负责人：{{ order.promoterID }}</span>
@@ -2034,14 +2024,6 @@ onMounted(() => {
 
                   <!-- 问题复现类 -->
                   <template v-if="order.type === '问题复现'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
@@ -2076,12 +2058,8 @@ onMounted(() => {
                   <!-- 版本迭代类 -->
                   <template v-else-if="order.type === '版本迭代'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
+                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
@@ -2108,14 +2086,6 @@ onMounted(() => {
                   <!-- 交付发送类 -->
                   <template v-else-if="order.type === '交付发送'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
@@ -2136,12 +2106,8 @@ onMounted(() => {
                   <!-- 版本迭代+交付发送类 -->
                   <template v-else-if="order.type === '版本迭代+交付发送'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
+                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
@@ -2180,12 +2146,8 @@ onMounted(() => {
                   <!-- 功能开发类 -->
                   <template v-else-if="order.type === '功能开发'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
+                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
                     </div>
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">功能描述：</span>
@@ -2199,14 +2161,14 @@ onMounted(() => {
 
                   <!-- 其他类 -->
                   <template v-else-if="order.type === '其他'">
-                    <div class="flex items-center gap-2">
+                    <!-- <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">模型ID：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">模型版本ID：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
+                    </div> -->
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">内容描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
@@ -2278,9 +2240,9 @@ onMounted(() => {
                 >
                   <el-option
                     v-for="item in distributor"
-                    :key="item"
-                    :label="item"
-                    :value="item"
+                    :key="item.id"
+                    :label="`${item.name} (${item.id})`"
+                    :value="item.id"
                   />
                 </el-select>
               </el-form-item>
@@ -2323,9 +2285,9 @@ onMounted(() => {
                 >
                   <el-option
                     v-for="item in executor"
-                    :key="item"
-                    :label="item"
-                    :value="item"
+                    :key="item.id"
+                    :label="`${item.name} (${item.id})`"
+                    :value="item.id"
                   />
                 </el-select>
               </el-form-item>

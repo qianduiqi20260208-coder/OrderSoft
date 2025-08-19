@@ -608,7 +608,8 @@ onMounted(() => {
 const modelList = ref<string[]>(userStore.userModels) // 模型ID列表
 const modelVersionList = ref<string[]>([]) // 模型版本ID列表
 const customerList = ref<string[]>([]) // 客户列表
-const approverList = ref<string[]>([]) // 审批人列表
+
+const approverList = ref<Array<{ id: string, name: string }>>([]) // 审批人列表
 
 // 根据模型ID获取模型版本列表（支持传参，便于复用）
 async function getModelVersionList(modelId?: string) {
@@ -629,6 +630,7 @@ async function fetchApproverList(modelId?: string) {
 
   try {
     const res = await orderApi.fetchApproverList(modelId)
+    // 返回格式 [{ id: '工号', name: '姓名' }]
     approverList.value = res?.data?.list || []
   }
   catch (error) {
@@ -688,11 +690,11 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
-              <li>对应协调单（单号/NA）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
+              <li>对应协调单（单号）</li>
               <li>复现内容（文字描述）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
               <li>复现参考文件（上传附件）</li>
             </ol>
           </div>
@@ -722,13 +724,13 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
-              <li>对应协调单（单号/NA）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
+              <li>对应协调单（单号）</li>
               <li>更新内容（文本）</li>
               <li>封装要求（文本）</li>
               <li>接口是否变化（是/否）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
             </ol>
           </div>
         </div>
@@ -757,12 +759,12 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
               <li>目标客户（下拉选择）</li>
               <li>是否通过CAE平台验证（是/否）</li>
               <li>当前版本是否包含敏感信息（是/否）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
             </ol>
           </div>
         </div>
@@ -791,16 +793,16 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
-              <li>对应协调单（单号/NA）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
+              <li>对应协调单（单号）</li>
               <li>更新内容（文本）</li>
               <li>封装要求（文本）</li>
               <li>接口是否变化（是/否）</li>
               <li>目标客户（下拉选择）</li>
               <li>是否通过CAE平台验证（是/否）</li>
               <li>当前版本是否包含敏感信息（是/否）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
             </ol>
           </div>
         </div>
@@ -829,10 +831,10 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
               <li>功能描述（文本）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
             </ol>
           </div>
         </div>
@@ -861,10 +863,10 @@ async function fetchCustomerList() {
               工单填写说明：
             </div>
             <ol class="list-decimal pl-5 space-y-1">
-              <li>模型ID（下拉选择）</li>
-              <li>模型版本ID（下拉选择）</li>
+              <li>模型（下拉选择）</li>
+              <li>基准版本（下拉选择）</li>
               <li>内容描述（文本）</li>
-              <li>审批人ID（下拉选择）</li>
+              <li>审批人（下拉选择）</li>
             </ol>
           </div>
         </div>
@@ -874,10 +876,10 @@ async function fetchCustomerList() {
       <FaModal v-model="dialogProblemVisible" title="创建工单" width="500px" :close-on-click-modal="false">
         <el-form :model="problemOrderForm" label-width="120px">
           <!-- 模型ID下拉框 -->
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="problemOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -890,11 +892,11 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <!-- 模型版本ID下拉框 -->
-          <el-form-item label="模型版本ID" required>
+          <!-- 基准版本下拉框 -->
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="problemOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -910,7 +912,7 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
           <el-form-item label="协调单号">
-            <el-input v-model="problemOrderForm.coordinationId" placeholder="请输入协调单号或NA" />
+            <el-input v-model="problemOrderForm.coordinationId" placeholder="请输入协调单号" />
           </el-form-item>
           <el-form-item label="复现内容" required>
             <el-input
@@ -921,10 +923,10 @@ async function fetchCustomerList() {
             />
           </el-form-item>
           <!-- 问题复现工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="problemOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -933,9 +935,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -972,10 +974,10 @@ async function fetchCustomerList() {
       <FaModal v-model="dialogIterVisible" title="创建版本迭代工单" width="500px" :close-on-click-overlay="false">
         <el-form :model="iterOrderForm" label-width="120px">
           <!-- 将模型ID输入框下拉菜单 -->
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="iterOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -988,11 +990,11 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <!-- 将模型版本ID输入框下拉菜单 -->
-          <el-form-item label="模型版本ID" required>
+          <!-- 将基准版本输入框下拉菜单 -->
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="iterOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -1085,10 +1087,10 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
           <!-- 版本迭代工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="iterOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -1097,9 +1099,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -1121,10 +1123,10 @@ async function fetchCustomerList() {
       <!-- 交付发送工单弹窗 -->
       <FaModal v-model="dialogDeliverVisible" title="创建交付发送工单" width="500px" :close-on-click-overlay="false">
         <el-form :model="deliverOrderForm" label-width="140px">
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="deliverOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -1137,10 +1139,10 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="模型版本ID" required>
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="deliverOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -1186,10 +1188,10 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
           <!-- 交付发送工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="deliverOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -1198,9 +1200,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -1222,10 +1224,10 @@ async function fetchCustomerList() {
       <!-- 版本迭代+交付发送工单弹窗 -->
       <FaModal v-model="dialogIterDeliverVisible" title="创建版本迭代+交付发送工单" width="500px" :close-on-click-modal="false">
         <el-form :model="iterDeliverOrderForm" label-width="140px">
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="iterDeliverOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -1238,10 +1240,10 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="模型版本ID" required>
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="iterDeliverOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -1364,10 +1366,10 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
           <!-- 版本迭代+交付发送工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="iterDeliverOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -1376,9 +1378,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -1407,10 +1409,10 @@ async function fetchCustomerList() {
       <!-- 功能开发工单弹窗 -->
       <FaModal v-model="dialogDevVisible" title="创建功能开发工单" width="500px" :close-on-click-modal="false">
         <el-form :model="devOrderForm" label-width="120px">
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="devOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -1423,10 +1425,10 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="模型版本ID" required>
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="devOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -1502,10 +1504,10 @@ async function fetchCustomerList() {
             />
           </el-form-item>
           <!-- 功能开发工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="devOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -1514,9 +1516,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -1538,10 +1540,10 @@ async function fetchCustomerList() {
       <!-- 其他类工单弹窗 -->
       <FaModal v-model="dialogOtherVisible" title="创建其他类工单" width="500px" :close-on-click-modal="false">
         <el-form :model="otherOrderForm" label-width="120px">
-          <el-form-item label="模型ID" required>
+          <el-form-item label="模型" required>
             <el-select
               v-model="otherOrderForm.modelId"
-              placeholder="请选择模型ID"
+              placeholder="请选择模型"
               filterable
               clearable
               style="width: 100%;"
@@ -1554,10 +1556,10 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="模型版本ID" required>
+          <el-form-item label="基准版本" required>
             <el-select
               v-model="otherOrderForm.modelVersionID"
-              placeholder="请选择模型版本ID"
+              placeholder="请选择基准版本"
               filterable
               clearable
               style="width: 100%;"
@@ -1581,10 +1583,10 @@ async function fetchCustomerList() {
             />
           </el-form-item>
           <!-- 其他工单审批人ID -->
-          <el-form-item label="审批人ID" required>
+          <el-form-item label="审批人" required>
             <el-select
               v-model="otherOrderForm.approverID"
-              placeholder="请选择审批人ID"
+              placeholder="请选择审批人"
               filterable
               clearable
               style="width: 100%;"
@@ -1593,9 +1595,9 @@ async function fetchCustomerList() {
             >
               <el-option
                 v-for="item in approverList"
-                :key="item"
-                :label="item"
-                :value="item"
+                :key="item.id"
+                :label="`${item.name} (${item.id})`"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
