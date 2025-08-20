@@ -1,5 +1,6 @@
 #include "ModelController.h"
 #include "jwt_utils.h"
+#include "Log.h"
 
 // 匿名命名空间 - 仅在当前文件可见
 namespace {
@@ -26,7 +27,7 @@ ModelController::ModelController(std::shared_ptr<IModelService> sp) : modelServi
 void ModelController::registerRoutes(crow::SimpleApp& app) {
     // 获取模型列表
     CROW_ROUTE(app, "/model/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -95,11 +96,11 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
         };
         
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取模型版本列表
     CROW_ROUTE(app, "/model/version/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -118,5 +119,5 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 }

@@ -1,6 +1,7 @@
 #include "EncryptionKeyController.h"
 #include <nlohmann/json.hpp>
 #include <jwt_utils.h>
+#include "Log.h"
 
 EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyService> service)
     : encryptionKeyService_(service)
@@ -10,7 +11,7 @@ EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyS
 void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
     // 获取加密狗列表
     CROW_ROUTE(app, "/dongle/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -38,11 +39,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取特定加密狗的历史记录
     CROW_ROUTE(app, "/dongle/history").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -101,11 +102,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
         };
 
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 创建加密狗
     CROW_ROUTE(app, "/dongle/create").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -166,11 +167,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 更新加密狗信息
     CROW_ROUTE(app, "/delivery/dongles/update").methods("PUT"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -243,11 +244,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 交付外壳
     CROW_ROUTE(app, "/shell/deliver").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -313,11 +314,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 归还外壳
     CROW_ROUTE(app, "/shell/return").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -389,11 +390,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 新建授权信息
     CROW_ROUTE(app, "/auth/create").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -464,11 +465,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
         
     // 获取可交付的外壳号列表
     CROW_ROUTE(app, "/delivery/available-shells").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -497,11 +498,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
         };
         
         return crow::response{response.dump()};
-        });
+        }));
 
     // 更新外壳号信息
     CROW_ROUTE(app, "/shell/update").methods("PUT"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -567,11 +568,11 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 批量更新授权截止日期
     CROW_ROUTE(app, "/auth/batch-update").methods("PUT"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -664,7 +665,7 @@ void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
 
 }
