@@ -8,4 +8,16 @@ public:
     static bool getConnection(MYSQL*& mysql);
     static bool ensureConnected(MYSQL* mysql);
     static void closeConnection(MYSQL* mysql);
+
+};
+
+//操作日志模块的资源管理需求
+class DBConnectionManagerForOperationLog
+{
+public:
+    MYSQL* mysql;
+    DBConnectionManagerForOperationLog(){DBConnectionManager::getConnection(mysql);}
+    bool ensureConnected(){ return DBConnectionManager::ensureConnected(mysql);}
+    ~DBConnectionManagerForOperationLog(){DBConnectionManager::closeConnection(mysql);}
+
 };
