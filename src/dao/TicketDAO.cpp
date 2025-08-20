@@ -503,18 +503,19 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
         {
             tmp = std::make_shared<TicketOther>();
         }
+        extern std::map<int,std::string> id_name;
         //封装一些共有的信息
         tmp->id = atoi(row[0]);
-        tmp->creatorId = atoi(row[1]);
+        tmp->creatorId = id_name[atoi(row[1])];
         tmp->createTime = row[2];
         tmp->ticketType = row[3];
         tmp->model = row[4];
         tmp->modelVersion = row[5];
         tmp->status = row[6];
-        tmp->approverId = atoi(row[7]);
+        tmp->approverId = id_name[atoi(row[7])];
 
         tmp->priorityHint = (row[8]?row[8]:"");
-        tmp->distributorId = atoi(row[9]?row[9]:"-1");
+        tmp->distributorId = id_name[atoi(row[9])];
         tmp->approvedTime = row[10]?row[10]:"";
         tmp->priorityTask = row[11]?row[11]:"";
         tmp->distributedTime = row[12]?row[12]:"";
