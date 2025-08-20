@@ -32,6 +32,7 @@ interface OrderItem {
   modelID: string // 模型ID
   modelVersionID: string // 模型版本ID
   completeModelVersion?: string // 完成模型版本(创建时填写)
+  usedModelVersions?: string[] // 已使用的模型版本列表
   promoterID: string // 发起人ID
   startTime: string // 发起时间
   approverID?: string // 审批人ID
@@ -132,8 +133,49 @@ const batchExecutorID = ref('') // 批量分发时统一设置下一流程负责
 
 // -----------事件处理函数--------------
 // 一键展开/收起
+// function expandOrder(orderId: string, expand: boolean) {
+//   expandedMap.value[orderId] = expand
+
+//   if (expand) {
+//     const order = userOrders.value.find(o => o.orderID === orderId)
+//     if (order && order.status === '进行中' && order.completeModelVersion) {
+//       orderApi.fetchUsedModelVersion(order.modelID, order.completeModelVersion)
+//         .then((res) => {
+//           // 假设后端返回 { usedModelVersions: ['xxx'] }
+//           if (res?.data?.usedModelVersions) {
+//             order.usedModelVersions = res.data.usedModelVersions || []
+//           }
+//         })
+//         .catch((err) => {
+//           ElMessage.error('获取新版本号失败')
+//           console.error(err)
+//         })
+//     }
+//   }
+// }
+
 function expandOrder(orderId: string, expand: boolean) {
   expandedMap.value[orderId] = expand
+
+  if (expand) {
+    const idx = userOrders.value.findIndex(o => o.orderID === orderId)
+    const order = userOrders.value[idx]
+    if (order && order.status === '进行中' && order.completeModelVersion) {
+      orderApi.fetchUsedModelVersion(order.modelID, order.completeModelVersion)
+        .then((res) => {
+          if (res?.data?.list) {
+            userOrders.value[idx].usedModelVersions = res.data.list || []
+            console.warn(userOrders.value[idx].usedModelVersions)
+            // 强制刷新
+            userOrders.value = [...userOrders.value]
+          }
+        })
+        .catch((err) => {
+          ElMessage.error('获取新版本号失败')
+          console.error(err)
+        })
+    }
+  }
 }
 
 // 处理任务审批通过逻辑
@@ -261,6 +303,18 @@ function handleFinishOrderClick(order: OrderItem) {
 // 确认提交完成工单
 async function confirmFinishOrder() {
   if (!confirmOrder.value) {
+    return
+  }
+
+  // 校验：版本迭代、版本迭代+交付发送、功能开发工单，填写的完整版本号不能与已使用版本重复
+  const needCheckTypes = ['版本迭代', '版本迭代+交付发送', '功能开发']
+  if (
+    needCheckTypes.includes(confirmOrder.value.type)
+    && confirmOrder.value.finishModelVersion
+    && Array.isArray(confirmOrder.value.usedModelVersions)
+    && confirmOrder.value.usedModelVersions.includes(confirmOrder.value.finishModelVersion)
+  ) {
+    ElMessage.error('填写的完整版本号已被使用，请输入未使用的新版本号')
     return
   }
 
@@ -1194,7 +1248,7 @@ onMounted(() => {
                             <!-- 数字输入框 -->
                             <el-input
                               v-model="order.finishModelVersionNumber"
-                              placeholder="9"
+                              placeholder="0"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
@@ -1244,13 +1298,25 @@ onMounted(() => {
                             基于创建工单时选择的版本 <strong>{{ order.completeModelVersion }}</strong>，
                             请输入第4位数字和第5位字母
                           </span>
+                          <!-- 展开后显示已使用版本或无已使用版本提示 -->
+                          <div
+                            v-if="expandedMap[order.orderID]"
+                            class="mt-1 text-blue-600"
+                          >
+                            <template v-if="order.usedModelVersions && order.usedModelVersions.length">
+                              已使用版本：{{ order.usedModelVersions.join('，') }}
+                            </template>
+                            <template v-else>
+                              暂无已使用版本
+                            </template>
+                          </div>
                           <span v-else>
                             请输入升级后的模型版本号
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div class="col-span-1 w-full flex items-center gap-2">
+                    <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">备注：</span>
                       <textarea
                         v-model="order.finishRemark"
@@ -1384,7 +1450,7 @@ onMounted(() => {
                             <!-- 数字输入框 -->
                             <el-input
                               v-model="order.finishModelVersionNumber"
-                              placeholder="9"
+                              placeholder="0"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
@@ -1445,6 +1511,18 @@ onMounted(() => {
                             基于创建工单时选择的版本 <strong>{{ order.completeModelVersion }}</strong>，
                             请输入第4位数字和第5位字母
                           </span>
+                          <!-- 展开后显示已使用版本或无已使用版本提示 -->
+                          <div
+                            v-if="expandedMap[order.orderID]"
+                            class="mt-1 text-blue-600"
+                          >
+                            <template v-if="order.usedModelVersions && order.usedModelVersions.length">
+                              已使用版本：{{ order.usedModelVersions.join('，') }}
+                            </template>
+                            <template v-else>
+                              暂无已使用版本
+                            </template>
+                          </div>
                           <span v-else>
                             请输入升级后的模型版本号
                           </span>
@@ -1568,7 +1646,7 @@ onMounted(() => {
                             <!-- 数字输入框 -->
                             <el-input
                               v-model="order.finishModelVersionNumber"
-                              placeholder="9"
+                              placeholder="0"
                               maxlength="2"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
@@ -1629,6 +1707,18 @@ onMounted(() => {
                             基于创建工单时选择的版本 <strong>{{ order.completeModelVersion }}</strong>，
                             请输入第4位数字和第5位字母
                           </span>
+                          <!-- 展开后显示已使用版本或无已使用版本提示 -->
+                          <div
+                            v-if="expandedMap[order.orderID]"
+                            class="mt-1 text-blue-600"
+                          >
+                            <template v-if="order.usedModelVersions && order.usedModelVersions.length">
+                              已使用版本：{{ order.usedModelVersions.join('，') }}
+                            </template>
+                            <template v-else>
+                              暂无已使用版本
+                            </template>
+                          </div>
                           <span v-else>
                             请输入升级后的模型版本号
                           </span>

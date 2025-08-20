@@ -97,6 +97,8 @@ async function submitProblemOrder() {
 const iterOrderForm = ref({
   modelId: '', // 模型ID
   modelVersionID: '', // 模型版本ID
+  completeModelVersionFirst: '', // 新增：第一位
+  completeModelVersionSecond: '', // 新增：第二位
   completeModelVersionNumber: '', // 完成模型版本号（只输入数字部分）
   coordinationId: '', // 协调单号
   updateNotes: '', // 更新说明
@@ -105,22 +107,11 @@ const iterOrderForm = ref({
   approverID: '', // 审批人ID
 })
 
-// 新增：计算完成模型版本的显示文本
-const completeModelVersionDisplay = computed(() => {
-  if (!iterOrderForm.value.modelVersionID || !iterOrderForm.value.completeModelVersionNumber) {
-    return ''
-  }
-
-  // 从选择的模型版本ID中提取前两段（例如：V3.2.1.9A -> V3.2.）
-  const versionParts = iterOrderForm.value.modelVersionID.split('.')
-  if (versionParts.length >= 2) {
-    const versionPrefix = `${versionParts[0]}.${versionParts[1]}.`
-
-    // 组合：前缀 + 用户输入的数字
-    return `${versionPrefix}${iterOrderForm.value.completeModelVersionNumber}`
-  }
-
-  return ''
+// 初始化时自动填充前两位
+watch(() => iterOrderForm.value.modelVersionID, (val) => {
+  const parts = val ? val.split('.') : []
+  iterOrderForm.value.completeModelVersionFirst = parts[0] || ''
+  iterOrderForm.value.completeModelVersionSecond = parts[1] || ''
 })
 
 // 修改：计算版本前缀的显示
@@ -128,16 +119,26 @@ const versionParts = computed(() => {
   if (!iterOrderForm.value.modelVersionID) {
     return { first: '', second: '' }
   }
-
+  // 直接分割，不处理 V
   const parts = iterOrderForm.value.modelVersionID.split('.')
   if (parts.length >= 2) {
     return {
-      first: parts[0].substring(1), // '3'
-      second: parts[1], // '2'时
+      first: parts[0], // '4'
+      second: parts[1], // '1'
     }
   }
-
   return { first: '', second: '' }
+})
+
+// 完整版本号拼接
+const completeModelVersionDisplay = computed(() => {
+  const first = iterOrderForm.value.completeModelVersionFirst || versionParts.value.first
+  const second = iterOrderForm.value.completeModelVersionSecond || versionParts.value.second
+  const third = iterOrderForm.value.completeModelVersionNumber
+  if (first && second && third) {
+    return `${first}.${second}.${third}`
+  }
+  return ''
 })
 
 // 新增：计算数字输入框的placeholder
@@ -145,20 +146,15 @@ const versionNumberPlaceholder = computed(() => {
   if (!iterOrderForm.value.modelVersionID) {
     return ''
   }
-
-  // 从选择的模型版本ID中提取第三段数字
   const versionParts = iterOrderForm.value.modelVersionID.split('.')
   if (versionParts.length >= 3) {
-    // 提取第三段的数字部分
     const thirdPart = versionParts[2]
     const numberMatch = thirdPart.match(/^\d+/)
     if (numberMatch) {
       const currentNumber = Number.parseInt(numberMatch[0])
-      // 建议下一个数字
       return String(currentNumber + 1)
     }
   }
-
   return '1'
 })
 
@@ -222,6 +218,8 @@ async function submitIterOrder() {
   iterOrderForm.value = {
     modelId: '',
     modelVersionID: '',
+    completeModelVersionFirst: '',
+    completeModelVersionSecond: '',
     completeModelVersionNumber: '',
     coordinationId: '',
     updateNotes: '',
@@ -291,6 +289,8 @@ async function submitDeliverOrder() {
 const iterDeliverOrderForm = ref({
   modelId: '', // 模型ID
   modelVersionID: '', // 模型版本ID
+  completeModelVersionFirst: '', // 新增：第一位
+  completeModelVersionSecond: '', // 新增：第二位
   completeModelVersionNumber: '', // 新增：完成模型版本号（只输入数字部分）
   coordinationId: '', // 协调单号
   updateNotes: '', // 更新说明
@@ -302,60 +302,52 @@ const iterDeliverOrderForm = ref({
   approverID: '', // 审批人ID
 })
 
-// 新增：版本迭代+交付发送工单的完成模型版本计算
-const iterDeliverCompleteModelVersionDisplay = computed(() => {
-  if (!iterDeliverOrderForm.value.modelVersionID || !iterDeliverOrderForm.value.completeModelVersionNumber) {
-    return ''
-  }
-
-  // 从选择的模型版本ID中提取前两段（例如：V3.2.1.9A -> V3.2.）
-  const versionParts = iterDeliverOrderForm.value.modelVersionID.split('.')
-  if (versionParts.length >= 2) {
-    const versionPrefix = `${versionParts[0]}.${versionParts[1]}.`
-
-    // 组合：前缀 + 用户输入的数字
-    return `${versionPrefix}${iterDeliverOrderForm.value.completeModelVersionNumber}`
-  }
-
-  return ''
+watch(() => iterDeliverOrderForm.value.modelVersionID, (val) => {
+  const parts = val ? val.split('.') : []
+  iterDeliverOrderForm.value.completeModelVersionFirst = parts[0] || ''
+  iterDeliverOrderForm.value.completeModelVersionSecond = parts[1] || ''
 })
 
-// 新增：版本迭代+交付发送工单的版本前缀计算
+// 版本前缀计算（去掉 substring(1)，直接用数字）
 const iterDeliverVersionParts = computed(() => {
   if (!iterDeliverOrderForm.value.modelVersionID) {
     return { first: '', second: '' }
   }
-
   const parts = iterDeliverOrderForm.value.modelVersionID.split('.')
   if (parts.length >= 2) {
     return {
-      first: parts[0].substring(1), // '3'
-      second: parts[1], // '2'
+      first: parts[0], // 例如 '4'
+      second: parts[1], // 例如 '1'
     }
   }
-
   return { first: '', second: '' }
 })
 
-// 新增：版本迭代+交付发送工单的数字输入框placeholder
+// 版本迭代+交付发送工单的完成模型版本计算
+const iterDeliverCompleteModelVersionDisplay = computed(() => {
+  const first = iterDeliverOrderForm.value.completeModelVersionFirst || iterDeliverVersionParts.value.first
+  const second = iterDeliverOrderForm.value.completeModelVersionSecond || iterDeliverVersionParts.value.second
+  const third = iterDeliverOrderForm.value.completeModelVersionNumber
+  if (first && second && third) {
+    return `${first}.${second}.${third}`
+  }
+  return ''
+})
+
+// 数字输入框placeholder
 const iterDeliverVersionNumberPlaceholder = computed(() => {
   if (!iterDeliverOrderForm.value.modelVersionID) {
     return ''
   }
-
-  // 从选择的模型版本ID中提取第三段数字
   const versionParts = iterDeliverOrderForm.value.modelVersionID.split('.')
   if (versionParts.length >= 3) {
-    // 提取第三段的数字部分
     const thirdPart = versionParts[2]
     const numberMatch = thirdPart.match(/^\d+/)
     if (numberMatch) {
       const currentNumber = Number.parseInt(numberMatch[0])
-      // 建议下一个数字
       return String(currentNumber + 1)
     }
   }
-
   return '1'
 })
 
@@ -417,6 +409,8 @@ async function submitIterDeliverOrder() {
   iterDeliverOrderForm.value = {
     modelId: '',
     modelVersionID: '',
+    completeModelVersionFirst: '',
+    completeModelVersionSecond: '',
     completeModelVersionNumber: '', // 新增：重置完成模型版本号
     coordinationId: '',
     updateNotes: '',
@@ -434,71 +428,65 @@ async function submitIterDeliverOrder() {
 const devOrderForm = ref({
   modelId: '', // 模型ID
   modelVersionID: '', // 模型版本ID
+  completeModelVersionFirst: '', // 新增：第一位
+  completeModelVersionSecond: '', // 新增：第二位
   completeModelVersionNumber: '', // 新增：完成模型版本号（只输入数字部分）
   featureDesc: '', // 功能描述
   approverID: '', // 审批人ID
 })
 
-// 新增：功能开发工单的完成模型版本计算
-const devCompleteModelVersionDisplay = computed(() => {
-  if (!devOrderForm.value.modelVersionID || !devOrderForm.value.completeModelVersionNumber) {
-    return ''
-  }
-
-  // 从选择的模型版本ID中提取前两段（例如：V3.2.1.9A -> V3.2.）
-  const versionParts = devOrderForm.value.modelVersionID.split('.')
-  if (versionParts.length >= 2) {
-    const versionPrefix = `${versionParts[0]}.${versionParts[1]}.`
-
-    // 组合：前缀 + 用户输入的数字
-    return `${versionPrefix}${devOrderForm.value.completeModelVersionNumber}`
-  }
-
-  return ''
+// 初始化前两位
+watch(() => devOrderForm.value.modelVersionID, (val) => {
+  const parts = val ? val.split('.') : []
+  devOrderForm.value.completeModelVersionFirst = parts[0] || ''
+  devOrderForm.value.completeModelVersionSecond = parts[1] || ''
 })
 
-// 新增：功能开发工单的版本前缀计算
+// 功能开发工单的版本前缀计算（直接用数字，不做substring）
 const devVersionParts = computed(() => {
   if (!devOrderForm.value.modelVersionID) {
     return { first: '', second: '' }
   }
-
   const parts = devOrderForm.value.modelVersionID.split('.')
   if (parts.length >= 2) {
     return {
-      first: parts[0].substring(1), // '3'
-      second: parts[1], // '2'
+      first: parts[0], // 例如 '4'
+      second: parts[1], // 例如 '1'
     }
   }
-
   return { first: '', second: '' }
 })
 
-// 新增：功能开发工单的数字输入框placeholder
+// 功能开发工单的完成模型版本计算（去掉V，直接拼接数字）
+const devCompleteModelVersionDisplay = computed(() => {
+  const first = devOrderForm.value.completeModelVersionFirst || devVersionParts.value.first
+  const second = devOrderForm.value.completeModelVersionSecond || devVersionParts.value.second
+  const third = devOrderForm.value.completeModelVersionNumber
+  if (first && second && third) {
+    return `${first}.${second}.${third}`
+  }
+  return ''
+})
+
+// 功能开发工单的数字输入框placeholder
 const devVersionNumberPlaceholder = computed(() => {
   if (!devOrderForm.value.modelVersionID) {
     return ''
   }
-
-  // 从选择的模型版本ID中提取第三段数字
   const versionParts = devOrderForm.value.modelVersionID.split('.')
   if (versionParts.length >= 3) {
-    // 提取第三段的数字部分
     const thirdPart = versionParts[2]
     const numberMatch = thirdPart.match(/^\d+/)
     if (numberMatch) {
       const currentNumber = Number.parseInt(numberMatch[0])
-      // 建议下一个数字
       return String(currentNumber + 1)
     }
   }
-
   return '1'
 })
 
-// 新增：功能开发工单的完成模型版本号输入处理
+// 功能开发工单的完成模型版本号输入处理
 function handleDevCompleteVersionInput(value: string) {
-  // 只保留数字
   devOrderForm.value.completeModelVersionNumber = value.replace(/\D/g, '')
 }
 
@@ -545,6 +533,8 @@ async function submitDevOrder() {
   devOrderForm.value = {
     modelId: '',
     modelVersionID: '',
+    completeModelVersionFirst: '',
+    completeModelVersionSecond: '',
     completeModelVersionNumber: '', // 新增：重置完成模型版本号
     featureDesc: '',
     approverID: '',
@@ -598,11 +588,6 @@ async function submitOtherOrder() {
     approverID: '',
   }
 }
-
-// -----------------后端接口-----------------
-// 页面加载时获取工单
-onMounted(() => {
-})
 
 // ---------------下拉菜单部分------------------
 const modelList = ref<string[]>(userStore.userModels) // 模型ID列表
@@ -1010,30 +995,38 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
 
-          <!-- 修改：完成模型版本 - 验证码样式 -->
+          <!-- 完成模型版本输入（验证码样式） -->
           <el-form-item label="完成模型版本" required>
             <div class="version-input-container">
-              <!-- 第一个数字 -->
-              <div class="version-part readonly">
-                {{ versionParts.first }}
-              </div>
+              <!-- 第一个数字（可编辑，默认基准版本第一位） -->
+              <el-input
+                v-model="iterOrderForm.completeModelVersionFirst"
+                :placeholder="versionParts.first"
+                maxlength="2"
+                class="version-input"
+                :disabled="!iterOrderForm.modelVersionID"
+              />
 
               <!-- 第一个点 -->
               <div class="version-part static">
                 .
               </div>
 
-              <!-- 第二个数字 -->
-              <div class="version-part readonly">
-                {{ versionParts.second }}
-              </div>
+              <!-- 第二个数字（可编辑，默认基准版本第二位） -->
+              <el-input
+                v-model="iterOrderForm.completeModelVersionSecond"
+                :placeholder="versionParts.second"
+                maxlength="2"
+                class="version-input"
+                :disabled="!iterOrderForm.modelVersionID"
+              />
 
               <!-- 第二个点 -->
               <div class="version-part static">
                 .
               </div>
 
-              <!-- 用户输入的数字 -->
+              <!-- 用户输入的数字（第三位） -->
               <el-input
                 v-model="iterOrderForm.completeModelVersionNumber"
                 :placeholder="versionNumberPlaceholder"
@@ -1049,14 +1042,6 @@ async function fetchCustomerList() {
               <span class="font-semibold">完整版本:</span>
               <span class="ml-2 rounded bg-blue-50 px-3 py-1 text-lg text-blue-700 font-bold font-mono">
                 {{ completeModelVersionDisplay }}
-              </span>
-            </div>
-
-            <!-- 说明文字 -->
-            <div class="mt-2 text-xs text-gray-500">
-              <span v-if="iterOrderForm.modelVersionID">
-                基于父版本 <strong>{{ iterOrderForm.modelVersionID }}</strong>，
-                请输入第三位版本号
               </span>
             </div>
           </el-form-item>
@@ -1259,23 +1244,31 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
 
-          <!-- 新增：完成模型版本 - 验证码样式 -->
+          <!-- 完成模型版本 - 验证码样式 -->
           <el-form-item label="完成模型版本" required>
             <div class="version-input-container">
-              <!-- 第一个数字 -->
-              <div class="version-part readonly">
-                {{ iterDeliverVersionParts.first }}
-              </div>
+              <!-- 第一个数字（可编辑，默认基准版本第一位） -->
+              <el-input
+                v-model="iterDeliverOrderForm.completeModelVersionFirst"
+                :placeholder="iterDeliverVersionParts.first"
+                maxlength="2"
+                class="version-input"
+                :disabled="!iterDeliverOrderForm.modelVersionID"
+              />
 
               <!-- 第一个点 -->
               <div class="version-part static">
                 .
               </div>
 
-              <!-- 第二个数字 -->
-              <div class="version-part readonly">
-                {{ iterDeliverVersionParts.second }}
-              </div>
+              <!-- 第二个数字（可编辑，默认基准版本第二位） -->
+              <el-input
+                v-model="iterDeliverOrderForm.completeModelVersionSecond"
+                :placeholder="iterDeliverVersionParts.second"
+                maxlength="2"
+                class="version-input"
+                :disabled="!iterDeliverOrderForm.modelVersionID"
+              />
 
               <!-- 第二个点 -->
               <div class="version-part static">
@@ -1298,14 +1291,6 @@ async function fetchCustomerList() {
               <span class="font-semibold">完整版本:</span>
               <span class="ml-2 rounded bg-blue-50 px-3 py-1 text-lg text-blue-700 font-bold font-mono">
                 {{ iterDeliverCompleteModelVersionDisplay }}
-              </span>
-            </div>
-
-            <!-- 说明文字 -->
-            <div class="mt-2 text-xs text-gray-500">
-              <span v-if="iterDeliverOrderForm.modelVersionID">
-                基于父版本 <strong>{{ iterDeliverOrderForm.modelVersionID }}</strong>，
-                请输入第三位版本号
               </span>
             </div>
           </el-form-item>
@@ -1444,23 +1429,31 @@ async function fetchCustomerList() {
             </el-select>
           </el-form-item>
 
-          <!-- 新增：完成模型版本 - 验证码样式 -->
+          <!-- 完成模型版本 - 验证码样式 -->
           <el-form-item label="完成模型版本" required>
             <div class="version-input-container">
-              <!-- 第一个数字 -->
-              <div class="version-part readonly">
-                {{ devVersionParts.first }}
-              </div>
+              <!-- 第一个数字（可编辑，默认基准版本第一位） -->
+              <el-input
+                v-model="devOrderForm.completeModelVersionFirst"
+                :placeholder="devVersionParts.first"
+                maxlength="2"
+                class="version-input"
+                :disabled="!devOrderForm.modelVersionID"
+              />
 
               <!-- 第一个点 -->
               <div class="version-part static">
                 .
               </div>
 
-              <!-- 第二个数字 -->
-              <div class="version-part readonly">
-                {{ devVersionParts.second }}
-              </div>
+              <!-- 第二个数字（可编辑，默认基准版本第二位） -->
+              <el-input
+                v-model="devOrderForm.completeModelVersionSecond"
+                :placeholder="devVersionParts.second"
+                maxlength="2"
+                class="version-input"
+                :disabled="!devOrderForm.modelVersionID"
+              />
 
               <!-- 第二个点 -->
               <div class="version-part static">
@@ -1483,14 +1476,6 @@ async function fetchCustomerList() {
               <span class="font-semibold">完整版本:</span>
               <span class="ml-2 rounded bg-blue-50 px-3 py-1 text-lg text-blue-700 font-bold font-mono">
                 {{ devCompleteModelVersionDisplay }}
-              </span>
-            </div>
-
-            <!-- 说明文字 -->
-            <div class="mt-2 text-xs text-gray-500">
-              <span v-if="devOrderForm.modelVersionID">
-                基于父版本 <strong>{{ devOrderForm.modelVersionID }}</strong>，
-                请输入第三位版本号
               </span>
             </div>
           </el-form-item>

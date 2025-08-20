@@ -138,7 +138,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
     },
     children: [
       OrderCreate, // 工单创建路由
-      OrderManage, // 工单管理路由
+      OrderManage, // 工单待办路由
       OrderList, // 工单列表路由
     ],
   },
