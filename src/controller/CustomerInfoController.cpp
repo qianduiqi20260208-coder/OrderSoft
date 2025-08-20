@@ -11,7 +11,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
     // 获取客户列表信息-客户管理页加载
     CROW_ROUTE(app, "/client/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -45,7 +45,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response{ resp.dump() };
          }
-        });
+        }));
 
     // 新建客户
     CROW_ROUTE(app, "/client/create").methods("POST"_method)
@@ -117,7 +117,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
     // 编辑客户
     CROW_ROUTE(app, "/client/update").methods("PUT"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -182,11 +182,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 获取发送详情信息
     CROW_ROUTE(app, "/client/send/detail").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -224,11 +224,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         };
         
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取发送详情（分页版本）
     CROW_ROUTE(app, "/client/send/detail/pagination").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -290,11 +290,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         };
 
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 获取发送总览（各模型最新版本）
     CROW_ROUTE(app, "/client/send/overview").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -339,11 +339,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         };
 
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 获取授权详情信息
     CROW_ROUTE(app, "/client/auth/detail").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -371,11 +371,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         // 调用服务层获取授权详情
         nlohmann::json result = customerInfoService_->getClientAuthInfoJson(clientName);
         return crow::response{ result.dump() };
-        });
+        }));
 
     // 获取单个外壳号的完整授权列表
     CROW_ROUTE(app, "/shell/auth/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -410,11 +410,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
         nlohmann::json resp = customerInfoService_->getShellAuthorizationInfoJson(clientName, shellNumber);
         
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取外壳号列表-填写发送工单使用
     CROW_ROUTE(app, "/order/shell-numbers").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -450,11 +450,11 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取授权ID列表-填写发送工单使用
     CROW_ROUTE(app, "/order/auth-ids").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -503,7 +503,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // // 注册获取所有客户名称列表路由
     // CROW_ROUTE(app, "/customer/list").methods("GET"_method)

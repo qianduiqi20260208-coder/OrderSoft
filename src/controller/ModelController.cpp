@@ -1,5 +1,6 @@
 #include "ModelController.h"
 #include "jwt_utils.h"
+#include "Log.h"
 
 // 匿名命名空间 - 仅在当前文件可见
 namespace {
@@ -26,7 +27,7 @@ ModelController::ModelController(std::shared_ptr<IModelService> sp) : modelServi
 void ModelController::registerRoutes(crow::SimpleApp& app) {
     // 获取模型列表
     CROW_ROUTE(app, "/model/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -95,11 +96,11 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
         };
         
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取模型版本列表
     CROW_ROUTE(app, "/model/version/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -118,5 +119,39 @@ void ModelController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
+
+    // 根据创建时填写的部分版本号获取当前数据库中已有的模型版本
+    CROW_ROUTE(app, "/model/version/used").methods("GET"_method)
+    (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        auto params = crow::query_string(req.url_params);
+        std::string modelId = params.get("modelId") ? params.get("modelId") : "";
+        std::string completeModelVersion = params.get("completeModelVersion") ? params.get("completeModelVersion") : "";
+
+        if (modelId.empty() || completeModelVersion.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：modelId 或 completeModelVersion"},
+                {"data", nlohmann::json::object()}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+        // 调用 service 层方法
+        std::vector<std::string> versions = modelService->getModelVersionByPartialModelVersion(modelId, completeModelVersion);
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", versions}
+            }}
+        };
+        return crow::response{ resp.dump() };
+    }));
 }

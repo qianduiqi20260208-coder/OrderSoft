@@ -47,8 +47,8 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
             di.inTime = (row[2]?row[2]:"");
             di.outTime = (row[3]?row[3]:"");
             di.dongleStatus = row[4];
-            di.clientName = row[5];
-            di.clientDeviceType = row[6];
+            di.clientName = (row[5]?row[5]:"");
+            di.clientDeviceType = (row[6]?row[6]:"");
             di.clientNote = (row[7]?row[7]:"");
             di.dongleRemark = (row[8]?row[8]:"");
         }

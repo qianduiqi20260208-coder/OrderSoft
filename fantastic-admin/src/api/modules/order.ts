@@ -333,9 +333,26 @@ export default {
       // baseURL: '/mock/',
     }),
 
+  // // 获取工单统计数据
+  // fetchOrderStatistics: () =>
+  //   api.get('order/statistics', {
+  //     baseURL: '/mock/',
+  //   }),
+
   // 获取工单统计数据
-  fetchOrderStatistics: () =>
-    api.get('order/statistics', {
-      baseURL: '/mock/',
+  fetchOrderStatisticsByCondition: (
+    clientNames: string[], // 客户名数组
+  ) =>
+    api.get('order/statisticsAll', {
+      params: {
+        clientNames: clientNames.join(','), // 逗号分隔字符串
+      },
     }),
+
+  // 根据创建时填写的部分版本号获取当前数据库中已有的模型版本
+  fetchUsedModelVersion: (modelId: string, completeModelVersion: string) =>
+    api.get('model/version/used', {
+      params: { modelId, completeModelVersion },
+    }),
+
 }

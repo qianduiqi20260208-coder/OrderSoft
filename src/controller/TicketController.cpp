@@ -1044,6 +1044,113 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         return downloadTicketFile(ticketId, filename);
         }));
 
+    CROW_ROUTE(app, "/order/statisticsAll").methods("GET"_method)
+    ([this](const crow::request& req) {
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+
+        auto params = crow::query_string(req.url_params);
+        std::string clientNamesStr = params.get("clientNames") ? params.get("clientNames") : "";
+        std::vector<std::string> clientNames;
+        if (!clientNamesStr.empty()) {
+            std::istringstream ss(clientNamesStr);
+            std::string name;
+            while (std::getline(ss, name, ',')) {
+                if (!name.empty()) clientNames.push_back(name);
+            }
+        }
+
+        // 查询所有统计数据
+        // 0: 一周, 1: 一月, 2: 半年
+        // 版本迭代
+        auto dailyIter = ticketService->getOrderStatisticsByCondition(0, "版本迭代", clientNames);
+        auto weeklyIter = ticketService->getOrderStatisticsByCondition(1, "版本迭代", clientNames);
+        auto monthlyIter = ticketService->getOrderStatisticsByCondition(2, "版本迭代", clientNames);
+        // 交付发送
+        auto dailyDeliver = ticketService->getOrderStatisticsByCondition(0, "交付发送", clientNames);
+        auto weeklyDeliver = ticketService->getOrderStatisticsByCondition(1, "交付发送", clientNames);
+        auto monthlyDeliver = ticketService->getOrderStatisticsByCondition(2, "交付发送", clientNames);
+
+        // 构造 daily
+        nlohmann::json daily = nlohmann::json::array();
+        for (size_t i = 0; i < clientNames.size(); ++i) {
+            const std::string& clientName = clientNames[i];
+            // 以日期为key聚合
+            std::map<std::string, nlohmann::json> dateMap;
+            for (const auto& pair : dailyIter[i]) {
+                dateMap[pair.first]["date"] = pair.first;
+                dateMap[pair.first]["clientName"] = clientName;
+                dateMap[pair.first]["versionIterationCount"] = pair.second;
+            }
+            for (const auto& pair : dailyDeliver[i]) {
+                dateMap[pair.first]["date"] = pair.first;
+                dateMap[pair.first]["clientName"] = clientName;
+                dateMap[pair.first]["deliveryCount"] = pair.second;
+            }
+            for (auto& kv : dateMap) {
+                if (!kv.second.contains("versionIterationCount")) kv.second["versionIterationCount"] = 0;
+                if (!kv.second.contains("deliveryCount")) kv.second["deliveryCount"] = 0;
+                daily.push_back(kv.second);
+            }
+        }
+
+        // 构造 weekly
+        nlohmann::json weekly = nlohmann::json::array();
+        for (size_t i = 0; i < clientNames.size(); ++i) {
+            const std::string& clientName = clientNames[i];
+            std::map<std::string, nlohmann::json> weekMap;
+            for (const auto& pair : weeklyIter[i]) {
+                weekMap[pair.first]["weekLabel"] = pair.first;
+                weekMap[pair.first]["clientName"] = clientName;
+                weekMap[pair.first]["versionIterationCount"] = pair.second;
+            }
+            for (const auto& pair : weeklyDeliver[i]) {
+                weekMap[pair.first]["weekLabel"] = pair.first;
+                weekMap[pair.first]["clientName"] = clientName;
+                weekMap[pair.first]["deliveryCount"] = pair.second;
+            }
+            for (auto& kv : weekMap) {
+                if (!kv.second.contains("versionIterationCount")) kv.second["versionIterationCount"] = 0;
+                if (!kv.second.contains("deliveryCount")) kv.second["deliveryCount"] = 0;
+                weekly.push_back(kv.second);
+            }
+        }
+
+        // 构造 monthly
+        nlohmann::json monthly = nlohmann::json::array();
+        for (size_t i = 0; i < clientNames.size(); ++i) {
+            const std::string& clientName = clientNames[i];
+            std::map<std::string, nlohmann::json> monthMap;
+            for (const auto& pair : monthlyIter[i]) {
+                monthMap[pair.first]["monthLabel"] = pair.first;
+                monthMap[pair.first]["clientName"] = clientName;
+                monthMap[pair.first]["versionIterationCount"] = pair.second;
+            }
+            for (const auto& pair : monthlyDeliver[i]) {
+                monthMap[pair.first]["monthLabel"] = pair.first;
+                monthMap[pair.first]["clientName"] = clientName;
+                monthMap[pair.first]["deliveryCount"] = pair.second;
+            }
+            for (auto& kv : monthMap) {
+                if (!kv.second.contains("versionIterationCount")) kv.second["versionIterationCount"] = 0;
+                if (!kv.second.contains("deliveryCount")) kv.second["deliveryCount"] = 0;
+                monthly.push_back(kv.second);
+            }
+        }
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"daily", daily},
+                {"weekly", weekly},
+                {"monthly", monthly}
+            }}
+        };
+        return crow::response{ resp.dump() };
+    });
+
     // 新增复杂工单查询分页接口
     CROW_ROUTE(app, "/order/details").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
