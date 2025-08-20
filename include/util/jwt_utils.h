@@ -39,7 +39,7 @@ inline bool checkToken(const crow::request& req) {
  * @return 生成的token字符串
  */
 inline std::string generateToken(const std::string& account) {
-    std::string secret = "your_secret_key";
+    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
     auto token = jwt::create()
         .set_issuer("crowTest")
         .set_type("JWS")
@@ -47,4 +47,31 @@ inline std::string generateToken(const std::string& account) {
         .set_expires_at(std::chrono::system_clock::now() + std::chrono::hours{ 24 })
         .sign(jwt::algorithm::hs256{ secret });
     return token;
+}
+
+/**
+ * @brief 根据JWT token获取用户账号
+ * @param req crow请求对象
+ * @return 成功返回用户账号，失败返回空字符串
+ */
+inline std::string getAccountFromToken(const crow::request& req) {
+    std::string token = req.get_header_value("token");
+    if (token.empty()) return "";
+    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
+    try {
+        auto decoded = jwt::decode(token);
+        auto verifier = jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{ secret })
+            .with_issuer("crowTest");
+        verifier.verify(decoded);
+        
+        // 获取account claim
+        if (decoded.has_payload_claim("account")) {
+            return decoded.get_payload_claim("account").as_string();
+        }
+        return "";
+    }
+    catch (const std::exception&) {
+        return "";
+    }
 }
