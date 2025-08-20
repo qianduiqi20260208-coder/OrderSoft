@@ -1,5 +1,6 @@
 #include "CustomerInfoController.h"
 #include <jwt_utils.h>
+#include "Log.h"
 
 CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoService> service)
     : customerInfoService_(service)
@@ -48,7 +49,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
 
     // 新建客户
     CROW_ROUTE(app, "/client/create").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -103,8 +104,6 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
                 return crow::response{ resp.dump() };
             }
 
-
-
         } catch (const std::exception& e) {
             printf("[ERROR] 新建客户失败: %s\n", e.what());
             nlohmann::json resp = {
@@ -114,7 +113,7 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
             };
             return crow::response(500, resp.dump());
         }
-        });
+        }));
 
     // 编辑客户
     CROW_ROUTE(app, "/client/update").methods("PUT"_method)
@@ -173,8 +172,6 @@ void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
                 };
                 return crow::response{ resp.dump() };
             }
-
-
 
         } catch (const std::exception& e) {
             printf("[ERROR] 编辑客户失败: %s\n", e.what());
