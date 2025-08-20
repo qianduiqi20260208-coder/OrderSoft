@@ -18,7 +18,7 @@
 inline bool checkToken(const crow::request& req) {
     std::string token = req.get_header_value("token");
     if (token.empty()) return false;
-    std::string secret = "your_secret_key";
+    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
     try {
         auto decoded = jwt::decode(token);
         auto verifier = jwt::verify()
