@@ -152,27 +152,29 @@ async function apiFetchUserOrders() {
 async function apiFetchRecentOrders() {
   try {
     const params = {
-      userID: userStore.account || '',
+      page: 1,
+      pageSize: 10, // 可根据需求调整数量
+      promoterID: userStore.account || '',
     }
 
-    const res = await orderApi.fetchUserRecentOrderList(params)
+    const res = await orderApi.fetchOrderPage(params)
     const orders = res.data.list || []
 
-    const sortedOrders = orders.sort((a: any, b: any) => {
-      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-    }).slice(0, 3)
+    const sortedOrders = orders
+      .sort((a: any, b: any) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .slice(0, 3)
 
     return sortedOrders.map((order: any) => {
       const mappedOrder: OrderItem = {
-        orderID: order.orderID || '', // 工单ID
-        type: order.type || '其他', // 工单类型
-        status: order.status || '草稿', // 工单状态
-        referencePriority: order.referencePriority || '', // 参考优先级
-        taskPriority: order.taskPriority || '', // 任务优先级
-        modelID: order.modelID || '', // 模型名
-        modelVersionID: order.modelVersionID || '', // 模型版本号
-        promoterID: order.promoterID || '', // 发起人ID
-        startTime: order.startTime || '', // 发起时间
+        orderID: order.orderID || '',
+        type: order.type || '其他',
+        status: order.status || '草稿',
+        referencePriority: order.referencePriority || '',
+        taskPriority: order.taskPriority || '',
+        modelID: order.modelID || '',
+        modelVersionID: order.modelVersionID || '',
+        promoterID: order.promoterID || '',
+        startTime: order.startTime || '',
       }
       return mappedOrder
     })

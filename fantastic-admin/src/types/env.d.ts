@@ -14,6 +14,7 @@ interface ImportMetaEnv {
    */
   readonly VITE_APP_API_BASEURL: string
   /**
+   * VITE_APP_API_BASEURL = http://172.16.22.95:18080/ # 胡
    * 调试工具，可设置 eruda 或 vconsole，如果不需要开启则留空
    */
   readonly VITE_APP_DEBUG_TOOL: string

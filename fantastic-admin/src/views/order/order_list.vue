@@ -1078,6 +1078,11 @@ function handleBackToSendDetail() {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
+                      <!-- 标签和内容分开显示，标签小且不加粗，内容正常 -->
+                      <span class="ml-3 text-sm text-gray-500">模型：</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
+                      <span class="ml-3 text-sm text-gray-500">基准版本：</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span>负责人：{{ order.promoterID }}</span>
@@ -1106,14 +1111,6 @@ function handleBackToSendDetail() {
 
                   <!-- 问题复现类 -->
                   <template v-if="order.type === '问题复现'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
@@ -1148,14 +1145,6 @@ function handleBackToSendDetail() {
                   <!-- 版本迭代类 -->
                   <template v-else-if="order.type === '版本迭代'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
                     </div>
@@ -1180,14 +1169,6 @@ function handleBackToSendDetail() {
                   <!-- 交付发送类 -->
                   <template v-else-if="order.type === '交付发送'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
@@ -1207,14 +1188,6 @@ function handleBackToSendDetail() {
 
                   <!-- 版本迭代+交付发送类 -->
                   <template v-else-if="order.type === '版本迭代+交付发送'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">对应协调单：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
@@ -1251,14 +1224,6 @@ function handleBackToSendDetail() {
 
                   <!-- 功能开发类 -->
                   <template v-else-if="order.type === '功能开发'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">功能描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
@@ -1271,14 +1236,6 @@ function handleBackToSendDetail() {
 
                   <!-- 其他类 -->
                   <template v-else-if="order.type === '其他'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div>
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">内容描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
@@ -1338,11 +1295,11 @@ function handleBackToSendDetail() {
               <!-- 问题复现类 -->
               <template v-if="currentOrder.type === '问题复现'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1367,11 +1324,11 @@ function handleBackToSendDetail() {
               <!-- 版本迭代类 -->
               <template v-else-if="currentOrder.type === '版本迭代'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1399,11 +1356,11 @@ function handleBackToSendDetail() {
               <!-- 交付发送类 -->
               <template v-else-if="currentOrder.type === '交付发送'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1427,11 +1384,11 @@ function handleBackToSendDetail() {
               <!-- 版本迭代+交付发送类 -->
               <template v-else-if="currentOrder.type === '版本迭代+交付发送'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1471,11 +1428,11 @@ function handleBackToSendDetail() {
               <!-- 功能开发类 -->
               <template v-else-if="currentOrder.type === '功能开发'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-start gap-2">
@@ -1491,11 +1448,11 @@ function handleBackToSendDetail() {
               <!-- 其他类 -->
               <template v-else-if="currentOrder.type === '其他'">
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型ID：</span>
+                  <span class="w-32 text-black font-semibold">模型：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型版本ID：</span>
+                  <span class="w-32 text-black font-semibold">基准版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-start gap-2">

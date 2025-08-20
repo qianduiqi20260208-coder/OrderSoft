@@ -227,6 +227,39 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     return userTicketVec;
 }
 
+std::vector<std::pair<int, std::string>> UserDAO::getOrderApprover_()
+{
+    std::vector<std::pair<int, std::string>> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+    
+    // 联表查出审批人工号和姓名
+    snprintf(sql, SQL_MAX, 
+        "SELECT DISTINCT umr.user_id, u.real_name "
+        "FROM user_multi_role umr "
+        "JOIN user u ON umr.user_id = u.username "
+        "WHERE umr.work_order_id IS NULL AND umr.flow_role = '审批人';"
+    );
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderApprover() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        int jobNumber = atoi(row[0]);
+        std::string realName = row[1] ? row[1] : "";
+        retVec.push_back(std::make_pair(jobNumber, realName));
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
 std::vector<int> UserDAO::getOrderApprover()
 {
     std::vector<int> retVec;
@@ -282,6 +315,39 @@ std::vector<int> UserDAO::getOrderDispatcher()
     return retVec;
 }
 
+std::vector<std::pair<int, std::string>> UserDAO::getOrderDispatcher_()
+{
+    std::vector<std::pair<int, std::string>> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+
+    // 联表查出分发人工号和姓名
+    snprintf(sql, SQL_MAX,
+        "SELECT DISTINCT umr.user_id, u.real_name "
+        "FROM user_multi_role umr "
+        "JOIN user u ON umr.user_id = u.username "
+        "WHERE umr.work_order_id IS NULL AND umr.flow_role = '分发人';"
+    );
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderDispatcher_() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        int jobNumber = atoi(row[0]);
+        std::string realName = row[1] ? row[1] : "";
+        retVec.push_back(std::make_pair(jobNumber, realName));
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
 std::vector<int> UserDAO::getOrderExecutor()
 {
     //检查数据库连接状态
@@ -303,6 +369,39 @@ std::vector<int> UserDAO::getOrderExecutor()
     while(row = mysql_fetch_row(res))
     {
         retVec.push_back(atoi(row[0]));
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}
+
+std::vector<std::pair<int, std::string>> UserDAO::getOrderExecutor_()
+{
+    std::vector<std::pair<int, std::string>> retVec;
+    //检查数据库连接状态
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+
+    // 联表查出执行人工号和姓名
+    snprintf(sql, SQL_MAX,
+        "SELECT DISTINCT umr.user_id, u.real_name "
+        "FROM user_multi_role umr "
+        "JOIN user u ON umr.user_id = u.username "
+        "WHERE umr.work_order_id IS NULL AND umr.flow_role = '执行人';"
+    );
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:getOrderExecutor_() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        int jobNumber = atoi(row[0]);
+        std::string realName = row[1] ? row[1] : "";
+        retVec.push_back(std::make_pair(jobNumber, realName));
     }
     mysql_free_result(res);
 

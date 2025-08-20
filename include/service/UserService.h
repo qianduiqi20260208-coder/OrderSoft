@@ -11,12 +11,27 @@ class UserService :public IUserService
 {
 public:
     UserService(std::shared_ptr<IUserDAO> sp);
+    
+    /**
+     * @brief 根据工号获取用户信息(获取当前登录的用户信息)
+     * @param jobNumber 工号
+     * @return 用户信息
+     */
     User getUserByJobNumber(int jobNumber)override;
+
+    /**
+     * @brief 获取用户的工单列表
+     * @param jobNumber 工号
+     * @return 用户负责工单列表
+     */
     std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)override;
 
-    //获取工单中的角色
+    /**
+     * @brief 获取工单中的角色（审批人、分发人、执行人）
+     * @return 角色与工号的映射
+     */
     std::map<std::string,std::vector<int>> getOrderRole() override;
-    std::map<std::string, std::vector<int>> getOrderRole_(const std::string& modelName) override;  // 新方法
+    std::map<std::string, std::vector<std::pair<int, std::string>>> getOrderRole_(const std::string& modelName) override;  // 新方法 筛选负责的模型
 
     /**
      * @brief 用户登录
