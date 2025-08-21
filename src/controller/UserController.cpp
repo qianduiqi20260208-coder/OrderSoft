@@ -160,18 +160,39 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 修改密码
     CROW_ROUTE(app, "/user/password/edit").methods("POST"_method)
-        (withAspect([this](const crow::request& req) {
+    (withAspect([this](const crow::request& req) {
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
             return crow::response(400, R"({"error":"Invalid JSON","status":0,"data":{}})");
         }
-        // 实际项目应校验token和原密码，这里直接返回成功
-        return crow::response{ nlohmann::json{
-            {"error", ""},
-            {"status", 1},
-            {"data", {{"isSuccess", true}}}
-        }.dump() };
-            }));
+
+        std::string userId = body.value("account", ""); // 用户ID
+        std::string oldPassword = body.value("oldPassword", "");
+        std::string newPassword = body.value("newPassword", "");
+
+        // 校验原密码
+        bool result = userService->editPassword(userId, oldPassword, newPassword);
+
+        if(result)
+        {
+            nlohmann::json resp = {
+                {"error", ""},
+                {"status", 1},
+                {"data", {{"isSuccess", true}}}
+            };
+            return crow::response{ resp.dump() };
+        }
+        else
+        {
+            nlohmann::json resp = {
+                {"error", ""},
+                {"status", 1},
+                {"data", {{"isSuccess", false}}}
+            };
+            return crow::response{ resp.dump() };
+        }
+
+    }));
 
     // 获取当前用户工单列表（工单待办）
     CROW_ROUTE(app, "/order/list").methods("GET"_method)

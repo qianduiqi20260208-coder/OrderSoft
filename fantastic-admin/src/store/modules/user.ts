@@ -143,6 +143,15 @@ export const useUserStore = defineStore(
       console.warn('获取权限', permissions.value)
     }
 
+    // 修改密码
+    async function editPassword(data: {
+      account: string
+      oldPassword: string
+      newPassword: string
+    }) {
+      await apiUser.changePassword(data)
+    }
+
     return {
       account,
       token,
@@ -155,6 +164,7 @@ export const useUserStore = defineStore(
       requestLogout,
       getPermissions,
       userModels,
+      editPassword, // 已移除未使用的函数
     }
   },
 )

@@ -23,12 +23,12 @@ const loading = ref(false)
 const form = useForm({
   validationSchema: toTypedSchema(z.object({
     account: z.string().min(1, '请输入用户名'),
-    oldPassword: z.string().min(1, '请输入原密码').min(6, '密码长度为6到18位').max(18, '密码长度为6到18位'),
-    newPassword: z.string().min(1, '请输入新密码').min(6, '密码长度为6到18位').max(18, '密码长度为6到18位'),
+    oldPassword: z.string().min(1, '请输入原密码').min(3, '密码长度为3到18位').max(18, '密码长度为3到18位'),
+    newPassword: z.string().min(1, '请输入新密码').min(3, '密码长度为3到18位').max(18, '密码长度为3到18位'),
     confirmPassword: z.string().min(1, '请确认新密码'),
   }).refine(data => data.newPassword === data.confirmPassword, {
     message: '两次输入的新密码不一致',
-    path: ['confirmPassword'], // 错误信息显示在确认密码字段
+    path: ['confirmPassword'],
   }).refine(data => data.oldPassword !== data.newPassword, {
     message: '新密码不能与原密码相同',
     path: ['newPassword'],
@@ -51,11 +51,6 @@ const onSubmit = form.handleSubmit((values) => {
     oldPassword: values.oldPassword,
     newPassword: values.newPassword,
   })
-
-  // 模拟API调用延迟
-  setTimeout(() => {
-    loading.value = false
-  }, 2000)
 })
 </script>
 

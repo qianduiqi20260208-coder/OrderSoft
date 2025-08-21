@@ -106,7 +106,6 @@ std::vector<std::string> UserService::getPermissions(const std::string& token) {
 }
 
 // 修改指定账号的密码，返回是否成功
-bool UserService::editPassword(const std::string& account, const std::string& newPassword) {
-    // return dao_.updatePassword(account, newPassword);
-    return true;
+bool UserService::editPassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) {
+    return userDAO_->updatePassword(userId, oldPassword, newPassword);
 }

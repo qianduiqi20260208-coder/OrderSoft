@@ -20,6 +20,7 @@ public:
 
     virtual std::vector<std::string> getUserResponsibleModels(int userId) = 0;
 
+    virtual bool updatePassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) = 0;
 
     virtual ~IUserDAO() = 0; 
 };

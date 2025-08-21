@@ -274,11 +274,9 @@ function handlePageChange(page: number) {
 // 加载用户负责的模型列表
 function loadUserModels() {
   try {
-    // 从userStorage获取用户负责的模型
     const userModels = userStore.userModels || []
 
     if (userModels.length > 0) {
-      // 转换为下拉框需要的格式
       modelList.value = userModels.map(model => ({
         id: model,
         name: model,
@@ -287,10 +285,11 @@ function loadUserModels() {
     else {
       ElMessage.warning('userStorage中无模型数据，使用默认模型列表')
     }
+    // 默认筛选条件为“全部”，即空字符串
+    filterModelID.value = ''
   }
   catch (error) {
     console.error('加载用户模型失败:', error)
-
     ElMessage.warning('加载用户模型列表失败')
   }
 }
@@ -315,7 +314,7 @@ onMounted(() => {
     // 如果有模型，默认筛选第一个模型（或全部模型）
     if (userModels.length > 0) {
       // 这里可以让用户选择，也可以直接用全部模型
-      filterModelID.value = userModels[0]
+      filterModelID.value = ''
     }
   }
 

@@ -17,6 +17,8 @@ public:
 
     virtual std::optional<User> login(const std::string& account, const std::string& password) = 0;
 
+    virtual bool editPassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) = 0;
+
     virtual ~IUserService() =0;
 };
 

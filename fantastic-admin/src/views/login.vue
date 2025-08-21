@@ -32,14 +32,14 @@ async function onChangePassword(data: { account: string, oldPassword: string, ne
       newPassword: data.newPassword,
     })
 
-    if (res.status === 0) {
+    if (res.data.isSuccess === true) {
       ElMessage.success('密码修改成功，请重新登录')
       // 修改成功后返回登录页面
       formType.value = 'login'
       account.value = data.account
     }
     else {
-      ElMessage.error('密码修改失败')
+      ElMessage.error('密码修改失败，请检查原密码是否正确')
     }
   }
   catch (error) {

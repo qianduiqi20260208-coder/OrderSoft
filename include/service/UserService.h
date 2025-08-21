@@ -54,7 +54,7 @@ public:
      * @param newPassword 新密码
      * @return 修改成功返回true，失败返回false
      */
-    bool editPassword(const std::string& account, const std::string& newPassword);
+    bool editPassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) override;
     
 private:
     std::shared_ptr<IUserDAO> userDAO_;

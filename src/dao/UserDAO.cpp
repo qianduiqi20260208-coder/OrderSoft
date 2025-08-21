@@ -415,6 +415,41 @@ UserDAO::~UserDAO()
     DBConnectionManager::closeConnection(mysql);
 }
 
+bool UserDAO::updatePassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword)
+{
+    if (!DBConnectionManager::ensureConnected(mysql))
+    {
+        return false;
+    }
+
+    // 校验原密码
+    snprintf(sql, SQL_MAX, "SELECT password FROM user WHERE username = '%s';", userId.c_str());
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        printf("[error] function:updatePassword() 查询原密码失败！原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (!row || oldPassword != std::string(row[0])) {
+        mysql_free_result(res);
+        return false; // 原密码不正确
+    }
+    mysql_free_result(res);
+
+    // 更新新密码
+    snprintf(sql, SQL_MAX, "UPDATE user SET password = '%s' WHERE username = '%s';",
+             newPassword.c_str(), userId.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret)
+    {
+        printf("[error] function:updatePassword() 更新用户密码失败！失败原因：%s\n", mysql_error(mysql));
+        return false;
+    }
+
+    return true;
+}
+
 std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, int workOrderId)
 {
     std::shared_ptr<Ticket> sp;
