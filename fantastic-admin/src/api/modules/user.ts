@@ -20,7 +20,7 @@ export default {
     oldPassword: string
     newPassword: string
   }) =>
-    api.post('user/changePassword', data, {
-      baseURL: '/mock/',
+    api.post('user/password/edit', data, {
+      // baseURL: '/mock/',
     }),
 }

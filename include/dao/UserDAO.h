@@ -29,6 +29,8 @@ public:
 
     bool login(std::string account,std::string password) override;
 
+    bool updatePassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) override;
+
     ~UserDAO();
 private:
     //mysql套件
