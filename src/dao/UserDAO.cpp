@@ -802,7 +802,9 @@ void add_idname_mapping()
     extern std::map<int,std::string> id_name;
     while(row = mysql_fetch_row(res))
     {
-        id_name[atoi(row[0])] = row[1];
+        // 检查 real_name 是否为空，如果为空则使用空字符串
+        std::string realName = (row[1] != nullptr) ? row[1] : "";
+        id_name[atoi(row[0])] = realName;
     }
 
     
