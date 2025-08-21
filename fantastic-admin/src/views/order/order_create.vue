@@ -42,7 +42,7 @@ const problemOrderForm = ref<ProblemOrderForm>({
 })
 
 // 处理附件上传时的回调，更新表单中的文件列表
-function handleProblemFileChange(file: any, fileList: any[]) {
+function handleProblemFileChange(_file: any, fileList: any[]) {
   problemOrderForm.value.files = fileList
 }
 
