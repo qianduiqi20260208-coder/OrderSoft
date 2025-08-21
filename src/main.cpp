@@ -31,8 +31,6 @@
 std::map<int,std::string> id_name;
 
 int main() {
-    //一个工号跟姓名之间的映射
-    add_idname_mapping();
 
 	MYSQL mysql;
 	mysql_init(&mysql);
@@ -41,6 +39,9 @@ int main() {
 	
 	// 设置控制台为 UTF-8 模式 非常重要！！！
     SetConsoleOutputCP(CP_UTF8);
+
+    //一个工号跟姓名之间的映射
+    add_idname_mapping();
 
     // 创建 DAO 对象
     auto userDAO = std::make_shared<UserDAO>(&mysql);

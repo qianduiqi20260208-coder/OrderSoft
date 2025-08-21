@@ -204,6 +204,7 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 
         nlohmann::json list = nlohmann::json::array();
+        
         for (const auto& ticketPtr : tickets) {
             if (ticketPtr) {
                 // 多态调用 to_json_order_manage()

@@ -794,6 +794,12 @@ void add_idname_mapping()
     char sql[SQL_MAX];	
     DBConnectionManager::getConnection(mysql);
 
+    // 设置连接字符集为 utf8mb4
+    mysql_set_character_set(mysql, "utf8mb4");
+
+    snprintf(sql, SQL_MAX, "set names utf8mb4;");
+    mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+
     snprintf(sql, SQL_MAX, "select username,real_name from user;");
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 
