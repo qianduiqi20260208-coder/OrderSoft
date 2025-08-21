@@ -1276,7 +1276,7 @@ onMounted(() => {
                         <!-- 已完成状态：只读显示 -->
                         <div v-else class="version-input-container">
                           <template v-if="order.finishModelVersion">
-                            <template v-for="(char, index) in order.finishModelVersion.split('')" :key="index">
+                            <template v-for="(char, _index) in order.finishModelVersion.split('')" :key="index">
                               <div class="version-part readonly">
                                 {{ char }}
                               </div>
