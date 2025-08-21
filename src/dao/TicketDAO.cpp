@@ -167,7 +167,7 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
     }
 
     //删除自己在流程中的位置
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '执行人' ;",ticket.id,ticket.executorId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = '%s' and flow_role = '执行人' ;",ticket.id,ticket.executorId.c_str());	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:completeConcreteTicket 删除user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
@@ -255,7 +255,7 @@ bool TicketDAO::createTicket(Ticket &ticket)
 
     //往工单表中插入数据
 	snprintf(sql, SQL_MAX, "INSERT INTO work_order(id,creator_id,type,model,model_version_id,approver_id) "
-        "VALUES(NULL,%d,'%s', '%s', %d,%d);", ticket.creatorId, ticket.ticketType.c_str(),ticket.model.c_str(),stoi(ticket.modelVersion),ticket.approverId);	
+        "VALUES(NULL,'%s', '%s', '%s', %d, '%s');", ticket.creatorId.c_str(), ticket.ticketType.c_str(),ticket.model.c_str(),stoi(ticket.modelVersion), ticket.approverId.c_str());	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     printf("sql:%s\n",sql);
 	if (ret) {
@@ -267,7 +267,7 @@ bool TicketDAO::createTicket(Ticket &ticket)
     //记录另一个人的待办
     //获取主键id
     ticket.id = mysql_insert_id(mysql);
-    snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role values(NULL,%d,'null','审批人',%d);",ticket.approverId,ticket.id);	
+    snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role values(NULL,'%s','null','审批人',%d);", ticket.approverId.c_str(),ticket.id);	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 
 	if (ret) {
@@ -304,7 +304,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
             return false;
         }
     }else{
-        snprintf(sql, SQL_MAX, "update work_order set status = '待分发', approved_at = NOW(),priority = '%s',dispatcher_id = %d where id = %d;", ticket.priorityHint.c_str(),ticket.distributorId,ticket.id);
+        snprintf(sql, SQL_MAX, "update work_order set status = '待分发', approved_at = NOW(),priority = '%s',dispatcher_id = '%s' where id = %d;", ticket.priorityHint.c_str(), ticket.distributorId.c_str(),ticket.id);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:createTicket 修改work_order表失败！失败原因：%s\n", mysql_error(mysql));
@@ -313,7 +313,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
         }
 
         //记录另一个人的待办
-        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'分发人',%d);",ticket.distributorId,ticket.id);	
+        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values('%s','分发人',%d);", ticket.distributorId.c_str(),ticket.id);	
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:createTicket 插入user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
@@ -323,7 +323,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
     }
 
     //删除自己在流程中的位置
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '审批人' ;",ticket.id,ticket.approverId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = '%s' and flow_role = '审批人' ;",ticket.id, ticket.approverId.c_str());	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:createTicket 删除user_multi_role数据失败！失败原因：%s\n", mysql_error(mysql));
@@ -373,7 +373,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
         }
 
         //记录工单执行人
-        snprintf(sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,%d,NOW());", ticket.id,ticket.executorId);
+        snprintf(sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,'%s',NOW());", ticket.id,ticket.executorId.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
             printf("[error] function:dispatchTicket 修改work_order_executor表失败!失败原因：%s\n", mysql_error(mysql));
@@ -382,17 +382,17 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
         }
 
         //记录另一个人的待办
-        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values(%d,'执行人',%d);",ticket.executorId,ticket.id);	
+        snprintf(sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values('%s','执行人',%d);",ticket.executorId.c_str(),ticket.id);	
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:dispatchTicket 插入user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+            printf("[error] function:dispatchTicket 插入user_multi_role表失败！executorId失败原因：%s\n", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK",strlen("ROLLBACK"));
             return false;
         }
     }
 
     //删除自己的待办
-    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = %d and flow_role = '分发人' ;",ticket.id,ticket.distributorId);	
+    snprintf(sql, SQL_MAX, "delete from user_multi_role where work_order_id = %d and user_id = '%s' and flow_role = '分发人' ;",ticket.id, ticket.distributorId.c_str());	
 	ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
 	if (ret) {
 		printf("[error] function:dispatchTicket 删除user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));

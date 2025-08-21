@@ -57,8 +57,8 @@ struct Ticket {
     std::string status; // 工单状态
     std::string approverId; // 审批人ID
     std::string priorityHint; // 参考优先级
-    std::string distributorId{-1}; // 分发人ID
-    std::string executorId{-1}; // 执行人ID 分发工单时指定的执行人ID
+    std::string distributorId; // 分发人ID
+    std::string executorId; // 执行人ID 分发工单时指定的执行人ID
     std::string approvedTime; // 审批时间
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间

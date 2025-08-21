@@ -284,7 +284,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 检查字段
         ticketreproduce.ticketType = "问题复现"; // 工单类型
         ticketreproduce.status = "待审批"; // 工单状态
-        ticketreproduce.creatorId = std::stoi(getField(result, "promoterID")); // 发起人ID
+        ticketreproduce.creatorId = (getField(result, "promoterID")); // 发起人ID
         ticketreproduce.createTime = getField(result, "startTime"); // 发起时间
         ticketreproduce.model = getField(result, "modelID"); // 关联模型
         ticketreproduce.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
@@ -292,7 +292,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketreproduce.content = getField(result, "description"); // 复现内容描述
         //ticketreproduce.attachment.file = body.value("files", std::vector<nlohmann::json>{}));
         //ticketreproduce.attachment.fileName = body.value("files", std::vector<nlohmann::json>{}));
-        ticketreproduce.approverId = std::stoi(getField(result, "approverID")); // 审批人ID
+        ticketreproduce.approverId = (getField(result, "approverID")); // 审批人ID
         bool ok = ticketService->createTicket(ticketreproduce);
         nlohmann::json resp;
         if (ok) {
@@ -328,7 +328,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 检查字段
         ticketversion.ticketType = "版本迭代"; // 工单类型
         ticketversion.status = "待审批"; // 工单状态
-        ticketversion.creatorId = std::stoi(body.value("promoterID", "")); // 发起人ID
+        ticketversion.creatorId = (body.value("promoterID", "")); // 发起人ID
         ticketversion.createTime = body.value("startTime", ""); // 发起时间
         ticketversion.model = body.value("modelID", "");  // 关联模型
         ticketversion.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
@@ -337,7 +337,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
         ticketversion.interfaceChanged = (body.value("apiChanged", "") == "是"); // 接口是否变化
-        ticketversion.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticketversion.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketversion);
 
@@ -373,14 +373,14 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         ticketdelivery.ticketType = "交付发送"; // 工单类型
         ticketdelivery.status = "待审批"; // 工单状态
-        ticketdelivery.creatorId = std::stoi(body.value("promoterID", "")); // 发起人ID
+        ticketdelivery.creatorId = (body.value("promoterID", "")); // 发起人ID
         ticketdelivery.createTime = body.value("startTime", ""); // 发起时间
         ticketdelivery.model = body.value("modelID", ""); // 关联模型
         ticketdelivery.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
         ticketdelivery.targetClient = body.value("targetCustomer", ""); // 目标客户
         ticketdelivery.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
         ticketdelivery.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
-        ticketdelivery.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticketdelivery.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketdelivery);
         nlohmann::json resp;
@@ -415,7 +415,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型
         ticketpackage.status = "待审批"; // 工单状态
-        ticketpackage.creatorId = std::stoi(body.value("promoterID", "")); // 发起人ID
+        ticketpackage.creatorId = (body.value("promoterID", "")); // 发起人ID
         ticketpackage.createTime = body.value("startTime", ""); // 发起时间
         ticketpackage.model = body.value("modelID", ""); // 关联模型
         ticketpackage.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
@@ -427,7 +427,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.targetClient = body.value("targetCustomer", ""); // 目标客户
         ticketpackage.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
         ticketpackage.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
-        ticketpackage.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticketpackage.approverId = (body.value("approverID", "")); // 审批人ID
 
 
         bool ok = ticketService->createTicket(ticketpackage);
@@ -463,13 +463,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         ticketfeature.ticketType = "功能开发"; // 工单类型
         ticketfeature.status = "待审批"; // 工单状态
-        ticketfeature.creatorId = std::stoi(body.value("promoterID", "")); // 发起人ID
+        ticketfeature.creatorId = (body.value("promoterID", "")); // 发起人ID
         ticketfeature.createTime = body.value("startTime", ""); // 发起时间
         ticketfeature.model = body.value("modelID", ""); // 关联模型
         ticketfeature.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
         ticketfeature.featureFinal = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketfeature.featureInit = body.value("featureDesc", ""); // 功能描述
-        ticketfeature.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticketfeature.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketfeature);
         nlohmann::json resp;
@@ -504,12 +504,12 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         ticketother.ticketType = "其他"; // 工单类型
         ticketother.status = "待审批"; // 工单状态
-        ticketother.creatorId = std::stoi(body.value("promoterID", "")); // 发起人ID
+        ticketother.creatorId = (body.value("promoterID", "")); // 发起人ID
         ticketother.createTime = body.value("startTime", ""); // 发起时间
         ticketother.model = body.value("modelID", ""); // 关联模型
         ticketother.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
         ticketother.description = body.value("contentDesc", ""); // 内容描述
-        ticketother.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticketother.approverId = (body.value("approverID", "")); // 审批人ID
 
 
         bool ok = ticketService->createTicket(ticketother);
@@ -546,10 +546,10 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "待分发"; // 更新工单状态为待分发
-        ticket.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticket.approverId = (body.value("approverID", "")); // 审批人ID
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.priorityHint = body.value("referencePriority", ""); // 参考优先级
-        ticket.distributorId = std::stoi(body.value("distributorID", "")); // 分发人ID
+        ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
 
         bool ok = ticketService->approveTicket(ticket);
         nlohmann::json resp;
@@ -586,7 +586,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
         ticket.priorityHint.clear(); // 清空参考优先级
-        ticket.approverId = std::stoi(body.value("approverID", "")); // 审批人ID
+        ticket.approverId = (body.value("approverID", "")); // 审批人ID
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因 
 
@@ -624,10 +624,10 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "进行中";  // 更新工单状态为进行中
-        ticket.distributorId = std::stoi(body.value("distributorID", "")); // 分发人ID
+        ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
         ticket.distributedTime = body.value("distributeTime", ""); // 分发时间
         ticket.priorityTask = body.value("taskPriority", ""); // 任务优先级
-        ticket.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticket.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->dispatchTicket(ticket);
         nlohmann::json resp;
@@ -664,7 +664,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
         ticket.priorityTask.clear(); // 清空任务优先级
-        ticket.distributorId = std::stoi(body.value("distributorID", "")); // 分发人ID
+        ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
         ticket.distributedTime = body.value("distributeTime", ""); // 分发时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因
 
@@ -706,7 +706,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketreproduce.completedTime = body.value("finishTime", ""); // 完成时间
         ticketreproduce.phenomenon = body.value("finishPhenomenon", ""); // 复现现象
         ticketreproduce.remark = body.value("finishRemark", ""); // 备注
-        ticketreproduce.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketreproduce.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketreproduce);
         nlohmann::json resp;
@@ -747,7 +747,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.completedTime = body.value("finishTime", ""); // 完成时间
         ticketversion.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本
         ticketversion.remark = body.value("finishRemark", ""); // 备注
-        ticketversion.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketversion.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketversion);
         nlohmann::json resp;
@@ -789,7 +789,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.licenseId = body.value("finishAuthId", ""); // 授权ID
         ticketdelivery.dongleId = body.value("finishShellNo", ""); // 外壳号
         ticketdelivery.remark = body.value("finishRemark", ""); // 备注
-        ticketdelivery.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketdelivery.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketdelivery);
         nlohmann::json resp;
@@ -833,7 +833,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.license = body.value("finishAuthId", ""); // 授权ID
         ticketpackage.dongle = body.value("finishShellNo", ""); // 外壳号
         ticketpackage.remark = body.value("finishRemark", ""); // 备注
-        ticketpackage.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketpackage.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketpackage);
         nlohmann::json resp;
@@ -874,7 +874,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketfeature.completedTime = body.value("finishTime", ""); // 完成时间
         ticketfeature.newModelVersion = body.value("finishModelVersionId", ""); // 升级后模型版本ID
         ticketfeature.featureFinal = body.value("finishFeatureDesc", ""); // 完成功能描述
-        ticketfeature.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketfeature.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketfeature);
         nlohmann::json resp;
@@ -913,7 +913,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketother.ticketType = "其他"; // 工单类型 显示指定
         ticketother.completedTime = std::stoi(body.value("finishTime", "")); // 完成时间
         ticketother.remark = body.value("finishRemarkOther", ""); // 完成备注
-        ticketother.executorId = std::stoi(body.value("executorID", "")); // 执行人ID
+        ticketother.executorId = (body.value("executorID", "")); // 执行人ID
 
         bool ok = ticketService->completeTicket(ticketother);
         nlohmann::json resp;

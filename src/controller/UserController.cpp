@@ -201,7 +201,7 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 
         nlohmann::json list = nlohmann::json::array();
-        
+
         for (const auto& ticketPtr : tickets) {
             if (ticketPtr) {
                 // 多态调用 to_json_order_manage()
@@ -218,6 +218,9 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 {"total", tickets.size()},
             }}
         };
+        // 打印响应内容到控制台
+        printf("[DEBUG] /order/list response: %s\n", resp.dump().c_str());
+        
         return crow::response{ resp.dump() };
         }));
 
