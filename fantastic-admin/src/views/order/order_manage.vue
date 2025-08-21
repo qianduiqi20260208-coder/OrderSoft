@@ -1276,7 +1276,7 @@ onMounted(() => {
                         <!-- 已完成状态：只读显示 -->
                         <div v-else class="version-input-container">
                           <template v-if="order.finishModelVersion">
-                            <template v-for="(char) in order.finishModelVersion.split('')" :key="index">
+                            <template v-for="(char, index) in order.finishModelVersion.split('')" :key="index">
                               <div class="version-part readonly">
                                 {{ char }}
                               </div>
@@ -2086,8 +2086,18 @@ onMounted(() => {
                       <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
                       <span class="ml-3 text-sm text-gray-500">基准版本：</span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
-                      <span class="ml-3 text-sm text-gray-500">Matlab版本号：</span>
-                      <span class="ml-1 text-black font-semibold">{{ order.completeModelVersion }}</span>
+                      <span
+                        v-if="order.completeModelVersion"
+                        class="ml-3 text-sm text-gray-500"
+                      >
+                        Matlab版本号：
+                      </span>
+                      <span
+                        v-if="order.completeModelVersion"
+                        class="ml-1 text-black font-semibold"
+                      >
+                        {{ order.completeModelVersion }}
+                      </span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span>负责人：{{ order.promoterID }}</span>

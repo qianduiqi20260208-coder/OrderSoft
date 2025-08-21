@@ -5,7 +5,7 @@ meta:
 
 <!-- 路由元信息，设置页面标题和图标 -->
 <script setup lang="ts">
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
 import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
@@ -42,7 +42,7 @@ const problemOrderForm = ref<ProblemOrderForm>({
 })
 
 // 处理附件上传时的回调，更新表单中的文件列表
-function handleProblemFileChange(_file: any, fileList: any[]) {
+function handleProblemFileChange(file: any, fileList: any[]) {
   problemOrderForm.value.files = fileList
 }
 

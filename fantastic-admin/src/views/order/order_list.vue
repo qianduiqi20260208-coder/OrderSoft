@@ -354,23 +354,27 @@ const userListLoading = ref(false) // 执行人列表加载状态
 
 // 获取执行人列表
 async function fetchExecutorList() {
-  // 如果已经有数据，避免重复请求
-  if (userList.value.length > 0) {
-    return
-  }
-
   userListLoading.value = true
-
   try {
-    const res = await orderApi.fetchAllExecutorList()
+    // 只传递单个模型ID
+    let modelId = ''
+    if (filterModelID.value) {
+      modelId = filterModelID.value
+    }
+    else if (Array.isArray(userStore.userModels) && userStore.userModels.length > 0) {
+      modelId = userStore.userModels[0]
+    }
+
+    // 传递模型参数给后端
+    const res = await orderApi.fetchExecutorList(modelId)
 
     if (res?.data) {
-      // 手动数据映射处理，适配新的响应格式
+      // 新的数据格式直接映射 id 和 name
       const executorList = res.data.list || []
 
-      const mappedUserList = executorList.map((executorId: number | string) => ({
-        id: String(executorId), // 确保ID是字符串格式
-        name: String(executorId), // 如果没有姓名，使用ID作为显示名称
+      const mappedUserList = executorList.map((item: { id: string, name: string }) => ({
+        id: String(item.id),
+        name: String(item.name),
       }))
 
       userList.value = mappedUserList
@@ -479,7 +483,7 @@ function handleBackToSendDetail() {
             <el-option label="QT(其他)" value="其他" />
           </el-select>
 
-          <!-- 员工工号下拉框 - 只显示工号 -->
+          <!-- 员工工号下拉框 - 显示“姓名（工号）”形式 -->
           <el-select
             v-model="filterPromoterID"
             placeholder="发起员工工号"
@@ -492,20 +496,19 @@ function handleBackToSendDetail() {
             <el-option
               v-for="user in userList"
               :key="user.id"
-              :label="user.id"
+              :label="`${user.name}（${user.id}）`"
               :value="user.id"
             >
               <div class="flex items-center">
-                <span>{{ user.id }}</span>
+                <span>{{ user.name }}（{{ user.id }}）</span>
               </div>
             </el-option>
           </el-select>
 
           <!-- 模型下拉框 -->
           <el-select v-model="filterModelID" placeholder="模型" clearable class="min-w-[120px] flex-1">
-            <!-- 只在非ModelEngineer时显示“全部”选项 -->
+            <!-- 修改：所有用户都显示“全部”选项 -->
             <el-option
-              v-if="!Array.isArray(userStore.permissions) || !userStore.permissions.includes('ModelEngineer')"
               label="全部"
               value=""
             />
