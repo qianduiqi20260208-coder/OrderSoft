@@ -1,5 +1,6 @@
 #include "UserController.h"
 #include "jwt_utils.h"
+#include "Log.h"
 
 // 添加匿名命名空间 - 仅在当前文件可见
 namespace {
@@ -54,7 +55,7 @@ std::string UserController::convertFlowRoleToEnglish(const std::string& chineseF
 void UserController::registerRoutes(crow::SimpleApp& app) {
 	// 用户登录
     CROW_ROUTE(app, "/user/login").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // 解析请求体为 JSON
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         // JSON 解析失败，返回 400 错误
@@ -120,11 +121,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             r.write(resp.dump());
         }
         return r;
-        });
+        }));
 
     // 权限
     CROW_ROUTE(app, "/user/permission").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -158,11 +159,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         };
 
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 修改密码
     CROW_ROUTE(app, "/user/password/edit").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
             return crow::response(400, R"({"error":"Invalid JSON","status":0,"data":{}})");
@@ -173,11 +174,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             {"status", 1},
             {"data", {{"isSuccess", true}}}
         }.dump() };
-            });
+            }));
 
     // 获取当前用户工单列表（工单待办）
     CROW_ROUTE(app, "/order/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -220,11 +221,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 获取审批人信息列表
     CROW_ROUTE(app, "/approver/list/<string>").methods("GET"_method)
-    ([this](const crow::request& req, const std::string& modelId) {
+    (withAspectApproveList([this](const crow::request& req, const std::string& modelId) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -247,11 +248,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 获取分发人信息列表
     CROW_ROUTE(app, "/distributor/list").methods("GET"_method)
-    ([this](const crow::request& req) {
+    (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -277,11 +278,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 获取执行人信息列表
     CROW_ROUTE(app, "/executor/list").methods("GET"_method)
-    ([this](const crow::request& req) {
+    (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -307,11 +308,11 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 获取流转人信息列表
     CROW_ROUTE(app, "/transferExecutor/list").methods("GET"_method)
-    ([this](const crow::request& req) {
+    (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -337,5 +338,5 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-    });
+    }));
 }

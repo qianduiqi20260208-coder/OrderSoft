@@ -194,6 +194,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         return {std::shared_ptr<Ticket>()};
     }
     res = mysql_store_result(mysql);
+    extern std::map<int,std::string> id_name;
     while(row = mysql_fetch_row(res))
     {
         std::shared_ptr<Ticket> sp = getUserConcreteOrder(row[3],atoi(row[0]));
@@ -201,15 +202,15 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         //通用的插入代码
         {
             sp->id = atoi(row[0]);
-            sp->creatorId = atoi(row[1]);
+            sp->creatorId = id_name[atoi(row[1])];
             sp->createTime = row[2];
             sp->ticketType = row[3];
             sp->model = row[4];
             sp->modelVersion = row[5];
             sp->status = row[6];
-            sp->approverId = atoi(row[7]);
+            sp->approverId = id_name[atoi(row[7])];
             sp->priorityHint = (row[8] == nullptr?"":row[8]);
-            sp->distributorId = atoi(row[9]);
+            sp->distributorId = id_name[atoi(row[9])];
             sp->approvedTime = (row[10] == nullptr?"":row[10]);
             sp->priorityTask =(row[11] == nullptr?"":row[11]);
             sp->distributedTime = (row[12] == nullptr?"":row[12]);
@@ -710,10 +711,11 @@ TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
     }
     MYSQL_RES* res = mysql_store_result(mysql);
     MYSQL_ROW row;
+    extern std::map<int,std::string> id_name;
     while(row = mysql_fetch_row(res))
     {
         if(row[2])
-            executor.executor.push_back(row[2]);
+            executor.executor.push_back(id_name[atoi(row[2])]);
         else
             executor.executor.push_back("");
         if(row[4])
@@ -784,4 +786,29 @@ bool UserDAO::login(std::string account, std::string password)
     mysql_free_result(res);
 
     return retLogin;
+}
+
+void add_idname_mapping()
+{
+    MYSQL* mysql;
+    char sql[SQL_MAX];	
+    DBConnectionManager::getConnection(mysql);
+
+    snprintf(sql, SQL_MAX, "select username,real_name from user;");
+    int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+
+    MYSQL_RES* res = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    extern std::map<int,std::string> id_name;
+    while(row = mysql_fetch_row(res))
+    {
+        id_name[atoi(row[0])] = row[1];
+    }
+
+    
+    id_name[0] = "";
+    mysql_free_result(res);
+
+    DBConnectionManager::closeConnection(mysql);
+
 }

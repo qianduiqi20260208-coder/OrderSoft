@@ -47,3 +47,5 @@ public:
     static TicketExecutor queryTicketExecutor(int workOrderId);
     static std::string queryProductAuthorization(int);
 };
+
+void add_idname_mapping();

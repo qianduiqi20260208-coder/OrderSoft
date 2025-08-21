@@ -2,6 +2,9 @@
 #include <nlohmann/json.hpp>
 #include "IniReader.h"
 #include <jwt_utils.h>
+#include "Log.h"
+
+
 
 TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketService(sp)
 {
@@ -191,7 +194,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
 
     // 获取工单分页（可筛选）
     CROW_ROUTE(app, "/order/all").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -267,11 +270,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         };
 
         return crow::response{ resp.dump() };
-    });
+    }));
 
     // 提交问题复现工单（支持FormData格式上传文件）
     CROW_ROUTE(app, "/order/problem").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -288,8 +291,8 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         ticketreproduce.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
         ticketreproduce.coordinationId = getField(result, "coordinationID"); // 协调单ID
         ticketreproduce.content = getField(result, "description"); // 复现内容描述
-        //ticketreproduce.attachment.file = body.value("files", std::vector<nlohmann::json>{});
-        //ticketreproduce.attachment.fileName = body.value("files", std::vector<nlohmann::json>{});
+        //ticketreproduce.attachment.file = body.value("files", std::vector<nlohmann::json>{}));
+        //ticketreproduce.attachment.fileName = body.value("files", std::vector<nlohmann::json>{}));
         ticketreproduce.approverId = std::stoi(getField(result, "approverID")); // 审批人ID
         bool ok = ticketService->createTicket(ticketreproduce);
         nlohmann::json resp;
@@ -308,11 +311,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 提交版本迭代工单
     CROW_ROUTE(app, "/order/iter").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -355,11 +358,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 提交交付发送工单
     CROW_ROUTE(app, "/order/deliver").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -397,11 +400,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 提交迭代+交付工单
     CROW_ROUTE(app, "/order/iter-deliver").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -445,11 +448,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 提交功能开发工单
     CROW_ROUTE(app, "/order/dev").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -486,11 +489,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 提交其他工单
     CROW_ROUTE(app, "/order/other").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -527,11 +530,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 工单审批同意
     CROW_ROUTE(app, "/order/approve").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -566,11 +569,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 审批环节拒绝
     CROW_ROUTE(app, "/order/reject-approve").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -605,11 +608,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 工单分发同意
     CROW_ROUTE(app, "/order/distribute").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -644,11 +647,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 分发环节拒绝
     CROW_ROUTE(app, "/order/reject-distribute").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -683,11 +686,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 问题复现工单完成
     CROW_ROUTE(app, "/order/finish-problem").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -723,11 +726,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 版本迭代工单完成
     CROW_ROUTE(app, "/order/finish-iter").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -764,11 +767,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 交付发送工单完成
     CROW_ROUTE(app, "/order/finish-deliver").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -806,11 +809,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 版本迭代+交付发送工单完成
     CROW_ROUTE(app, "/order/finish-iter-deliver").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -850,11 +853,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 功能开发工单完成
     CROW_ROUTE(app, "/order/finish-dev").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -891,11 +894,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 其他工单完成
     CROW_ROUTE(app, "/order/finish-other").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -930,11 +933,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // 工单流转
     CROW_ROUTE(app, "/order/transfer").methods("POST"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -974,12 +977,12 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             };
         }
         return crow::response{ resp.dump() };
-        });
+        }));
 
 
     // 获取客户信息列表
     CROW_ROUTE(app, "/customer/list").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -996,11 +999,11 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
             }}
         };
         return crow::response{ resp.dump() };
-        });
+        }));
 
     // // 添加新客户
     // CROW_ROUTE(app, "/customer/add").methods("POST"_method)
-    //     ([this](const crow::request& req) {
+    //     (withAspect([this](const crow::request& req) {
     //     // // JWT校验
     //     // if (!checkToken(req)) {
     //     //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -1026,12 +1029,12 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
     //         };
     //     }
     //     return crow::response{ resp.dump() };
-    //     });
+    //     }));
 
 
     // 工单附件文件下载接口
     CROW_ROUTE(app, "/files/ticket/<int>/<string>").methods("GET"_method)
-        ([this](const crow::request& req, int ticketId, const std::string& filename) {
+        (withAspectTicketDownload([this](const crow::request& req, int ticketId, const std::string& filename) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -1039,7 +1042,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
         
         printf("[info] 文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
         return downloadTicketFile(ticketId, filename);
-        });
+        }));
 
     CROW_ROUTE(app, "/order/statisticsAll").methods("GET"_method)
     ([this](const crow::request& req) {
@@ -1150,7 +1153,7 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
 
     // 新增复杂工单查询分页接口
     CROW_ROUTE(app, "/order/details").methods("GET"_method)
-        ([this](const crow::request& req) {
+        (withAspect([this](const crow::request& req) {
             try {
                 // 解析查询参数
                 auto page_param = req.url_params.get("page");
@@ -1231,7 +1234,5 @@ void TicketController::registerRoutes(crow::SimpleApp& app) {
                 };
                 return crow::response(500, error.dump());
             }
-        });
-
-
+        }));
 }

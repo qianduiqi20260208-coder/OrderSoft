@@ -6,7 +6,6 @@ meta:
 
 <script setup lang="ts">
 import { ElLoading } from 'element-plus'
-import { delay } from 'es-toolkit'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import modelApi from '@/api/modules/model'

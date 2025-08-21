@@ -26,9 +26,13 @@
 #include "EncryptionKeyDAO.h"
 #include "EncryptionKeyService.h"
 #include "EncryptionKeyController.h"
+#include "DBConnectionManager.h"
 
+std::map<int,std::string> id_name;
 
 int main() {
+    //一个工号跟姓名之间的映射
+    add_idname_mapping();
 
 	MYSQL mysql;
 	mysql_init(&mysql);

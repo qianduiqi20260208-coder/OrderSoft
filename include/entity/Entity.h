@@ -49,16 +49,16 @@ struct TicketExecutor {
 
 struct Ticket {
     int id; 
-    int creatorId; // 创建人ID
+    std::string creatorId; // 创建人ID
     std::string createTime; // 创建时间
     std::string ticketType; // 工单类型
     std::string model; // 关联模型
     std::string modelVersion; // 关联模型版本
     std::string status; // 工单状态
-    int approverId; // 审批人ID
+    std::string approverId; // 审批人ID
     std::string priorityHint; // 参考优先级
-    int distributorId{-1}; // 分发人ID
-    int executorId{-1}; // 执行人ID 分发工单时指定的执行人ID
+    std::string distributorId{-1}; // 分发人ID
+    std::string executorId{-1}; // 执行人ID 分发工单时指定的执行人ID
     std::string approvedTime; // 审批时间
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间
@@ -70,15 +70,15 @@ struct Ticket {
     virtual nlohmann::json to_json() const {
         nlohmann::json j;
 		j["orderID"] = (id != 0 ? std::to_string(id) : ""); // 工单ID 增加条件运算符，因为int型变量不能为空，当id为0时，需要返回空字符串
-		j["promoterID"] = std::to_string(creatorId); // 发起人ID
+		j["promoterID"] = creatorId; // 发起人ID
 		j["startTime"] = createTime; // 发起时间
 		j["type"] = ticketType; // 工单类型
 		j["modelID"] = model; // 关联模型ID
 		j["modelVersionID"] = modelVersion; // 关联模型版本ID
 		j["status"] = status; // 工单状态
-		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
+		j["approverID"] = approverId; // 审批人ID
 		j["referencePriority"] = priorityHint; // 参考优先级
-		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
+		j["distributorID"] = distributorId; // 分发人ID
 		j["approveTime"] = approvedTime; // 审批时间
 		j["taskPriority"] = priorityTask; // 任务优先级
 		j["distributeTime"] = distributedTime; // 分发时间
@@ -99,7 +99,7 @@ struct Ticket {
                 executor.reason.size()
             });
 
-            j["executorID"] = (executorId != -1 ? std::to_string(executorId) : executor.executor[0]); // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
+            j["executorID"] = executorId; 
             
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
@@ -121,15 +121,15 @@ struct Ticket {
     virtual nlohmann::json to_json_order_manage() const {
         nlohmann::json j;
 		j["orderID"] = (id != 0 ? std::to_string(id) : ""); // 工单ID 增加条件运算符，因为int型变量不能为空，当id为0时，需要返回空字符串
-		j["promoterID"] = std::to_string(creatorId); // 发起人ID
+		j["promoterID"] = creatorId; // 发起人ID
 		j["startTime"] = createTime; // 发起时间
 		j["type"] = ticketType; // 工单类型
 		j["modelID"] = model; // 关联模型ID
 		j["modelVersionID"] = modelVersion; // 关联模型版本ID
 		j["status"] = status; // 工单状态
-		j["approverID"] = (approverId != 0 ? std::to_string(approverId) : ""); // 审批人ID
+		j["approverID"] = approverId; // 审批人ID
 		j["referencePriority"] = priorityHint; // 参考优先级
-		j["distributorID"] = (distributorId != 0 ? std::to_string(distributorId) : ""); // 分发人ID
+		j["distributorID"] = distributorId; // 分发人ID
 		j["approveTime"] = approvedTime; // 审批时间
 		j["taskPriority"] = priorityTask; // 任务优先级
 		j["distributeTime"] = distributedTime; // 分发时间
@@ -150,7 +150,7 @@ struct Ticket {
                 executor.reason.size()
             });
 
-            j["executorID"] = (executorId != -1 ? std::to_string(executorId) : executor.executor[0]); // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
+            j["executorID"] = executorId; // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
             
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {

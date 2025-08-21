@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import { FormControl, FormField, FormItem, FormMessage } from '@/ui/shadcn/ui/form'
 
@@ -9,7 +8,7 @@ defineOptions({
   name: 'EditPasswordForm',
 })
 
-const userStore = useUserStore()
+// const userStore = useUserStore()
 
 const loading = ref(false)
 
@@ -30,14 +29,14 @@ const form = useForm({
     checkPassword: '',
   },
 })
-const onSubmit = form.handleSubmit((values) => {
-  loading.value = true
-  userStore.editPassword(values).then(async () => {
-    toast.success('模拟修改成功，请重新登录')
-    userStore.logout()
-  }).finally(() => {
-    loading.value = false
-  })
+const onSubmit = form.handleSubmit(() => {
+  // loading.value = true
+  // userStore.editPassword(values).then(async () => {
+  //   toast.success('模拟修改成功，请重新登录')
+  //   userStore.logout()
+  // }).finally(() => {
+  //   loading.value = false
+  // })
 })
 </script>
 
