@@ -66,7 +66,7 @@ int main() {
     customerInfoController.registerRoutes(app);
     encryptionKeyController.registerRoutes(app);
 
-	app.port(18080).multithreaded().run();
+	app.port(18081).multithreaded().run();
 	
 
 	return 0;

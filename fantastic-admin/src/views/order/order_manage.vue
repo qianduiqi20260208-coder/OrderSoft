@@ -1249,7 +1249,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionNumber"
                               placeholder="0"
-                              maxlength="2"
+                              maxlength="5"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
@@ -1257,7 +1257,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="2"
+                              maxlength="1"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -1451,7 +1451,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionNumber"
                               placeholder="0"
-                              maxlength="2"
+                              maxlength="5"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
@@ -1459,7 +1459,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="2"
+                              maxlength="1"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -1647,7 +1647,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionNumber"
                               placeholder="0"
-                              maxlength="2"
+                              maxlength="5"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'number', value)"
                             />
@@ -1655,7 +1655,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="2"
+                              maxlength="1"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -2086,6 +2086,8 @@ onMounted(() => {
                       <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
                       <span class="ml-3 text-sm text-gray-500">基准版本：</span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
+                      <span class="ml-3 text-sm text-gray-500">Matlab版本号：</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.completeModelVersion }}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span>负责人：{{ order.promoterID }}</span>
@@ -2235,10 +2237,10 @@ onMounted(() => {
 
                   <!-- 功能开发类 -->
                   <template v-else-if="order.type === '功能开发'">
-                    <div class="flex items-center gap-2">
+                    <!-- <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">升级后模型版本：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
-                    </div>
+                    </div> -->
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">功能描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
