@@ -1310,19 +1310,29 @@ std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStati
 
         }else if(timeRange == 1)
         {
-            ss<<"select FLOOR( (DAYOFMONTH(completed_at) - 1) / 7 ) + 1 as week_of_month, count(*) from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join version_iteration vi on vi.work_order_id = wo.id"
-            " left join package_send ps on ps.work_order_id = wo.id where wo.type in('"<<ticketType<<"','直接封装+发送')";
+            // 只统计本月数据，按自然周分组
+            ss << "SELECT "
+            << "CONCAT(WEEK(wo.completed_at, 1) - WEEK(DATE_SUB(wo.completed_at, INTERVAL DAYOFMONTH(wo.completed_at)-1 DAY), 1) + 1) AS week_label, "
+            << "COUNT(*) "
+            << "FROM work_order wo "
+            << "LEFT JOIN delivery_send ds ON ds.work_order_id = wo.id "
+            << "LEFT JOIN version_iteration vi ON vi.work_order_id = wo.id "
+            << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id "
+            << "WHERE wo.type IN('" << ticketType << "','直接封装+发送')";
 
-            
             if(ticketType == "版本迭代")
             {
-                
-            }else if(ticketType == "交付发送")
+                // 不加客户筛选
+            }
+            else if(ticketType == "交付发送")
             {
-                ss<<" and (ds.target_customer = '"<<client<<"' or ps.target_customer ='"<<client<<"')";
+                ss << " AND (ds.target_customer = '" << client << "' OR ps.target_customer ='" << client << "')";
             }
 
-            ss<<" and wo.completed_at is not null and wo.completed_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) GROUP BY week_of_month ORDER BY week_of_month;";
+            ss << " AND wo.completed_at IS NOT NULL "
+            << "AND YEAR(wo.completed_at) = YEAR(CURDATE()) "
+            << "AND MONTH(wo.completed_at) = MONTH(CURDATE()) "
+            << "GROUP BY week_label ORDER BY week_label;";
         }else if(timeRange == 2)
         {
             ss<<"select DATE_FORMAT(completed_at, '%Y-%m') as ym, count(*) from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join version_iteration vi on vi.work_order_id = wo.id"
@@ -1340,7 +1350,7 @@ std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStati
             ss<<" and wo.completed_at is not null and wo.completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym;";
         }
 
-        printf("sql:%s",ss.str().c_str());
+        // printf("sql:%s",ss.str().c_str());
         ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
         if (ret) {
             printf("[error] function:selectOrderStatisticsByCondition() 查询 work_order 表失败！失败原因：%s\n", mysql_error(mysql));

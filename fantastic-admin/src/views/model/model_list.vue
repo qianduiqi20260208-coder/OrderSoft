@@ -6,7 +6,6 @@ meta:
 
 <script setup lang="ts">
 import { ElLoading } from 'element-plus'
-import { delay } from 'es-toolkit'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import modelApi from '@/api/modules/model'
@@ -201,13 +200,17 @@ async function apiFetchUserModels() {
   return { list: [], total: 0 }
 }
 
+const globalLoading = ref(false)
+let loadingInstance: any = null
+
 // 加载模型数据并处理 loading 状态
 async function fetchUserModels() {
-  // 启动全局 loading
-  const loadingInstance = ElLoading.service({
+  globalLoading.value = true
+  loadingInstance = ElLoading.service({
     lock: true,
     text: '加载中，请稍候...',
     background: 'rgba(255,255,255,0.7)',
+    customClass: 'custom-global-loading',
   })
   try {
     const result = await apiFetchUserModels()
@@ -215,7 +218,16 @@ async function fetchUserModels() {
     total.value = result.total || 0
   }
   finally {
-    loadingInstance.close() // 关闭全局 loading
+    globalLoading.value = false
+    loadingInstance.close()
+  }
+}
+
+// 新增：退出全局 loading 按钮处理
+function exitGlobalLoading() {
+  globalLoading.value = false
+  if (loadingInstance) {
+    loadingInstance.close()
   }
 }
 
@@ -238,6 +250,15 @@ function expandModel(version: string, expand: boolean) {
 
 <template>
   <div v-loading="loading" class="min-h-screen">
+    <!-- 退出按钮，仅在 loading 时显示 -->
+    <button
+      v-if="globalLoading"
+      class="global-loading-exit-btn el-button el-button--danger"
+      style="position: fixed; top: 60px; left: 50%; z-index: 10001; transform: translateX(-50%);"
+      @click="exitGlobalLoading"
+    >
+      退出加载
+    </button>
     <el-skeleton :loading="loading" animated>
       <template #default>
         <div>

@@ -1002,7 +1002,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterOrderForm.completeModelVersionFirst"
                 :placeholder="versionParts.first"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!iterOrderForm.modelVersionID"
               />
@@ -1016,7 +1016,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterOrderForm.completeModelVersionSecond"
                 :placeholder="versionParts.second"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!iterOrderForm.modelVersionID"
               />
@@ -1030,7 +1030,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterOrderForm.completeModelVersionNumber"
                 :placeholder="versionNumberPlaceholder"
-                maxlength="2"
+                maxlength="5"
                 class="version-input"
                 :disabled="!iterOrderForm.modelVersionID"
                 @input="handleCompleteVersionInput"
@@ -1251,7 +1251,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterDeliverOrderForm.completeModelVersionFirst"
                 :placeholder="iterDeliverVersionParts.first"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!iterDeliverOrderForm.modelVersionID"
               />
@@ -1265,7 +1265,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterDeliverOrderForm.completeModelVersionSecond"
                 :placeholder="iterDeliverVersionParts.second"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!iterDeliverOrderForm.modelVersionID"
               />
@@ -1279,7 +1279,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="iterDeliverOrderForm.completeModelVersionNumber"
                 :placeholder="iterDeliverVersionNumberPlaceholder"
-                maxlength="2"
+                maxlength="5"
                 class="version-input"
                 :disabled="!iterDeliverOrderForm.modelVersionID"
                 @input="handleIterDeliverCompleteVersionInput"
@@ -1436,7 +1436,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="devOrderForm.completeModelVersionFirst"
                 :placeholder="devVersionParts.first"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!devOrderForm.modelVersionID"
               />
@@ -1450,7 +1450,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="devOrderForm.completeModelVersionSecond"
                 :placeholder="devVersionParts.second"
-                maxlength="2"
+                maxlength="3"
                 class="version-input"
                 :disabled="!devOrderForm.modelVersionID"
               />
@@ -1464,7 +1464,7 @@ async function fetchCustomerList() {
               <el-input
                 v-model="devOrderForm.completeModelVersionNumber"
                 :placeholder="devVersionNumberPlaceholder"
-                maxlength="2"
+                maxlength="5"
                 class="version-input"
                 :disabled="!devOrderForm.modelVersionID"
                 @input="handleDevCompleteVersionInput"

@@ -7,7 +7,7 @@ CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoServ
 {
 }
 
-void CustomerInfoController::registerRoutes(crow::SimpleApp& app) {
+void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 获取客户列表信息-客户管理页加载
     CROW_ROUTE(app, "/client/list").methods("GET"_method)
