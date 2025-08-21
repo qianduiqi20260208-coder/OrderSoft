@@ -223,6 +223,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         //封装执行人信息
         sp->executor = queryTicketExecutor(sp->id);
         userTicketVec.push_back(sp);
+        
     }
     mysql_free_result(res); 
     return userTicketVec;
