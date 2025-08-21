@@ -11,6 +11,7 @@
 #include "util/ticket.h"
 #include <memory>
 #include <crow.h>
+#include "crow/middlewares/cors.h"
 #include <nlohmann/json.hpp>
 
 class TicketController
@@ -25,7 +26,7 @@ public:
      * @brief 注册所有工单相关的路由到 Crow 应用。
      * @param app Crow 应用实例
      */
-    void registerRoutes(crow::SimpleApp& app);
+    void registerRoutes(crow::App<crow::CORSHandler>& app);
 
     /**
      * @struct MultipartResult

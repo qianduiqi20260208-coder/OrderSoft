@@ -4,6 +4,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <crow.h>
+#include "crow/middlewares/cors.h"
 
 class EncryptionKeyController
 {
@@ -11,7 +12,7 @@ public:
     EncryptionKeyController(std::shared_ptr<IEncryptionKeyService> service);
     
     // 注册路由
-    void registerRoutes(crow::SimpleApp& app);
+    void registerRoutes(crow::App<crow::CORSHandler>& app);
     
 private:
     std::shared_ptr<IEncryptionKeyService> encryptionKeyService_;

@@ -8,7 +8,7 @@ EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyS
 {
 }
 
-void EncryptionKeyController::registerRoutes(crow::SimpleApp& app) {
+void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     // 获取加密狗列表
     CROW_ROUTE(app, "/dongle/list").methods("GET"_method)
         (withAspect([this](const crow::request& req) {

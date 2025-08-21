@@ -24,7 +24,7 @@ namespace {
 
 ModelController::ModelController(std::shared_ptr<IModelService> sp) : modelService(sp) {}
 
-void ModelController::registerRoutes(crow::SimpleApp& app) {
+void ModelController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     // 获取模型列表
     CROW_ROUTE(app, "/model/list").methods("GET"_method)
         (withAspect([this](const crow::request& req) {

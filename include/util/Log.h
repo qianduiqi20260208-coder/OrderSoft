@@ -7,7 +7,6 @@ auto withAspect(Handler&& handler) {
 
         // 执行原始处理逻辑
         auto response = handler(req);
-        
 
         char sql[99999];
         //使用静态类进行资源管理
@@ -37,7 +36,6 @@ auto withAspectTicketDownload(Handler&& handler) {
 
         // 执行原始处理逻辑
         auto response = handler(req,ticketId,filename);
-        
 
         char sql[1024];
         //使用静态类进行资源管理
@@ -66,7 +64,6 @@ auto withAspectApproveList(Handler&& handler) {
 
         // 执行原始处理逻辑
         auto response = handler(req,modelId);
-        
 
         char sql[1024];
         //使用静态类进行资源管理
