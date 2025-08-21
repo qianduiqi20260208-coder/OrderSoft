@@ -499,7 +499,28 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
                 }
                 ss << ")";
             }else{
-                ss<<ele.first<<" = '"<<ele.second<<"'";
+                // 处理逗号分隔的值
+                if (ele.second.find(',') != std::string::npos) {
+                    std::istringstream iss(ele.second);
+                    std::string token;
+                    std::vector<std::string> values;
+                    while (std::getline(iss, token, ',')) {
+                        // 去除前后空格
+                        token.erase(0, token.find_first_not_of(" \t"));
+                        token.erase(token.find_last_not_of(" \t") + 1);
+                        if (!token.empty()) {
+                            values.push_back(token);
+                        }
+                    }
+                    ss << ele.first << " IN (";
+                    for (size_t i = 0; i < values.size(); ++i) {
+                        ss << "'" << values[i] << "'";
+                        if (i != values.size() - 1) ss << ",";
+                    }
+                    ss << ")";
+                } else {
+                    ss << ele.first << " = '" << ele.second << "'";
+                }
             }
 
         }
