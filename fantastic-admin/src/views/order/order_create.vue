@@ -5,7 +5,7 @@ meta:
 
 <!-- 路由元信息，设置页面标题和图标 -->
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
