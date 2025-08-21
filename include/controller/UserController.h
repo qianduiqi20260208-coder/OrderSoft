@@ -10,6 +10,7 @@
 #include "../service/UserService.h"
 #include "entity/Entity.h"
 #include <crow.h>
+#include "crow/middlewares/cors.h"
 #include <nlohmann/json.hpp>
 
 class UserController
@@ -20,7 +21,7 @@ public:
      * @brief 注册路由到 Crow 应用
      * @param app Crow 应用对象
      */
-    void registerRoutes(crow::SimpleApp& app);
+    void registerRoutes(crow::App<crow::CORSHandler>& app);
 
     /**
      * @brief 将中文角色名称转换为英文

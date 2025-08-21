@@ -52,7 +52,7 @@ std::string UserController::convertFlowRoleToEnglish(const std::string& chineseF
     return "Observer"; // 默认返回观察者
 }
 
-void UserController::registerRoutes(crow::SimpleApp& app) {
+void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 	// 用户登录
     CROW_ROUTE(app, "/user/login").methods("POST"_method)
         (withAspect([this](const crow::request& req) {
@@ -61,7 +61,6 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         // JSON 解析失败，返回 400 错误
         if (body.is_discarded()) {
             crow::response r(400);
-            r.set_header("Access-Control-Allow-Origin", "*");
             r.set_header("Content-Type", "application/json");
             r.write(R"({"error":"Invalid JSON","status":1,"data":{}})");
             return r;
@@ -79,7 +78,6 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         int jobNumber = safeStoi(account, -1);
         if (jobNumber <= 0) {
             crow::response r(400);
-            r.set_header("Access-Control-Allow-Origin", "*");
             r.set_header("Content-Type", "application/json");
             r.write(R"({"error":"无效的工号格式","status":1,"data":{}})");
             return r;
@@ -89,7 +87,6 @@ void UserController::registerRoutes(crow::SimpleApp& app) {
         user = userService->getUserByJobNumber(jobNumber);
 
         crow::response r;
-        r.set_header("Access-Control-Allow-Origin", "*");
         r.set_header("Content-Type", "application/json; charset = utf - 8");
         if (userOpt) {
             // 生成JWT token

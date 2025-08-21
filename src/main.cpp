@@ -7,6 +7,7 @@
 #include <iostream>
 #include <locale>
 #include "crow.h"
+#include "crow/middlewares/cors.h"
 // 工单模块
 #include "TicketDAO.h"
 #include "TicketService.h"
@@ -64,14 +65,23 @@ int main() {
     CustomerInfoController customerInfoController(customerInfoService);
     EncryptionKeyController encryptionKeyController(encryptionKeyService);
 
-	crow::SimpleApp app;
+	crow::App<crow::CORSHandler> app;
+
+    // 使用Crow内置的CORS处理器
+    auto& cors = app.get_middleware<crow::CORSHandler>();
+    cors.global()
+        .headers("Content-Type", "Authorization", "X-Requested-With", "token")
+        .methods("GET"_method, "POST"_method, "PUT"_method, "DELETE"_method, "OPTIONS"_method)
+        .origin("*");
+
+    
     userController.registerRoutes(app);
 	ticketController.registerRoutes(app);
 	modelController.registerRoutes(app);
     customerInfoController.registerRoutes(app);
     encryptionKeyController.registerRoutes(app);
 
-	app.port(18081).multithreaded().run();
+	app.port(18080).multithreaded().run();
 	
 
 	return 0;

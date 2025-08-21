@@ -11,6 +11,7 @@
 #include "util/ticket.h"
 #include <memory>
 #include <crow.h>
+#include "crow/middlewares/cors.h"
 #include <string>
 #include <nlohmann/json.hpp>
 
@@ -20,7 +21,7 @@ public:
     CustomerInfoController(std::shared_ptr<ICustomerInfoService> service);
 
     // 注册路由
-    void registerRoutes(crow::SimpleApp& app);
+    void registerRoutes(crow::App<crow::CORSHandler>& app);
 
     // 根据客户名称获取客户信息和加密狗授权信息，并返回JSON格式
     std::string getClientAuthInfo(const std::string& clientName);

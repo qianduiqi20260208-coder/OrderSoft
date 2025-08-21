@@ -176,7 +176,6 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         
         crow::response response(200, resp.dump());
         response.add_header("Content-Type", "application/json");
-        response.add_header("Access-Control-Allow-Origin", "*");
         return response;
         
     } catch (const std::exception& e) {
@@ -190,7 +189,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
     }
 }
 
-void TicketController::registerRoutes(crow::SimpleApp& app) {
+void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 获取工单分页（可筛选）
     CROW_ROUTE(app, "/order/all").methods("GET"_method)
