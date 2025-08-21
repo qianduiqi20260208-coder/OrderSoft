@@ -32,8 +32,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
         DongleInfo di;
         di.dongleId = row[0];
         di.shellCode = row[1];
-        di.shellSerial = row[2];
-        
+        di.shellSerial = row[2]?row[2]:"";
         //根据外壳号去加密狗历史信息表里查询与加密狗关联的诸多信息
         snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
