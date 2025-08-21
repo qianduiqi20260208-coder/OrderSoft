@@ -210,7 +210,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
             sp->status = row[6];
             sp->approverId = id_name[atoi(row[7])];
             sp->priorityHint = (row[8] == nullptr?"":row[8]);
-            sp->distributorId = id_name[atoi(row[9])];
+            sp->distributorId = id_name[(row[9]?atoi(row[9]):0)];
             sp->approvedTime = (row[10] == nullptr?"":row[10]);
             sp->priorityTask =(row[11] == nullptr?"":row[11]);
             sp->distributedTime = (row[12] == nullptr?"":row[12]);
@@ -223,6 +223,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         //封装执行人信息
         sp->executor = queryTicketExecutor(sp->id);
         userTicketVec.push_back(sp);
+        
     }
     mysql_free_result(res); 
     return userTicketVec;

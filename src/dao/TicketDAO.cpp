@@ -462,10 +462,48 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
         if(!first) ss<<" and ";
         if(intSet.find(ele.first) !=intSet.end())
         {
-            ss<<ele.first<<" = "<<ele.second;
+            //对传入的模型数组进行处理
+            if(ele.first == "model" && ele.second.find(' ')!= std::string::npos)
+            {
+                //使用iss来分割字符串
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (iss >> token) {
+                    values.push_back(token);
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << values[i];
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            }else{
+                ss<<ele.first<<" = "<<ele.second;
+            }
+
         }else{
-            ss<<ele.first<<" = '"<<ele.second<<"'";
+            if(ele.first == "model" && ele.second.find(' ')!= std::string::npos)
+            {
+                //使用iss来分割字符串
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (iss >> token) {
+                    values.push_back(token);
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << values[i];
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            }else{
+                ss<<ele.first<<" = '"<<ele.second<<"'";
+            }
+
         }
+
         first = false;
     }
 
