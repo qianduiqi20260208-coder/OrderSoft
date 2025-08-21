@@ -218,8 +218,6 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 {"total", tickets.size()},
             }}
         };
-        // 打印响应内容到控制台
-        printf("[DEBUG] /order/list response: %s\n", resp.dump().c_str());
         
         return crow::response{ resp.dump() };
         }));

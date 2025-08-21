@@ -99,7 +99,7 @@ struct Ticket {
                 executor.reason.size()
             });
 
-            j["executorID"] = executorId; 
+            j["executorID"] = executor.executor[0]; 
             
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
@@ -150,7 +150,7 @@ struct Ticket {
                 executor.reason.size()
             });
 
-            j["executorID"] = executorId; // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
+            j["executorID"] = executor.executor[0];  // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
             
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
