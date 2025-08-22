@@ -3,6 +3,7 @@
 #include "IniReader.h"
 #include <jwt_utils.h>
 #include "Log.h"
+#include "Logger.h"
 
 
 
@@ -104,8 +105,8 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
     try {
         // 读取配置文件，获取上传目录
         IniReader config;
-        if (!config.load("../../config/config.ini")) {
-            printf("[error] function:downloadTicketFile 无法读取 config.ini 文件\n");
+        if (!config.load("config.ini")) {
+            LOG_ERROR("function:downloadTicketFile 无法读取 config.ini 文件\n");
             return crow::response(500, R"({"status":0,"error":"配置文件读取失败","data":{}})");
         }
         
@@ -116,7 +117,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         // 检查文件是否存在
         std::ifstream file(filePath, std::ios::binary);
         if (!file.is_open()) {
-            printf("[error] function:downloadTicketFile 文件打开失败!filePath:%s\n", filePath.c_str());
+            LOG_ERROR("function:downloadTicketFile 文件打开失败!filePath:%s\n", filePath.c_str());
             return crow::response(404, R"({"status":0,"error":"文件不存在","data":{}})");
         }
         
@@ -131,7 +132,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
 
         // 验证读取是否完整
         if (!file || file.gcount() != fileSize) {
-            printf("[error] function:downloadTicketFile 文件读取不完整! 期望:%ld, 实际:%ld\n", 
+            LOG_ERROR("function:downloadTicketFile 文件读取不完整! 期望:%ld, 实际:%ld\n", 
                 fileSize, file.gcount());
             return crow::response(500, R"({"status":0,"error":"文件读取失败","data":{}})");
         }
@@ -179,7 +180,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         return response;
         
     } catch (const std::exception& e) {
-        printf("[error] function:downloadTicketFile 异常:%s\n", e.what());
+        LOG_ERROR("function:downloadTicketFile 异常:%s\n", e.what());
         nlohmann::json errorResp = {
             {"status", 1},
             {"error", "文件下载失败"},
@@ -1039,7 +1040,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
         
-        printf("[info] 文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
+         LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
         return downloadTicketFile(ticketId, filename);
         }));
 

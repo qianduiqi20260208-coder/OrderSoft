@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <map>
 #include <ctime>
+#include "Logger.h"
 
 std::vector<std::pair<std::vector<std::string>, std::vector<int>>> CustomerInfoService::getClientGoodsCount()
 {

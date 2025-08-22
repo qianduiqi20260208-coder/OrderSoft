@@ -1,6 +1,7 @@
 #include "ModelController.h"
 #include "jwt_utils.h"
 #include "Log.h"
+#include "Logger.h"
 
 // 匿名命名空间 - 仅在当前文件可见
 namespace {
@@ -11,7 +12,7 @@ namespace {
         try {
             return std::stoi(str);
         } catch (const std::exception& e) {
-            printf("[WARNING] safeStoi failed for '%s': %s, using default %d\n", 
+             LOG_WARNING("safeStoi failed for '%s': %s, using default %d\n", 
                    str.c_str(), e.what(), defaultValue);
             return defaultValue;
         }

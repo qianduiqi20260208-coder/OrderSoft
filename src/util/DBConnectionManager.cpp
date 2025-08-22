@@ -2,13 +2,15 @@
 #include "IniReader.h"
 #include <stdio.h>
 #include <filesystem>
+#include "util/Logger.h"
+
 
 bool DBConnectionManager::getConnection(MYSQL*& mysql)
 {
     //从ini文件里读出数据库配置
     IniReader config;
-    if (!config.load("../../config/config.ini")) { 
-        printf("[error] function:getConnection 无法读取 config.ini 文件\n");
+    if (!config.load("config.ini")) { 
+        LOG_ERROR("function:getConnection 无法读取 config.ini 文件\n");
         printf("CWD = %s\n", std::filesystem::current_path().string().c_str());
         return false;
     }
@@ -21,7 +23,7 @@ bool DBConnectionManager::getConnection(MYSQL*& mysql)
 	// 1.初始化数据库句柄
 	mysql = mysql_init(NULL);
     if (!mysql) {
-        printf("[error] function:getConnection mysql初始化失败！\n");
+        LOG_ERROR("function:getConnection mysql初始化失败！\n");
         return false;
     }
 
@@ -31,20 +33,20 @@ bool DBConnectionManager::getConnection(MYSQL*& mysql)
 	// 3.连接数据库
 	MYSQL *ret = mysql_real_connect(mysql, dbHost.c_str(), dbUser.c_str(), dbPass.c_str(), dbName.c_str(), dbPort, NULL, 0);
 	if (ret == NULL) {
-		printf("[error] function:getConnection 数据库连接失败！失败原因：%s\n", mysql_error(mysql));
+		 LOG_ERROR("function:getConnection 数据库连接失败！失败原因：%s", mysql_error(mysql));
 		return false;
 	}
 
     // *** 关键步骤：设置客户端连接的字符集为 utf8mb4 ***
     // 确保你的数据库、表、列都是 utf8mb4
     if (mysql_set_character_set(mysql, "utf8mb4")) {
-        printf("[error] function:getConnection Error setting client character set to utf8mb4: %s\n", mysql_error(mysql));
+        LOG_ERROR("function:getConnection Error setting client character set to utf8mb4: %s\n", mysql_error(mysql));
     }
 
 	// 选择数据库
 	int res = mysql_select_db(mysql, dbName.c_str());
 	if (res) {
-		printf("[error] function:getConnection 选择数据库失败！失败原因%s\n", mysql_error(mysql));
+		 LOG_ERROR("function:getConnection 选择数据库失败！失败原因%s\n", mysql_error(mysql));
 		return false;
 	}
 

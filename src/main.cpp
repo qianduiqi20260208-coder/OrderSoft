@@ -28,10 +28,16 @@
 #include "EncryptionKeyService.h"
 #include "EncryptionKeyController.h"
 #include "DBConnectionManager.h"
+#include "util/LoggerConfig.h"
+#include "util/Logger.h"
 
 std::map<int,std::string> id_name;
 
 int main() {
+
+	// 初始化日志系统
+	LoggerConfig::initFromConfig("config.ini");
+	LOG_INFO("ModelLifeManager 服务启动中..");
 
 	MYSQL mysql;
 	mysql_init(&mysql);
@@ -81,6 +87,7 @@ int main() {
     customerInfoController.registerRoutes(app);
     encryptionKeyController.registerRoutes(app);
 
+	LOG_INFO("服务器启动成功，监听端口: 18080");
 	app.port(18080).multithreaded().run();
 	
 

@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include "Logger.h"
 
 EncryptionKey::EncryptionKey(MYSQL *m):mysql(m)
 {
@@ -22,7 +23,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
     snprintf(sql, SQL_MAX, "select * from encryption_key;");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getDongleInfo 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getDongleInfo 查询 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -37,7 +38,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
         snprintf(sql, SQL_MAX, "select * from encryption_key_history where encryption_key = '%s' order by id desc;",row[1]);//只查询一条数据
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getDongleInfo 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getDongleInfo 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
             return {};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -69,7 +70,7 @@ bool EncryptionKey::createEncryptionKey(std::string s1, std::string s2)
     snprintf(sql, SQL_MAX, "insert into encryption_key(shell_number,shell_serial_number) values('%s','%s'); ",s1.c_str(),s2.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createEncryptionKey 插入 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createEncryptionKey 插入 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -107,16 +108,16 @@ std::vector<std::pair<int, std::string>> EncryptionKey::getAvailableShellNumbers
              "ORDER BY ek.id");
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:getAvailableShellNumbers 查询可交付外壳号失败！失败原因：%s\n", mysql_error(mysql));
-        return availableShells;
-    }
+     if (ret) {
+         LOG_ERROR("function:getAvailableShellNumbers 查询可交付外壳号失败！失败原因：%s", mysql_error(mysql));
+         return {};
+     }
 
-    res = mysql_store_result(mysql);
-    if (!res) {
-        printf("[error] function:getAvailableShellNumbers 获取查询结果失败！\n");
-        return availableShells;
-    }
+     res = mysql_store_result(mysql);
+     if (!res) {
+         LOG_ERROR("function:getAvailableShellNumbers 获取查询结果失败！");
+         return {};
+     }
 
     // 处理查询结果
     while((row = mysql_fetch_row(res))) {
@@ -142,7 +143,7 @@ bool EncryptionKey::updateEncryptionKey(int id, std::string s1, std::string s2)
     snprintf(sql, SQL_MAX, "update encryption_key set shell_number = '%s',shell_serial_number = '%s' where id = %d; ",s1.c_str(),s2.c_str(),id);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateEncryptionKey 修改 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateEncryptionKey 修改 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -160,7 +161,7 @@ std::vector<std::vector<std::string>> EncryptionKey::selectAllEncryptionHistoryB
     snprintf(sql, SQL_MAX, "select out_storage_time,in_storage_time,customer from encryption_key_history where encryption_key = '%s';",ek.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAllEncryptionHistoryByEK 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAllEncryptionHistoryByEK 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -202,7 +203,7 @@ std::vector<std::vector<std::string>> EncryptionKey::selectAllAuthInfoByClientEK
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAllAuthInfoByClientEK 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAllAuthInfoByClientEK 查询 product_authorization_info 表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -230,7 +231,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     // 开始事务
     if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        printf("[error] function:deliveryOperation 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 开始事务失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -238,7 +239,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:deliveryOperation 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 查询 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -249,7 +250,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     // 检查外壳号是否存在，如果不存在则不允许交付
     if (!shellExists) {
-        printf("[error] function:deliveryOperation 外壳号 '%s' 在 encryption_key 表中不存在，无法进行交付操作！\n", shellNumber.c_str());
+        LOG_ERROR("function:deliveryOperation 外壳号 '%s' 在 encryption_key 表中不存在，无法进行交付操作！\n", shellNumber.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -263,7 +264,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     // 5. 检查设备类型是否有效
     if (deviceType != "lab" && deviceType != "IPT" && deviceType != "FTD" && deviceType != "FFS") {
-        printf("[error] function:deliveryOperation 设备类型 '%s' 无效！有效值为: lab, IPT, FTD, FFS\n", deviceType.c_str());
+        LOG_ERROR("function:deliveryOperation 设备类型 '%s' 无效！有效值为: lab, IPT, FTD, FFS\n", deviceType.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -271,7 +272,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:deliveryOperation 查询 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 查询 customer_info 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -281,7 +282,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     mysql_free_result(res);
 
     if (!customerExists) {
-        printf("[error] function:deliveryOperation 客户名称 '%s' 不存在于 customer_info 表中！\n", clientName.c_str());
+        LOG_ERROR("function:deliveryOperation 客户名称 '%s' 不存在于 customer_info 表中！\n", clientName.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -291,7 +292,7 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT status FROM encryption_key_history WHERE encryption_key = '%s' ORDER BY id DESC LIMIT 1", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:deliveryOperation 查询外壳号最新状态失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 查询外壳号最新状态失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -320,12 +321,12 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
     mysql_free_result(res);
 
     if (!canDeliver) {
-        printf("[error] function:deliveryOperation 外壳号 '%s' %s\n", shellNumber.c_str(), statusMessage.c_str());
+        LOG_ERROR("function:deliveryOperation 外壳号 '%s' %s\n", shellNumber.c_str(), statusMessage.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    printf("[info] function:deliveryOperation 外壳号 '%s' %s\n", shellNumber.c_str(), statusMessage.c_str());
+     LOG_INFO("function:deliveryOperation 外壳号 '%s' %s\n", shellNumber.c_str(), statusMessage.c_str());
 
 
     // 6. 向encryption_key_history表插入数据，status为"出库"，out_storage_time有值，in_storage_time为NULL
@@ -336,14 +337,14 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:deliveryOperation 插入 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 插入 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        printf("[error] function:deliveryOperation 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:deliveryOperation 提交事务失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -367,7 +368,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
 
     // 开始事务
     if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        printf("[error] function:returnOperation 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 开始事务失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -375,7 +376,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:returnOperation 查询 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 查询 customer_info 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -385,7 +386,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     mysql_free_result(res);
 
     if (!customerExists) {
-        printf("[error] function:returnOperation 客户名称 '%s' 不存在于 customer_info 表中！\n", clientName.c_str());
+        LOG_ERROR("function:returnOperation 客户名称 '%s' 不存在于 customer_info 表中！\n", clientName.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -394,7 +395,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:returnOperation 查询 encryption_key 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 查询 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -404,7 +405,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     mysql_free_result(res);
 
     if (!shellExists) {
-        printf("[error] function:returnOperation 外壳号 '%s' 不存在于 encryption_key 表中！\n", shellNumber.c_str());
+        LOG_ERROR("function:returnOperation 外壳号 '%s' 不存在于 encryption_key 表中！\n", shellNumber.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -415,14 +416,14 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
              shellNumber.c_str(), clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:returnOperation 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     res = mysql_store_result(mysql);
     if (mysql_num_rows(res) == 0) {
-        printf("[error] function:returnOperation 未找到对应的出库记录！客户：%s，外壳号：%s\n", clientName.c_str(), shellNumber.c_str());
+        LOG_ERROR("function:returnOperation 未找到对应的出库记录！客户：%s，外壳号：%s", clientName.c_str(), shellNumber.c_str());
         mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -441,7 +442,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
              shellNumber.c_str(), inTime.c_str(), outTime.c_str(), operationType.c_str(), clientName.c_str(), deviceType.c_str(), deviceRemark.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:returnOperation 插入 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 插入 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -449,7 +450,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX, "UPDATE `model_life_manager`.`product_authorization` SET `return` = '1' WHERE `encryption_key` = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:returnOperation 更新 product_authorization 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 更新 product_authorization 表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -460,16 +461,16 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
         snprintf(sql, SQL_MAX, "UPDATE encryption_key SET remark = '%s' WHERE shell_number = '%s'", remark.c_str(), shellNumber.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:returnOperation 更新 encryption_key 表 remark 字段失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:returnOperation 更新 encryption_key 表 remark 字段失败！失败原因：%s", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
-        printf("[info] function:returnOperation 外壳号 %s 因 %s 更新备注：%s\n", shellNumber.c_str(), operationType.c_str(), remark.c_str());
+         LOG_INFO("function:returnOperation 外壳号 %s 因 %s 更新备注：%s", shellNumber.c_str(), operationType.c_str(), remark.c_str());
     }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        printf("[error] function:returnOperation 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:returnOperation 提交事务失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -493,7 +494,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
 
     // 开始事务
     if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        printf("[error] function:createAuthorization 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 开始事务失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -501,14 +502,14 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createAuthorization 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 查询客户信息失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     MYSQL_RES* res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:createAuthorization 客户不存在：%s\n", clientName.c_str());
+        LOG_ERROR("function:createAuthorization 客户不存在：%s", clientName.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -529,14 +530,14 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
         shellNumber.c_str(), clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createAuthorization 查询外壳号分配状态失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 查询外壳号分配状态失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:createAuthorization 外壳号不存在或未分配给客户 %s：%s\n", clientName.c_str(), shellNumber.c_str());
+        LOG_ERROR("function:createAuthorization 外壳号不存在或未分配给客户 %s：%s", clientName.c_str(), shellNumber.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -551,7 +552,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
              shellNumber.c_str(), authId.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createAuthorization 查询授权记录失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 查询授权记录失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -568,7 +569,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
                  clientName.c_str(), authorizationId);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:createAuthorization 更新授权表客户信息失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:createAuthorization 更新授权表客户信息失败！失败原因：%s", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
@@ -587,7 +588,7 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
                  shellNumber.c_str(), authId.c_str(), clientName.c_str());
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:createAuthorization 插入授权表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:createAuthorization 插入授权表失败！失败原因：%s", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
@@ -605,19 +606,19 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
     // 4. 执行SQL语句（更新或插入product_authorization_info）
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createAuthorization 更新或插入授权信息表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 更新或插入授权信息表失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        printf("[error] function:createAuthorization 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createAuthorization 提交事务失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    printf("[info] function:createAuthorization 创建授权成功！外壳号：%s，授权ID：%s\n", shellNumber.c_str(), authId.c_str());
+     LOG_INFO("function:createAuthorization 创建授权成功！外壳号：%s，授权ID：%s", shellNumber.c_str(), authId.c_str());
     return true;
 }
 
@@ -628,13 +629,13 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
     int ret;
 
     if (!mysql) {
-        printf("[error] function:updateAuthorizationEndDates MySQL连接为空！\n");
+        LOG_ERROR("function:updateAuthorizationEndDates MySQL连接为空！\n");
         return false;
     }
 
     // 开始事务
     if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        printf("[error] function:updateAuthorizationEndDates 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateAuthorizationEndDates 开始事务失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -642,14 +643,14 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateAuthorizationEndDates 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateAuthorizationEndDates 查询客户信息失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     MYSQL_RES* res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:updateAuthorizationEndDates 客户不存在：%s\n", clientName.c_str());
+        LOG_ERROR("function:updateAuthorizationEndDates 客户不存在：%s", clientName.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -679,14 +680,14 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:updateAuthorizationEndDates 查询授权记录失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:updateAuthorizationEndDates 查询授权记录失败！失败原因：%s", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
 
         res = mysql_store_result(mysql);
         if (!res || mysql_num_rows(res) == 0) {
-            printf("[error] function:updateAuthorizationEndDates 授权记录不存在或不属于客户 %s：外壳号=%s, 授权ID=%s\n",
+            LOG_ERROR("function:updateAuthorizationEndDates 授权记录不存在或不属于客户 %s：外壳号=%s, 授权ID=%s\n",
                    clientName.c_str(), shellNumber.c_str(), authId.c_str());
             if (res) mysql_free_result(res);
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
@@ -706,23 +707,23 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:updateAuthorizationEndDates 更新授权截止日期失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:updateAuthorizationEndDates 更新授权截止日期失败！失败原因：%s", mysql_error(mysql));
             mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
 
-        printf("[info] function:updateAuthorizationEndDates 成功更新授权：外壳号=%s, 授权ID=%s, 新截止日期=%s\n",
+         LOG_INFO("function:updateAuthorizationEndDates 成功更新授权：外壳号=%s, 授权ID=%s, 新截止日期=%s\n",
                shellNumber.c_str(), authId.c_str(), newEndDate.c_str());
     }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        printf("[error] function:updateAuthorizationEndDates 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateAuthorizationEndDates 提交事务失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    printf("[info] function:updateAuthorizationEndDates 批量更新授权截止日期成功，共更新 %zu 条记录\n", changes.size());
+     LOG_INFO("function:updateAuthorizationEndDates 批量更新授权截止日期成功，共更新 %zu 条记录\n", changes.size());
     return true;
 }
 
@@ -735,13 +736,13 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     int ret;
 
     if (!mysql) {
-        printf("[error] function:updateShellDeviceInfo MySQL连接为空！\n");
+        LOG_ERROR("function:updateShellDeviceInfo MySQL连接为空！\n");
         return false;
     }
 
     // 开始事务
     if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        printf("[error] function:updateShellDeviceInfo 开始事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 开始事务失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -749,14 +750,14 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT customer_name FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateShellDeviceInfo 查询客户信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 查询客户信息失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     MYSQL_RES* res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:updateShellDeviceInfo 客户不存在：%s\n", clientName.c_str());
+        LOG_ERROR("function:updateShellDeviceInfo 客户不存在：%s", clientName.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -767,14 +768,14 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     snprintf(sql, SQL_MAX, "SELECT shell_number FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateShellDeviceInfo 查询外壳号失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 查询外壳号失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:updateShellDeviceInfo 外壳号不存在：%s\n", shellNumber.c_str());
+        LOG_ERROR("function:updateShellDeviceInfo 外壳号不存在：%s", shellNumber.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
@@ -783,7 +784,7 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
 
     // 3. 验证设备类型是否有效
     if (deviceType != "lab" && deviceType != "IPT" && deviceType != "FTD" && deviceType != "FFS") {
-        printf("[error] function:updateShellDeviceInfo 设备类型 '%s' 无效！有效值为: lab, IPT, FTD, FFS\n", deviceType.c_str());
+        LOG_ERROR("function:updateShellDeviceInfo 设备类型 '%s' 无效！有效值为: lab, IPT, FTD, FFS\n", deviceType.c_str());
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
@@ -797,14 +798,14 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateShellDeviceInfo 查询外壳号出库记录失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 查询外壳号出库记录失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     res = mysql_store_result(mysql);
     if (!res || mysql_num_rows(res) == 0) {
-        printf("[error] function:updateShellDeviceInfo 外壳号 %s 未分配给客户 %s 或已归还\n",
+        LOG_ERROR("function:updateShellDeviceInfo 外壳号 %s 未分配给客户 %s 或已归还\n",
                shellNumber.c_str(), clientName.c_str());
         if (res) mysql_free_result(res);
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
@@ -824,19 +825,19 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateShellDeviceInfo 更新设备信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 更新设备信息失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     // 提交事务
     if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        printf("[error] function:updateShellDeviceInfo 提交事务失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateShellDeviceInfo 提交事务失败！失败原因：%s", mysql_error(mysql));
         mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    printf("[info] function:updateShellDeviceInfo 成功更新外壳号设备信息：客户=%s, 外壳号=%s, 设备类型=%s\n",
+     LOG_INFO("function:updateShellDeviceInfo 成功更新外壳号设备信息：客户=%s, 外壳号=%s, 设备类型=%s\n",
            clientName.c_str(), shellNumber.c_str(), deviceType.c_str());
     return true;
 }

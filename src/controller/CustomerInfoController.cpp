@@ -1,6 +1,7 @@
 #include "CustomerInfoController.h"
 #include <jwt_utils.h>
 #include "Log.h"
+#include "Logger.h"
 
 CustomerInfoController::CustomerInfoController(std::shared_ptr<ICustomerInfoService> service)
     : customerInfoService_(service)
@@ -17,7 +18,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        printf("[DEBUG] 获取客户列表信息\n");
+         LOG_DEBUG("获取客户列表信息\n");
 
         // 调用服务层获取客户列表
         nlohmann::json clientListResult = customerInfoService_->getClientList();
@@ -72,7 +73,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             std::string clientName = reqData["clientName"];
             std::string clientInfo = reqData.value("clientinfo", ""); 
 
-            printf("[DEBUG] 新建客户，clientName: %s, clientInfo: %s\n", 
+             LOG_DEBUG("新建客户，clientName: %s, clientInfo: %s\n", 
                    clientName.c_str(), clientInfo.c_str());
 
             // TODO: 调用服务层创建客户
@@ -105,7 +106,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 新建客户失败: %s\n", e.what());
+            LOG_ERROR("新建客户失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -141,7 +142,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             std::string clientName = reqData["clientName"];
             std::string clientInfo = reqData.value("clientinfo", ""); // 可选参数
 
-            printf("[DEBUG] 编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
+             LOG_DEBUG("编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
                    originalClientName.c_str(), clientName.c_str(), clientInfo.c_str());
 
             // TODO: 调用服务层更新客户信息
@@ -174,7 +175,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 编辑客户失败: %s\n", e.what());
+            LOG_ERROR("编辑客户失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -209,7 +210,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取发送详情信息，clientName: %s\n", clientName.c_str());
+         LOG_DEBUG("获取发送详情信息，clientName: %s\n", clientName.c_str());
 
         // TODO: 调用服务层获取发送详情
         // auto sendDetailList = customerInfoService->getSendDetail(clientName);
@@ -314,7 +315,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取发送总览，clientName: %s\n", clientName.c_str());
+         LOG_DEBUG("获取发送总览，clientName: %s\n", clientName.c_str());
 
         // 获取各模型最新版本发送记录
         auto sendOverview = customerInfoService_->getAllModelLatestVesrionByClient(clientName);
@@ -366,7 +367,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取授权详情信息，clientName: %s\n", clientName.c_str());
+         LOG_DEBUG("获取授权详情信息，clientName: %s\n", clientName.c_str());
 
         // 调用服务层获取授权详情
         nlohmann::json result = customerInfoService_->getClientAuthInfoJson(clientName);
@@ -403,7 +404,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取外壳号授权列表，clientName: %s, shellNumber: %s\n", 
+         LOG_DEBUG("获取外壳号授权列表，clientName: %s, shellNumber: %s\n", 
                clientName.c_str(), shellNumber.c_str());
 
         // 调用服务层获取外壳号授权列表
@@ -481,7 +482,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, resp.dump());
         }
 
-        printf("[DEBUG] 获取外壳号授权列表，targetCustomer: %s, shellNumber: %s\n", 
+         LOG_DEBUG("获取外壳号授权列表，targetCustomer: %s, shellNumber: %s\n", 
                targetCustomer.c_str(), shellNumber.c_str());
         
         nlohmann::json authIDList = nlohmann::json::array();

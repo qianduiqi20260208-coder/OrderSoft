@@ -1,5 +1,6 @@
 #include "CustomerInfoDAO.h"
 #include "DBConnectionManager.h"
+#include "Logger.h"
 
 CustomerInfoDAO::CustomerInfoDAO(MYSQL *m):mysql(m)
 {
@@ -18,7 +19,7 @@ bool CustomerInfoDAO::createClient(std::string s1, std::string s2)
     snprintf(sql, SQL_MAX, "insert into customer_info(customer_name,remarks) values('%s','%s'); ",s1.c_str(),s2.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:createClient 插入 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:createClient 插入 customer_info 表失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -35,7 +36,7 @@ bool CustomerInfoDAO::updateClient(std::string originClient, std::string newClie
     snprintf(sql, SQL_MAX, "update customer_info set customer_name = '%s',remarks = '%s' where customer_name = '%s'; ",originClient.c_str(),newClient.c_str(),clientRemark.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updateClient 修改 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updateClient 修改 customer_info 表失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -56,10 +57,10 @@ std::vector<std::pair<std::string, std::string>> CustomerInfoDAO::selectAllClien
     //查询出库时间以及入库时间
     snprintf(sql, SQL_MAX, "select customer_name,remarks from customer_info;");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:selectAllClientInfo 查询 customer_info 表失败！失败原因：%s\n", mysql_error(mysql));
-        return {std::pair<std::string, std::string>()};
-    }
+     if (ret) {
+         LOG_ERROR("function:selectAllClientInfo 查询 customer_info 表失败！失败原因：%s", mysql_error(mysql));
+         return {};
+     }
     res = mysql_store_result(mysql);
     while(row = mysql_fetch_row(res))
     {
@@ -87,7 +88,7 @@ std::vector<std::string> CustomerInfoDAO::selectEncryptionKeyByClient(std::strin
     snprintf(sql, SQL_MAX, "select distinct encryption_key from encryption_key_history where customer ='%s' and status = '出库';",client.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectEncryptionKeyByClient 查询 encryption_key_history 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectEncryptionKeyByClient 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
         return {""};
     }
     res = mysql_store_result(mysql);
@@ -114,7 +115,7 @@ std::pair<int, int> CustomerInfoDAO::selectModelAndModelVersionCountByClient(std
     snprintf(sql, SQL_MAX, "select count(distinct model) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' union select work_order_id from package_send where target_customer = '%s'); ",client.c_str(),client.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s", mysql_error(mysql));
         return {-1,-1};
     }
     res = mysql_store_result(mysql);
@@ -128,7 +129,7 @@ std::pair<int, int> CustomerInfoDAO::selectModelAndModelVersionCountByClient(std
     snprintf(sql, SQL_MAX, "select count(model_version_id) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' union select work_order_id from package_send where target_customer = '%s'); ",client.c_str(),client.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s", mysql_error(mysql));
         return {-1,-1};
     }
     res = mysql_store_result(mysql);
@@ -148,10 +149,9 @@ std::vector<int> CustomerInfoDAO::selectAuthorizationCountByEncryptionKey(std::s
 
     //筛选出有效授权的数量
     snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and CURDATE() BETWEEN authorization_start_date AND authorization_end_date; ",encryptionKey.c_str());
-    printf("sql:%s\n",sql);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s", mysql_error(mysql));
         return {-1};
     }
     res = mysql_store_result(mysql);
@@ -165,7 +165,7 @@ std::vector<int> CustomerInfoDAO::selectAuthorizationCountByEncryptionKey(std::s
     snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and DATEDIFF(authorization_end_date, CURDATE()) BETWEEN 0 AND 5; ",encryptionKey.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s", mysql_error(mysql));
         return {-1};
     }
     res = mysql_store_result(mysql);
@@ -179,7 +179,7 @@ std::vector<int> CustomerInfoDAO::selectAuthorizationCountByEncryptionKey(std::s
     snprintf(sql, SQL_MAX, "select count(*) from product_authorization_info where authorization_id in(select id from product_authorization where encryption_key = '%s') and authorization_end_date < CURDATE();  ",encryptionKey.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAuthorizationCountByEncryptionKey 查询 product_authorization_info 表失败！失败原因：%s", mysql_error(mysql));
         return {-1};
     }
     res = mysql_store_result(mysql);
@@ -216,7 +216,7 @@ std::vector<std::vector<std::string>> CustomerInfoDAO::selectAllSendRecordByClie
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAllSendRecordByClient 失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAllSendRecordByClient 失败原因：%s", mysql_error(mysql));
         return {{}};
     }
     res = mysql_store_result(mysql);
@@ -274,7 +274,7 @@ std::vector<std::vector<std::string>> CustomerInfoDAO::selectLatestModelVersionB
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectLatestModelVersionByClient 失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectLatestModelVersionByClient 失败原因：%s", mysql_error(mysql));
         return {{}};
     }
     res = mysql_store_result(mysql);
@@ -326,7 +326,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
     
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getClientAuthInfo() 查询加密狗信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getClientAuthInfo() 查询加密狗信息失败！失败原因：%s", mysql_error(mysql));
         return client;
     }
     
@@ -396,7 +396,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getClientAuthInfo() 查询授权信息失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getClientAuthInfo() 查询授权信息失败！失败原因：%s", mysql_error(mysql));
             continue;
         }
         
@@ -450,7 +450,7 @@ std::vector<std::string> CustomerInfoDAO::getAllClientNames()
     
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getAllClientNames() 查询客户名称失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getAllClientNames() 查询客户名称失败！失败原因：%s", mysql_error(mysql));
         return clientNames;
     }
     
@@ -507,7 +507,7 @@ std::vector<Authorization> CustomerInfoDAO::getShellAuthorizationInfo(const std:
     
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getShellAuthorizationInfo() 查询授权信息失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getShellAuthorizationInfo() 查询授权信息失败！失败原因：%s", mysql_error(mysql));
         return authorizationList;
     }
     
@@ -543,10 +543,9 @@ std::vector<std::string> CustomerInfoDAO::selectAuthorizationByEncryptionKey(std
     
     std::vector<std::string> retVec;
     snprintf(sql, SQL_MAX, "select authorization_code from product_authorization pa inner join product_authorization_info pai on pai.authorization_id = pa.id where pa.encryption_key = '%s' and CURDATE() BETWEEN pai.authorization_start_date AND pai.authorization_end_date; ",encryptionKey.c_str());
-    printf("sql:%s\n",sql);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:selectAuthorizationByEncryptionKey 查询 product_authorization 表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:selectAuthorizationByEncryptionKey 查询 product_authorization 表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);

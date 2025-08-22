@@ -1,5 +1,6 @@
 #include "UserService.h"
 #include <algorithm>
+#include "Logger.h"
 
 UserService::UserService(std::shared_ptr<IUserDAO> sp):userDAO_(sp)
 {

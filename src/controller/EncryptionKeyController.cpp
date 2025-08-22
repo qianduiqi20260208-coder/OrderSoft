@@ -2,6 +2,7 @@
 #include <nlohmann/json.hpp>
 #include <jwt_utils.h>
 #include "Log.h"
+#include "Logger.h"
 
 EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyService> service)
     : encryptionKeyService_(service)
@@ -129,7 +130,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellCode = reqData["shellCode"];
             std::string shellSerial = reqData["shellSerial"];
 
-            printf("[DEBUG] 创建加密狗，shellCode: %s, shellSerial: %s\n", 
+             LOG_DEBUG("创建加密狗，shellCode: %s, shellSerial: %s\n", 
                    shellCode.c_str(), shellSerial.c_str());
 
             // 调用服务层创建加密狗
@@ -159,7 +160,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 创建加密狗失败: %s\n", e.what());
+            LOG_ERROR("创建加密狗失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -202,7 +203,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
                 dongleIdInt = std::stoi(dongleId);
             }
 
-            printf("[DEBUG] 更新加密狗信息，dongleId: %d, shellCode: %s, shellSerial: %s\n", 
+             LOG_DEBUG("更新加密狗信息，dongleId: %d, shellCode: %s, shellSerial: %s\n", 
                    dongleIdInt, shellCode.c_str(), shellSerial.c_str());
 
             // 调用服务层更新加密狗信息
@@ -236,7 +237,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
 
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 更新加密狗信息失败: %s\n", e.what());
+            LOG_ERROR("更新加密狗信息失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -274,7 +275,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
 
-            printf("[DEBUG] 交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
+             LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str());
 
             // 调用服务层交付外壳
@@ -306,7 +307,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 交付外壳失败: %s\n", e.what());
+            LOG_ERROR("交付外壳失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -349,7 +350,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string remark = reqData.contains("remark") ? reqData["remark"] : "";
 
 
-            printf("[DEBUG] 归还外壳，clientName: %s, shellNumber: %s, inTime: %s, outTime: %s, operationType: %s, remark: %s\n", 
+             LOG_DEBUG("归还外壳，clientName: %s, shellNumber: %s, inTime: %s, outTime: %s, operationType: %s, remark: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), inTime.c_str(), outTime.c_str(), operationType.c_str(), remark.c_str());
 
             // 调用服务层归还外壳
@@ -382,7 +383,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 归还外壳失败: %s\n", e.what());
+            LOG_ERROR("归还外壳失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -424,7 +425,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string endDate = reqData["endDate"];
             std::string authNote = reqData["authNote"];
 
-            printf("[DEBUG] 新建授权信息，clientName: %s, shellNumber: %s, authId: %s, authType: %s, startDate: %s, endDate: %s, authNote: %s\n", 
+             LOG_DEBUG("新建授权信息，clientName: %s, shellNumber: %s, authId: %s, authType: %s, startDate: %s, endDate: %s, authNote: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), authId.c_str(), authType.c_str(), 
                    startDate.c_str(), endDate.c_str(), authNote.c_str());
 
@@ -457,7 +458,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 新建授权信息失败: %s\n", e.what());
+            LOG_ERROR("新建授权信息失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -528,7 +529,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
 
-            printf("[DEBUG] 更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
+             LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str());
 
             // 调用服务层更新外壳号信息
@@ -560,7 +561,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 更新外壳号信息失败: %s\n", e.what());
+            LOG_ERROR("更新外壳号信息失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -624,7 +625,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
                 changes.emplace_back(shellNumber, authId, newEndDate);
             }
 
-            printf("[DEBUG] 批量更新授权截止日期，clientName: %s, 更新数量: %zu\n", 
+             LOG_DEBUG("批量更新授权截止日期，clientName: %s, 更新数量: %zu\n", 
                    clientName.c_str(), changes.size());
 
 
@@ -657,7 +658,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             }
 
         } catch (const std::exception& e) {
-            printf("[ERROR] 批量更新授权截止日期失败: %s\n", e.what());
+            LOG_ERROR("批量更新授权截止日期失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
