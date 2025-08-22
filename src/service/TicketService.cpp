@@ -1,4 +1,5 @@
 #include "TicketService.h"
+#include "Logger.h"
 
 TicketService::TicketService(std::shared_ptr<ITicketDAO> sp1,std::shared_ptr<IModelDAO> sp2):ticketDAO(sp1),modelDAO(sp2)
 {

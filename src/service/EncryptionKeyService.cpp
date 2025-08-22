@@ -1,4 +1,5 @@
 #include "EncryptionKeyService.h"
+#include "Logger.h"
 
 EncryptionKeyService::EncryptionKeyService(std::shared_ptr<IEncryptionKey> dao) : encryptionKeyDAO_(dao)
 {

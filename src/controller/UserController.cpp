@@ -1,6 +1,7 @@
 #include "UserController.h"
 #include "jwt_utils.h"
 #include "Log.h"
+#include "Logger.h"
 
 // 添加匿名命名空间 - 仅在当前文件可见
 namespace {
@@ -11,7 +12,7 @@ namespace {
         try {
             return std::stoi(str);
         } catch (const std::exception& e) {
-            printf("[WARNING] safeStoi failed for '%s': %s, using default %d\n", 
+             LOG_WARNING("safeStoi failed for '%s': %s, using default %d\n", 
                    str.c_str(), e.what(), defaultValue);
             return defaultValue;
         }
@@ -132,13 +133,13 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         // 获取用户角色权限
         for(const auto& role : user.roleVec) {
-            printf("[info] function:convertRoleToEnglish() role: %s\n", role.c_str());
+             LOG_INFO("function:convertRoleToEnglish() role: %s\n", role.c_str());
             std::string role_ = convertRoleToEnglish(role); // 转换为英文角色名称
             permissions.push_back(role_);
         }
 
         for(const auto& flowRole : user.flowRoleVec) {
-            printf("[info] function:convertFlowRoleToEnglish() flowRole: %s\n", flowRole.c_str());
+             LOG_INFO("function:convertFlowRoleToEnglish() flowRole: %s\n", flowRole.c_str());
             std::string flowRole_ = convertFlowRoleToEnglish(flowRole); // 转换为英文流程角色名称
             permissions.push_back(flowRole_);
         }
@@ -219,7 +220,7 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         auto tickets = userService->getUserOrder(userIdInt);
 
-        printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
+         LOG_INFO("function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 
         nlohmann::json list = nlohmann::json::array();
 

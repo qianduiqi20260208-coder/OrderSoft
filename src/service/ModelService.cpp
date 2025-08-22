@@ -1,4 +1,5 @@
 #include "ModelService.h"
+#include "Logger.h"
 
 ModelService::ModelService(std::shared_ptr<IModelDAO> sp1,std::shared_ptr<ITicketDAO> sp2):modelDAO_(sp1),ticketDAO_(sp2)
 {

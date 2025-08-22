@@ -1,5 +1,6 @@
 #include "ModelDAO.h"
 #include "DBConnectionManager.h"
+#include "Logger.h"
 
 ModelDAO::ModelDAO(MYSQL *ms):mysql(ms)
 {
@@ -20,7 +21,7 @@ std::vector<std::string> ModelDAO::getModel()
     
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getModel 查询model表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getModel 查询model表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -46,7 +47,7 @@ std::vector<std::string> ModelDAO::getModelVersionByModel(std::string modelName)
     snprintf(sql, SQL_MAX, "select version from model_version where model ='%s' order by id desc;",modelName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getModelVersionByModel 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getModelVersionByModel 查询model_version表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -76,10 +77,10 @@ bool ModelDAO::addModelVersion(const std::string &model, const std::string &mode
     snprintf(sql, SQL_MAX, "INSERT INTO model_version(model,version) "
         "VALUES('%s', '%s');", model.c_str(),modelVersion.c_str());	
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:addModelVersion 添加模型版本失败！失败原因：%s\n", mysql_error(mysql));
-        return false;
-    }
+        if (ret) {
+            LOG_ERROR("function:addModelVersion 添加模型版本失败！失败原因：%s", mysql_error(mysql));
+            return false;
+        }
 
     return true;
 }
@@ -98,10 +99,10 @@ std::vector<std::vector<std::string>> ModelDAO::getModelVersionInfoByModelPaged(
     //分页查询所有模型版本
     snprintf(sql, SQL_MAX, "select version,id,update_time from model_version where model ='%s' order by id desc limit %d,%d;",model.c_str(),offset,count);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:getModelVersionInfoByModelPaged 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
-        return {};
-    }
+        if (ret) {
+            LOG_ERROR("function:getModelVersionInfoByModelPaged 查询model_version表失败！失败原因：%s", mysql_error(mysql));
+            return {};
+        }
     res = mysql_store_result(mysql);
     while(row = mysql_fetch_row(res))
     {
@@ -129,10 +130,10 @@ int ModelDAO::getModelVersionCount(std::string model)
     //分页查询所有模型版本
     snprintf(sql, SQL_MAX, "select count(*) from model_version where model ='%s';",model.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
-    if (ret) {
-        printf("[error] function:getModelVersionCount 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
-        return count;
-    }
+        if (ret) {
+            LOG_ERROR("function:getModelVersionCount 查询model_version表失败！失败原因：%s", mysql_error(mysql));
+            return count;
+        }
     res = mysql_store_result(mysql);
     if(row = mysql_fetch_row(res))
     {

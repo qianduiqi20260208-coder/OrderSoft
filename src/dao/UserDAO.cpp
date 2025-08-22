@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include "IniReader.h"
+#include "Logger.h"
 
 UserDAO::UserDAO(MYSQL *ms):mysql(ms)
 {
@@ -23,7 +24,7 @@ std::vector<User> UserDAO::getUser()
     snprintf(sql, SQL_MAX, "select * from user;");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-		printf("[error] function:getUser() 查询user表失败！失败原因：%s\n", mysql_error(mysql));
+		LOG_ERROR("function:getUser() 查询user表失败！失败原因：%s", mysql_error(mysql));
 		return {};
 	}
     res = mysql_store_result(mysql);
@@ -41,7 +42,7 @@ std::vector<User> UserDAO::getUser()
         snprintf(sql, SQL_MAX, "select DISTINCT model from user_model where username=%d;",user.jobNumber);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUser() 查询user_model表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUser() 查询user_model表失败！失败原因：%s", mysql_error(mysql));
             return {};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -58,7 +59,7 @@ std::vector<User> UserDAO::getUser()
         snprintf(sql, SQL_MAX, "select role from user_multi_role where user_id=%d and role != 'null';",user.jobNumber);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUser() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUser() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
             return {};
         }
         res = mysql_store_result(mysql);
@@ -74,7 +75,7 @@ std::vector<User> UserDAO::getUser()
         snprintf(sql, SQL_MAX, "select flow_role from user_multi_role where user_id = %d and role = 'null'  and work_order_id is null ;",user.jobNumber);
         ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUser() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUser() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
             return {};
         }
         res = mysql_store_result(mysql);
@@ -102,30 +103,30 @@ std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
 
     // 检查数据库连接状态
     if (!DBConnectionManager::ensureConnected(mysql)) {
-        printf("[error] function:getUserResponsibleModels() 数据库连接失败！\n");
+        LOG_ERROR("function:getUserResponsibleModels() 数据库连接失败！");
         return responsibleModels;
     }
 
     // 参数验证
     if (userId <= 0) {
-        printf("[error] function:getUserResponsibleModels() 无效的用户ID：%d\n", userId);
+        LOG_ERROR("function:getUserResponsibleModels() 无效的用户ID：%d", userId);
         return responsibleModels;
     }
 
     // 查询用户负责的模型
     snprintf(sql, SQL_MAX, "SELECT model FROM user_model WHERE username = %d", userId);
 
-    // printf("[debug] getUserResponsibleModels SQL: %s\n", sql);
+    //  LOG_DEBUG("getUserResponsibleModels SQL: %s\n", sql);
 
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getUserResponsibleModels() 查询user_model表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getUserResponsibleModels() 查询user_model表失败！失败原因：%s", mysql_error(mysql));
         return responsibleModels;
     }
 
     MYSQL_RES* res = mysql_store_result(mysql);
     if (!res) {
-        printf("[error] function:getUserResponsibleModels() mysql_store_result失败：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getUserResponsibleModels() mysql_store_result失败：%s", mysql_error(mysql));
         return responsibleModels;
     }
 
@@ -134,13 +135,13 @@ std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
         if (row[0]) {  // 确保模型名称不为空
             std::string modelName = row[0];
             responsibleModels.push_back(modelName);
-            // printf("[debug] 用户 %d 负责模型: %s\n", userId, modelName.c_str());
+            //  LOG_DEBUG("用户 %d 负责模型: %s\n", userId, modelName.c_str());
         }
     }
 
     mysql_free_result(res);
 
-    // printf("[info] function:getUserResponsibleModels() 用户 %d 共负责 %zu 个模型\n",
+    //  LOG_INFO("function:getUserResponsibleModels() 用户 %d 共负责 %zu 个模型\n",
     //        userId, responsibleModels.size());
 
     return responsibleModels;
@@ -162,7 +163,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     snprintf(sql, SQL_MAX, "select work_order_id from user_multi_role where user_id = %d and role = 'null' and work_order_id is not null;",jobNumber);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getUserOrder() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getUserOrder() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
         return {std::shared_ptr<Ticket>()};
     }
     res = mysql_store_result(mysql);
@@ -190,7 +191,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     printf("getUserOrder() sql:%s\n",sql);
     if (ret) {
-        printf("[error] function:getUserOrder() 查询work_order表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getUserOrder() 查询work_order表失败！失败原因：%s", mysql_error(mysql));
         return {std::shared_ptr<Ticket>()};
     }
     res = mysql_store_result(mysql);
@@ -247,7 +248,7 @@ std::vector<std::pair<int, std::string>> UserDAO::getOrderApprover_()
     );
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderApprover() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderApprover() 查询user_multi_role/user表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -275,7 +276,7 @@ std::vector<int> UserDAO::getOrderApprover()
     snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '审批人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderApprover() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderApprover() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -303,7 +304,7 @@ std::vector<int> UserDAO::getOrderDispatcher()
     snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '分发人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderDispatcher() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderDispatcher() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -335,7 +336,7 @@ std::vector<std::pair<int, std::string>> UserDAO::getOrderDispatcher_()
     );
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderDispatcher_() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderDispatcher_() 查询user_multi_role/user表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -363,7 +364,7 @@ std::vector<int> UserDAO::getOrderExecutor()
     snprintf(sql, SQL_MAX, "select DISTINCT user_id from user_multi_role where work_order_id is null and flow_role = '执行人';");
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderExecutor() 查询user_multi_role表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderExecutor() 查询user_multi_role表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -395,7 +396,7 @@ std::vector<std::pair<int, std::string>> UserDAO::getOrderExecutor_()
     );
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:getOrderExecutor_() 查询user_multi_role/user表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:getOrderExecutor_() 查询user_multi_role/user表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
     res = mysql_store_result(mysql);
@@ -426,7 +427,7 @@ bool UserDAO::updatePassword(const std::string& userId, const std::string& oldPa
     snprintf(sql, SQL_MAX, "SELECT password FROM user WHERE username = '%s';", userId.c_str());
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:updatePassword() 查询原密码失败！原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updatePassword() 查询原密码失败！原因：%s", mysql_error(mysql));
         return false;
     }
     MYSQL_RES* res = mysql_store_result(mysql);
@@ -443,7 +444,7 @@ bool UserDAO::updatePassword(const std::string& userId, const std::string& oldPa
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret)
     {
-        printf("[error] function:updatePassword() 更新用户密码失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:updatePassword() 更新用户密码失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
 
@@ -461,7 +462,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询issue_reproduction表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询issue_reproduction表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         //保存ticketId的值，用来下载附件
@@ -490,7 +491,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from version_iteration where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询version_iteration表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询version_iteration表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -514,7 +515,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from package_send where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询package_send表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询package_send表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -541,7 +542,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询delivery_send表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询delivery_send表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -563,7 +564,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from function_development where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询function_development表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询function_development表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -583,7 +584,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         snprintf(sql, SQL_MAX, "select * from other_work_order where work_order_id = %d;",workOrderId);
         int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
         if (ret) {
-            printf("[error] function:getUserOrder() 查询other_work_order表失败！失败原因：%s\n", mysql_error(mysql));
+            LOG_ERROR("function:getUserOrder() 查询other_work_order表失败！失败原因：%s", mysql_error(mysql));
             return {std::shared_ptr<Ticket>()};
         }
         MYSQL_RES* res = mysql_store_result(mysql);
@@ -608,8 +609,8 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
     DBConnectionManager::getConnection(mysql);
     char sql[SQL_MAX];	
 
-    if (!config.load("../../config/config.ini")) { 
-        printf("无法读取 config.ini 文件\n");
+    if (!config.load("config.ini")) {
+            printf("无法读取 config.ini 文件\n");
         return false;
     }
     
@@ -617,7 +618,7 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
     snprintf(sql, SQL_MAX, "select file_path,file_name from issue_reproduction_attachment where ticket_id = %d;",tmp->ticketId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:downloadAttachment 查询issue_reproduction_attachment表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:downloadAttachment 查询issue_reproduction_attachment表失败！失败原因：%s", mysql_error(mysql));
         return false;
     }
     MYSQL_RES* res = mysql_store_result(mysql);
@@ -672,7 +673,7 @@ std::string UserDAO::queryModelVersion(int modelVersionId)
     snprintf(sql, SQL_MAX, "select version from model_version where id = %d;",modelVersionId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:queryModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:queryModelVersion() 查询model_version表失败！失败原因：%s", mysql_error(mysql));
         return "error";
     }
     MYSQL_RES* res = mysql_store_result(mysql);
@@ -700,7 +701,7 @@ std::string UserDAO::queryBaseModelVersion(int modelVersionId)
     snprintf(sql, SQL_MAX, "select model from model_version where id = %d;",modelVersionId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s", mysql_error(mysql));
         return "error";
     }
     MYSQL_RES* res = mysql_store_result(mysql);
@@ -715,7 +716,7 @@ std::string UserDAO::queryBaseModelVersion(int modelVersionId)
     snprintf(sql, SQL_MAX, "select version from model_version where model = '%s' and id < %d order by id desc limit 1;",model.c_str(),modelVersionId);
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:queryBaseModelVersion() 查询model_version表失败！失败原因：%s", mysql_error(mysql));
         return "error";
     }
     res = mysql_store_result(mysql);
@@ -741,7 +742,7 @@ TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
     snprintf(sql, SQL_MAX, "select * from work_order_executor where work_order_id = %d order by id desc;",workOrderId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:queryTicketExecutor() 查询work_order_executor表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:queryTicketExecutor() 查询work_order_executor表失败！失败原因：%s", mysql_error(mysql));
         executor.id = -1;
         return executor;
     }
@@ -780,7 +781,7 @@ std::string UserDAO::queryProductAuthorization(int productAuthorizationId)
     snprintf(sql, SQL_MAX, "select authorization_code from product_authorization where id = %d;",productAuthorizationId);
     int ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:queryProductAuthorization() 查询authorization_code表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:queryProductAuthorization() 查询authorization_code表失败！失败原因：%s", mysql_error(mysql));
         return "error";
     }
     MYSQL_RES* res = mysql_store_result(mysql);
@@ -803,14 +804,14 @@ bool UserDAO::login(std::string account, std::string password)
     //检查数据库连接状态
     if(!DBConnectionManager::ensureConnected(mysql))
     {
-        printf("[error] function:login() 数据库连接失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:login() 数据库连接失败！失败原因：%s", mysql_error(mysql));
         return retLogin;
     }
 
     snprintf(sql, SQL_MAX, "select password from user where username = %d;",stoi(account));
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
-        printf("[error] function:login() 查询user表失败！失败原因：%s\n", mysql_error(mysql));
+        LOG_ERROR("function:login() 查询user表失败！失败原因：%s", mysql_error(mysql));
         return ret;
     }
     res = mysql_store_result(mysql);

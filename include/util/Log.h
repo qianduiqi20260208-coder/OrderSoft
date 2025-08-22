@@ -1,5 +1,7 @@
 #include "DBConnectionManager.h"
 #include "jwt_utils.h"
+#include "util/Logger.h"
+
 
 template<typename Handler>
 auto withAspect(Handler&& handler) {
@@ -22,7 +24,7 @@ auto withAspect(Handler&& handler) {
         if(ret)
         {
             printf("sql:%s",sql);
-            printf("[error] function:withAspect 失败原因：%s\n", mysql_error(dbcon.mysql));
+            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(dbcon.mysql));
         }
 
         return response;
@@ -50,7 +52,7 @@ auto withAspectTicketDownload(Handler&& handler) {
         if(ret)
         {
             printf("sql:%s",sql);
-            printf("[error] function:withAspectTicketDownload 失败原因：%s\n", mysql_error(dbcon.mysql));
+            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(dbcon.mysql));
         }
 
         return response;
@@ -77,8 +79,7 @@ auto withAspectApproveList(Handler&& handler) {
 
         if(ret)
         {
-            printf("sql:%s",sql);
-            printf("[error] function:withAspect 失败原因：%s\n", mysql_error(dbcon.mysql));
+            LOG_ERROR("sql:%s,function:withAspect 失败原因：%s", sql,mysql_error(dbcon.mysql));
         }
 
         return response;
