@@ -50,7 +50,7 @@ auto withAspectTicketDownload(Handler&& handler) {
         if(ret)
         {
             printf("sql:%s",sql);
-            printf("[error] function:withAspect 失败原因：%s\n", mysql_error(dbcon.mysql));
+            printf("[error] function:withAspectTicketDownload 失败原因：%s\n", mysql_error(dbcon.mysql));
         }
 
         return response;
