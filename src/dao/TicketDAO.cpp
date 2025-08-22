@@ -1217,7 +1217,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') "
        << ") ORDER BY id DESC;";
 
-    printf("sql:%s\n", ss.str().c_str());
+    // printf("sql:%s\n", ss.str().c_str());
     ret = mysql_real_query(mysql, ss.str().c_str(), ss.str().size());
     
     if (ret) {

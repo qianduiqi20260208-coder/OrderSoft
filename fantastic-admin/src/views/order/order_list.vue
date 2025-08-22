@@ -465,7 +465,7 @@ function handleBackToSendDetail() {
           <!-- 工单ID搜索框 -->
           <el-input
             v-model="filterOrderID"
-            placeholder="工单ID（如 GX-250701-001）"
+            placeholder="工单ID"
             clearable
             class="min-w-[240px] flex-1"
             @keyup.enter="handleSearch"
@@ -922,7 +922,7 @@ function handleBackToSendDetail() {
               </template>
               <!-- 任务分发 -->
               <FaPageMain
-                v-if="['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== '-1'"
+                v-if="['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== ''"
                 title=""
                 :collaspe="!expandedMap[order.orderID]"
                 height="auto"
@@ -960,35 +960,38 @@ function handleBackToSendDetail() {
                   </div>
                 </template>
                 <div
-                  class="flex items-center justify-between rounded px-6 py-4"
-                  :class="order.status === '待分发' ? 'bg-gray-50' : 'bg-gray-100 opacity-70'"
+                  class="rounded px-6 py-4"
+                  :class="order.status === '待分发' ? 'bg-gray-50' : 'bg-gray-50 opacity-70'"
                 >
-                  <div class="flex items-center gap-3">
-                    <span class="ml-4 text-gray-700 font-semibold">任务优先级：</span>
-                    <el-input
-                      :model-value="order.taskPriority"
-                      size="small"
-                      style="width: 120px;"
-                      disabled
-                    />
-                    <!-- 下一流程负责人（执行人ID） -->
-                    <span class="ml-4 text-gray-700 font-semibold">下一流程负责人：</span>
-                    <el-input
-                      :model-value="order.executorID"
-                      size="small"
-                      style="width: 120px;"
-                      disabled
-                    />
-                    <!-- 新增：已退回时显示拒绝原因 -->
-                    <div v-if="order.status === '已退回'" class="flex items-center gap-3">
-                      <span class="ml-4 text-red-600 font-semibold">拒绝原因：</span>
-                      <el-input
-                        :model-value="order.rejectReason"
-                        size="small"
-                        style="width: 220px;"
-                        disabled
-                      />
+                  <!-- 第一行：任务优先级和下一流程负责人（内容占满整行，保持在同一行） -->
+                  <div class="mb-2 w-full flex flex-row gap-6">
+                    <div class="flex flex-1 items-center gap-2">
+                      <span class="w-32 text-black font-semibold">任务优先级：</span>
+                      <input
+                        :value="order.taskPriority"
+                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        readonly
+                      >
                     </div>
+                    <div class="flex flex-1 items-center gap-2">
+                      <span class="w-50 text-black font-semibold">下一流程负责人：</span>
+                      <input
+                        :value="order.executorID"
+                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        readonly
+                      >
+                    </div>
+                  </div>
+                  <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
+                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                    <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
+                    <textarea
+                      :value="order.rejectReason"
+                      class="flex-1 border border-red-300 rounded bg-red-50 px-3 py-2 text-sm text-red-700"
+                      style="min-width: 220px;max-width: 100%;max-height: 80px;overflow-y: auto;word-break: break-all;white-space: pre-line;"
+                      rows="2"
+                      readonly
+                    />
                   </div>
                 </div>
               </FaPageMain>
@@ -1032,35 +1035,38 @@ function handleBackToSendDetail() {
                   </div>
                 </template>
                 <div
-                  class="flex items-center justify-between rounded px-6 py-4"
-                  :class="order.status === '待审批' ? 'bg-gray-50' : 'bg-gray-100 opacity-70'"
+                  class="rounded px-6 py-4"
+                  :class="order.status === '待审批' ? 'bg-gray-50' : 'bg-gray-50 opacity-70'"
                 >
-                  <div class="flex items-center gap-3">
-                    <span class="ml-4 text-gray-700 font-semibold">参考优先级：</span>
-                    <el-input
-                      :model-value="order.referencePriority"
-                      size="small"
-                      style="width: 120px;"
-                      disabled
-                    />
-                    <!-- 新增：下一流程负责人 -->
-                    <span class="ml-4 text-gray-700 font-semibold">下一流程负责人：</span>
-                    <el-input
-                      :model-value="order.distributorID"
-                      size="small"
-                      style="width: 120px;"
-                      disabled
-                    />
-                    <!-- 新增：已退回时显示拒绝原因 -->
-                    <div v-if="order.status === '已退回'" class="flex items-center gap-3">
-                      <span class="ml-4 text-red-600 font-semibold">拒绝原因：</span>
-                      <el-input
-                        :model-value="order.rejectReason"
-                        size="small"
-                        style="width: 220px;"
-                        disabled
-                      />
+                  <!-- 第一行：参考优先级和下一流程负责人（内容占满整行，保持在同一行） -->
+                  <div class="mb-2 w-full flex flex-row gap-6">
+                    <div class="flex flex-1 items-center gap-2">
+                      <span class="w-32 text-black font-semibold">参考优先级：</span>
+                      <input
+                        :value="order.referencePriority"
+                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        readonly
+                      >
                     </div>
+                    <div class="flex flex-1 items-center gap-2">
+                      <span class="w-50 text-black font-semibold">下一流程负责人：</span>
+                      <input
+                        :value="order.distributorID"
+                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        readonly
+                      >
+                    </div>
+                  </div>
+                  <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
+                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                    <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
+                    <textarea
+                      :value="order.rejectReason"
+                      class="flex-1 border border-red-300 rounded bg-red-50 px-3 py-2 text-sm text-red-700"
+                      style="min-width: 220px;max-width: 100%;max-height: 80px;overflow-y: auto;word-break: break-all;white-space: pre-line;"
+                      rows="2"
+                      readonly
+                    />
                   </div>
                 </div>
               </FaPageMain>

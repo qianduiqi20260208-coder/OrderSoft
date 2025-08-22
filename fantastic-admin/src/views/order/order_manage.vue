@@ -1900,8 +1900,9 @@ onMounted(() => {
                       <el-select
                         v-model="leaderPriority"
                         placeholder="请选择"
-                        size="small"
+                        size="default"
                         style="width: 110px;"
+                        clearable
                       >
                         <el-option label="紧急" value="紧急" />
                         <el-option label="一般" value="一般" />
@@ -1911,7 +1912,7 @@ onMounted(() => {
                       <!-- 进行中状态：显示只读输入框，显示工单的任务优先级 -->
                       <el-input
                         :model-value="order.taskPriority"
-                        size="small"
+                        size="default"
                         style="width: 110px;"
                         disabled
                       />
@@ -1924,8 +1925,8 @@ onMounted(() => {
                       placeholder="请选择执行人ID"
                       filterable
                       clearable
-                      size="small"
-                      style="width: 140px;"
+                      size="default"
+                      style="width: 160px;"
                       :disabled="order.status !== '待分发'"
                       @visible-change="val => val && fetchExecutorList(order.modelID)"
                     >
@@ -1940,7 +1941,7 @@ onMounted(() => {
                   <div class="flex items-center gap-3">
                     <el-button
                       type="success"
-                      size="small"
+                      size="default"
                       :disabled="order.status !== '待分发' || !leaderPriority"
                       @click="handleDistribute(order)"
                     >
@@ -1948,7 +1949,7 @@ onMounted(() => {
                     </el-button>
                     <el-button
                       type="danger"
-                      size="small"
+                      size="default"
                       :disabled="order.status !== '待分发'"
                       @click="handleReject(order)"
                     >
@@ -2008,8 +2009,9 @@ onMounted(() => {
                       <el-select
                         v-model="leaderPriority"
                         placeholder="请选择"
-                        size="small"
+                        size="default"
                         style="width: 110px;"
+                        clearable
                       >
                         <el-option label="紧急" value="紧急" />
                         <el-option label="一般" value="一般" />
@@ -2019,7 +2021,7 @@ onMounted(() => {
                       <!-- 非待审批状态：显示只读输入框，显示工单的参考优先级 -->
                       <el-input
                         :model-value="order.referencePriority"
-                        size="small"
+                        size="default"
                         style="width: 110px;"
                         disabled
                       />
@@ -2032,8 +2034,8 @@ onMounted(() => {
                       placeholder="请选择负责人ID"
                       filterable
                       clearable
-                      size="small"
-                      style="width: 140px;"
+                      size="default"
+                      style="width: 160px;"
                       :disabled="order.status !== '待审批'"
                       @visible-change="val => val && fetchDistributorList(order.modelID)"
                     >
@@ -2048,7 +2050,7 @@ onMounted(() => {
                   <div class="flex items-center gap-3">
                     <el-button
                       type="success"
-                      size="small"
+                      size="default"
                       :disabled="order.status !== '待审批' || !leaderPriority"
                       @click="handleApprove(order)"
                     >
@@ -2056,7 +2058,7 @@ onMounted(() => {
                     </el-button>
                     <el-button
                       type="danger"
-                      size="small"
+                      size="default"
                       :disabled="order.status !== '待审批'"
                       @click="handleReject(order)"
                     >
