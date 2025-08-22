@@ -739,7 +739,7 @@ async function downloadFile(fileUrl: string, fileName: string) {
     }
 
     // 调用后端API下载文件
-    const response = await orderApi.downloadTicketFile(ticketId, fileName)
+    const response = await orderApi.downloadTicketFile(ticketId, encodeURIComponent(fileName))
 
     // 从响应数据中提取文件信息
     const { content, contentType, size } = response.data
