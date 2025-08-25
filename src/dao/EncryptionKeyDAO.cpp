@@ -25,7 +25,7 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
         return {};
     }
     
-    MYSQL* conn = getConnection();
+    MYSQL* mysql = getConnection();
     std::vector<DongleInfo> retVec;
 
     char local_sql[SQL_MAX];
@@ -33,12 +33,12 @@ std::vector<DongleInfo> EncryptionKey::getDongleInfo()
     MYSQL_RES* local_res;
     MYSQL_ROW local_row;
     snprintf(local_sql, SQL_MAX, "select * from encryption_key;");
-    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    local_ret = mysql_real_query(mysql, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
-        LOG_ERROR("function:getDongleInfo 查询 encryption_key 表失败！失败原因：%s", mysql_error(conn));
+        LOG_ERROR("function:getDongleInfo 查询 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
         return {};
     }
-    local_res = mysql_store_result(conn);
+    local_res = mysql_store_result(mysql);
     while(local_row = mysql_fetch_row(local_res))
     {
 
