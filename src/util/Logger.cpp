@@ -32,7 +32,7 @@ bool Logger::initialize(const std::string& baseLogPath, LogLevel minLevel) {
         m_initialized = true;
         
         // 记录初始化日志
-        log(LogLevel::INFO, __FILE__, __LINE__, "Logger initialized with base path: %s, min level: %s", 
+        log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, "Logger initialized with base path: %s, min level: %s", 
             m_baseLogPath.c_str(), getLevelString(m_minLogLevel).c_str());
         
         return true;
@@ -85,11 +85,11 @@ void Logger::setMinLogLevel(LogLevel level) {
 // 获取日志级别字符串
 std::string Logger::getLevelString(LogLevel level) {
     switch (level) {
-        case LogLevel::DEBUG:   return "DEBUG";
-        case LogLevel::INFO:    return "INFO";
-        case LogLevel::WARNING: return "WARNING";
+        case LogLevel::DEBUG_LEVEL:   return "DEBUG";
+        case LogLevel::INFO_LEVEL:    return "INFO";
+        case LogLevel::WARNING_LEVEL: return "WARNING";
         case LogLevel::ERROR_LEVEL:   return "ERROR";
-        case LogLevel::FATAL:   return "FATAL";
+        case LogLevel::FATAL_LEVEL:   return "FATAL";
         default:                return "UNKNOWN";
     }
 }
@@ -112,7 +112,7 @@ void Logger::cleanOldLogs(int daysToKeep) {
                     
                     if (sctp < cutoffTime) {
                         std::filesystem::remove(entry.path());
-                        log(LogLevel::INFO, __FILE__, __LINE__, "Removed old log file: %s", 
+                        log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, "Removed old log file: %s",
                             entry.path().string().c_str());
                     }
                 }
@@ -126,7 +126,7 @@ void Logger::cleanOldLogs(int daysToKeep) {
 // 析构函数
 Logger::~Logger() {
     if (m_initialized) {
-        log(LogLevel::INFO, __FILE__, __LINE__, "Logger shutting down");
+        log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, "Logger shutting down");
     }
 }
 

@@ -3,7 +3,7 @@
 
 // 静态成员变量定义
 std::string LoggerConfig::s_logBasePath = "logs";
-LogLevel LoggerConfig::s_minLogLevel = LogLevel::INFO;
+LogLevel LoggerConfig::s_minLogLevel = LogLevel::INFO_LEVEL;
 int LoggerConfig::s_logRetentionDays = 30;
 bool LoggerConfig::s_consoleOutput = true;
 bool LoggerConfig::s_initialized = false;
@@ -24,7 +24,7 @@ void LoggerConfig::initFromConfig(const std::string& configPath) {
         if (levelInt >= 0 && levelInt <= 4) {
             s_minLogLevel = static_cast<LogLevel>(levelInt);
         } else {
-            s_minLogLevel = LogLevel::INFO;
+            s_minLogLevel = LogLevel::INFO_LEVEL;
             std::cerr << "Invalid log level in config, using INFO as default" << std::endl;
         }
         
