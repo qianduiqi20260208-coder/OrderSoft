@@ -1,0 +1,42 @@
+[13:19:08.741] [INFO] [Logger.cpp:35] Logger initialized with base path: logs, min level: INFO
+[13:19:08.746] [INFO] [main.cpp:40] ModelLifeManager 服务启动中..
+[13:19:08.750] [INFO] [Logger.cpp:129] Logger shutting down
+[13:20:38.055] [INFO] [Logger.cpp:35] Logger initialized with base path: logs, min level: INFO
+[13:20:38.056] [INFO] [LoggerConfig.cpp:43] Logger configuration loaded:
+[13:20:38.057] [INFO] [LoggerConfig.cpp:44]   - Base path: logs
+[13:20:38.057] [INFO] [LoggerConfig.cpp:45]   - Min level: INFO
+[13:20:38.058] [INFO] [LoggerConfig.cpp:46]   - Retention days: 30
+[13:20:38.059] [INFO] [LoggerConfig.cpp:47]   - Console output: enabled
+[13:20:38.059] [INFO] [main.cpp:40] ModelLifeManager 服务启动中..
+[13:20:38.063] [INFO] [Logger.cpp:129] Logger shutting down
+[13:22:04.626] [INFO] [Logger.cpp:35] Logger initialized with base path: logs, min level: INFO
+[13:22:04.627] [INFO] [LoggerConfig.cpp:43] Logger configuration loaded:
+[13:22:04.628] [INFO] [LoggerConfig.cpp:44]   - Base path: logs
+[13:22:04.628] [INFO] [LoggerConfig.cpp:45]   - Min level: INFO
+[13:22:04.629] [INFO] [LoggerConfig.cpp:46]   - Retention days: 30
+[13:22:04.630] [INFO] [LoggerConfig.cpp:47]   - Console output: enabled
+[13:22:04.631] [INFO] [main.cpp:43] ModelLifeManager 服务启动中..
+[13:22:04.634] [INFO] [Logger.cpp:129] Logger shutting down
+[13:24:04.468] [INFO] [Logger.cpp:35] Logger initialized with base path: logs, min level: INFO
+[13:24:04.469] [INFO] [LoggerConfig.cpp:43] Logger configuration loaded:
+[13:24:04.469] [INFO] [LoggerConfig.cpp:44]   - Base path: logs
+[13:24:04.470] [INFO] [LoggerConfig.cpp:45]   - Min level: INFO
+[13:24:04.470] [INFO] [LoggerConfig.cpp:46]   - Retention days: 30
+[13:24:04.470] [INFO] [LoggerConfig.cpp:47]   - Console output: enabled
+[13:24:04.471] [INFO] [main.cpp:43] ModelLifeManager 服务启动中..
+[13:24:04.556] [INFO] [ConnectionPool.cpp:126] ConnectionPool::initialize 连接池初始化成功，初始连接数: 5
+[13:24:04.557] [INFO] [ConnectionPool.cpp:246] ConnectionPool::cleanupThread 清理线程启动
+[13:24:04.557] [INFO] [DBConnectionManager.cpp:37] DBConnectionManager::initializePool 连接池初始化成功
+[13:24:04.558] [INFO] [main.cpp:50] 数据库连接池初始化成功
+[13:26:13.442] [INFO] [Logger.cpp:35] Logger initialized with base path: logs, min level: INFO
+[13:26:13.443] [INFO] [LoggerConfig.cpp:43] Logger configuration loaded:
+[13:26:13.443] [INFO] [LoggerConfig.cpp:44]   - Base path: logs
+[13:26:13.444] [INFO] [LoggerConfig.cpp:45]   - Min level: INFO
+[13:26:13.444] [INFO] [LoggerConfig.cpp:46]   - Retention days: 30
+[13:26:13.444] [INFO] [LoggerConfig.cpp:47]   - Console output: enabled
+[13:26:13.445] [INFO] [main.cpp:43] ModelLifeManager 服务启动中..
+[13:26:13.545] [INFO] [ConnectionPool.cpp:126] ConnectionPool::initialize 连接池初始化成功，初始连接数: 5
+[13:26:13.545] [INFO] [ConnectionPool.cpp:246] ConnectionPool::cleanupThread 清理线程启动
+[13:26:13.546] [INFO] [DBConnectionManager.cpp:37] DBConnectionManager::initializePool 连接池初始化成功
+[13:26:13.547] [INFO] [main.cpp:50] 数据库连接池初始化成功
+[13:26:13.559] [INFO] [main.cpp:95] 服务器启动成功，监听端口: 18080

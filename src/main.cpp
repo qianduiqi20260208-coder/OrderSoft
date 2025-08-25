@@ -5,6 +5,7 @@
 #include <memory>
 #include <mysql.h>
 #include <iostream>
+#include <filesystem>
 #include <locale>
 #include "crow.h"
 #include "crow/middlewares/cors.h"
@@ -36,7 +37,9 @@ std::map<int,std::string> id_name;
 int main() {
 
 	// 初始化日志系统
-	LoggerConfig::initFromConfig("config.ini");
+	LoggerConfig::initFromConfig("./config/config.ini");
+    std::filesystem::path iniPath = std::filesystem::absolute("./config/config.ini");
+    std::cout << "INI文件绝对路径: " << iniPath.string() << std::endl;
 	LOG_INFO("ModelLifeManager 服务启动中..");
 
 	// 初始化数据库连接池

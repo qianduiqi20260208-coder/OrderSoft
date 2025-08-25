@@ -28,7 +28,6 @@ public:
     
     // 初始化日志系统
     bool initialize(const std::string& baseLogPath = "logs", LogLevel minLevel = LogLevel::INFO_LEVEL);
-    
     // 写入日志
     void log(LogLevel level, const char* file, int line, const char* format, ...);
     

@@ -112,7 +112,7 @@ void Logger::cleanOldLogs(int daysToKeep) {
                     
                     if (sctp < cutoffTime) {
                         std::filesystem::remove(entry.path());
-                        log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, "Removed old log file: %s", 
+                        log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, "Removed old log file: %s",
                             entry.path().string().c_str());
                     }
                 }

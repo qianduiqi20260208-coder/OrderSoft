@@ -1,0 +1,24 @@
+[13:19:08.745] [WARNING] [LoggerConfig.cpp:56] Logger initialized with default configuration due to config error: Failed to load config file
+[13:24:04.559] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:26:13.548] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.697] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.705] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.716] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.724] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.732] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.742] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.753] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.762] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.771] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.780] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.788] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.796] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.805] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.812] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.820] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.826] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.835] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.842] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.851] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.859] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
+[13:29:52.866] [WARNING] [DBConnectionManager.cpp:53] DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池
