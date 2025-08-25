@@ -5,9 +5,10 @@ meta:
 </route>
 
 <script setup lang="ts">
-import { ElLoading } from 'element-plus'
+import { ElLoading, ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import * as XLSX from 'xlsx'
 import modelApi from '@/api/modules/model'
 
 // ----------------定义数据结构--------------------
@@ -200,6 +201,109 @@ async function apiFetchUserModels() {
   return { list: [], total: 0 }
 }
 
+// --------------模型版本信息导出弹窗----------------
+interface ModelVersionInfo {
+  version: string // 模型版本号
+  updateNotes: string // 更新内容
+}
+const versionDialogVisible = ref(false)
+const versionTableData = ref<ModelVersionInfo[]>([])
+const selectedVersions = ref<ModelVersionInfo[]>([])
+const versionDialogLoading = ref(false)
+function openVersionDialog() {
+  versionDialogVisible.value = true
+}
+
+// 后端获取模型版本信息
+async function fetchVersionTableData() {
+  versionDialogLoading.value = true
+  try {
+    const res = await modelApi.getVersionList({ modelID: route.matched[0].name ? String(route.matched[0].name) : '' })
+    // 手动映射，确保每项都符合 ModelVersionInfo 类型
+    versionTableData.value = (res?.data?.list || []).map((item: any) => ({
+      version: item.version ?? '', // 模型版本号
+      updateNotes: item.updateNotes ?? '', // 更新内容
+    }))
+  }
+  catch (e) {
+    ElMessage.error('获取模型版本数据失败')
+    console.error('获取模型版本数据失败:', e)
+    versionTableData.value = []
+  }
+  finally {
+    versionDialogLoading.value = false
+  }
+}
+
+function handleSelectionChange(selection: any[]) {
+  selectedVersions.value = selection
+}
+
+function getBeijingTimestamp() {
+  const now = new Date()
+  // 北京时间 = UTC时间 + 8小时
+  const bjTime = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const yyyy = bjTime.getUTCFullYear()
+  const MM = String(bjTime.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(bjTime.getUTCDate()).padStart(2, '0')
+  const HH = String(bjTime.getUTCHours()).padStart(2, '0')
+  const mm = String(bjTime.getUTCMinutes()).padStart(2, '0')
+  const ss = String(bjTime.getUTCSeconds()).padStart(2, '0')
+  return `${yyyy}${MM}${dd}${HH}${mm}${ss}`
+}
+
+function submitSelectedVersions() {
+  if (selectedVersions.value.length === 0) {
+    ElMessage.warning('请先选择要导出的模型版本')
+    return
+  }
+  const ataName = route.matched[0].name ? String(route.matched[0].name) : '模型版本'
+  const timestamp = getBeijingTimestamp()
+
+  // 1. 按前三位分组并合并内容
+  const grouped: Record<string, string[]> = {}
+  selectedVersions.value.forEach((item) => {
+    const match = item.version.match(/^(\d+\.\d+\.\d+)/)
+    const key = match ? match[1] : item.version
+    if (!grouped[key]) {
+      grouped[key] = []
+    }
+    grouped[key].push(item.updateNotes)
+  })
+
+  // 2. 构造二维数组数据（表头+内容）
+  const aoa: any[][] = [['序号', '模型版本', '更新内容']]
+  const merges: any[] = []
+  let rowIdx = 1
+  let seq = 1
+  Object.entries(grouped).forEach(([version, notes]) => {
+    if (notes.length === 1) {
+      aoa.push([seq, version, notes[0]])
+      rowIdx++
+    }
+    else {
+      // 多条内容，模型版本单元格合并
+      aoa.push([seq, version, notes[0]])
+      for (let i = 1; i < notes.length; i++) {
+        aoa.push(['', '', notes[i]])
+      }
+      // 合并模型版本单元格（B列），序号单元格（A列）
+      merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx + notes.length - 1, c: 1 } })
+      merges.push({ s: { r: rowIdx, c: 0 }, e: { r: rowIdx + notes.length - 1, c: 0 } })
+      rowIdx += notes.length
+    }
+    seq++
+  })
+
+  // 3. 导出Excel
+  const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+  worksheet['!merges'] = merges
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, ataName)
+  XLSX.writeFile(workbook, `${ataName}_updateNotes_${timestamp}.xlsx`)
+  ElMessage.success('Excel导出成功')
+  versionDialogVisible.value = false
+}
 const globalLoading = ref(false)
 let loadingInstance: any = null
 
@@ -272,6 +376,10 @@ function expandModel(version: string, expand: boolean) {
                       {{ route.matched[0].name }} 模型版本列表
                     </h1>
                   </div>
+                  <!-- 新增：右侧按钮 -->
+                  <el-button type="primary" @click="openVersionDialog">
+                    导出更新内容
+                  </el-button>
                 </div>
 
                 <!-- 文字提示行 -->
@@ -756,6 +864,34 @@ function expandModel(version: string, expand: boolean) {
                   </el-button>
                 </template>
               </FaModal>
+
+              <!-- 新增：模型版本弹窗 -->
+              <el-dialog
+                v-model="versionDialogVisible"
+                title="模型版本批量操作"
+                width="50vw"
+                @open="fetchVersionTableData"
+              >
+                <el-table
+                  v-loading="versionDialogLoading"
+                  :data="versionTableData"
+                  style="width: 100%;"
+                  @selection-change="handleSelectionChange"
+                >
+                  <el-table-column type="selection" width="50" />
+                  <el-table-column label="序号" type="index" width="60" />
+                  <el-table-column prop="version" label="模型版本" width="180" />
+                  <el-table-column prop="updateNotes" label="更新内容" />
+                </el-table>
+                <template #footer>
+                  <el-button @click="versionDialogVisible = false">
+                    取消
+                  </el-button>
+                  <el-button type="primary" :disabled="selectedVersions.length === 0" @click="submitSelectedVersions">
+                    导出
+                  </el-button>
+                </template>
+              </el-dialog>
               <div class="mt-6 flex justify-center">
                 <el-pagination
                   background

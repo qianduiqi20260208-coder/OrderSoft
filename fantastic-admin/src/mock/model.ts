@@ -313,4 +313,23 @@ export default defineFakeRoute([
       }
     },
   },
+  {
+    url: '/mock/model/version-list',
+    method: 'get',
+    response: () => {
+      // 可根据 query.modelID 返回不同数据
+      return {
+        status: 1,
+        error: '',
+        data: {
+          list: [
+            { version: '1.0.1.1C', updateNotes: '初始版本，支持基础功能' },
+            { version: '1.0.1.2C', updateNotes: '修复若干bug，优化性能' },
+            { version: '1.0.2.0C', updateNotes: '新增自动检测模块' },
+            { version: '2.1.0.0C', updateNotes: '提升安全性，适配新平台' },
+          ],
+        },
+      }
+    },
+  },
 ])
