@@ -12,7 +12,7 @@ namespace {
         try {
             return std::stoi(str);
         } catch (const std::exception& e) {
-             LOG_WARNING("safeStoi failed for '%s': %s, using default %d\n", 
+            printf("[WARNING] safeStoi failed for '%s': %s, using default %d\n", 
                    str.c_str(), e.what(), defaultValue);
             return defaultValue;
         }
@@ -133,13 +133,13 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         // 获取用户角色权限
         for(const auto& role : user.roleVec) {
-             LOG_INFO("function:convertRoleToEnglish() role: %s\n", role.c_str());
+            printf("[info] function:convertRoleToEnglish() role: %s\n", role.c_str());
             std::string role_ = convertRoleToEnglish(role); // 转换为英文角色名称
             permissions.push_back(role_);
         }
 
         for(const auto& flowRole : user.flowRoleVec) {
-             LOG_INFO("function:convertFlowRoleToEnglish() flowRole: %s\n", flowRole.c_str());
+            printf("[info] function:convertFlowRoleToEnglish() flowRole: %s\n", flowRole.c_str());
             std::string flowRole_ = convertFlowRoleToEnglish(flowRole); // 转换为英文流程角色名称
             permissions.push_back(flowRole_);
         }
@@ -220,7 +220,7 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         auto tickets = userService->getUserOrder(userIdInt);
 
-         LOG_INFO("function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
+        printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 
         nlohmann::json list = nlohmann::json::array();
 

@@ -27,6 +27,7 @@
 #include "EncryptionKeyDAO.h"
 #include "EncryptionKeyService.h"
 #include "EncryptionKeyController.h"
+#include "ConnectionPoolTestController.h"
 #include "DBConnectionManager.h"
 #include "util/LoggerConfig.h"
 #include "util/Logger.h"
@@ -39,10 +40,12 @@ int main() {
 	LoggerConfig::initFromConfig("config.ini");
 	LOG_INFO("ModelLifeManager 服务启动中..");
 
-	MYSQL mysql;
-	mysql_init(&mysql);
-
-	mysql_set_character_set(&mysql, "utf8mb4");
+	// 初始化数据库连接池
+	if (!DBConnectionManager::initializePool()) {
+		LOG_ERROR("数据库连接池初始化失败，程序退出");
+		return -1;
+	}
+	LOG_INFO("数据库连接池初始化成功");
 	
 	// 设置控制台为 UTF-8 模式 非常重要！！！
     SetConsoleOutputCP(CP_UTF8);
@@ -50,12 +53,12 @@ int main() {
     //一个工号跟姓名之间的映射
     add_idname_mapping();
 
-    // 创建 DAO 对象
-    auto userDAO = std::make_shared<UserDAO>(&mysql);
-    auto ticketDAO = std::make_shared<TicketDAO>(&mysql);
-    auto modelDAO = std::make_shared<ModelDAO>(&mysql);  // 添加 ModelDAO
-    auto customerInfoDAO = std::make_shared<CustomerInfoDAO>(&mysql);
-    auto encryptionKeyDAO = std::make_shared<EncryptionKey>(&mysql);
+    // 创建 DAO 对象（现在使用连接池，不需要传递MYSQL对象）
+    auto userDAO = std::make_shared<UserDAO>();
+    auto ticketDAO = std::make_shared<TicketDAO>();
+    auto modelDAO = std::make_shared<ModelDAO>();  // 使用连接池
+    auto customerInfoDAO = std::make_shared<CustomerInfoDAO>();
+    auto encryptionKeyDAO = std::make_shared<EncryptionKey>();
 
     // 创建 Service 对象
     auto userService = std::make_shared<UserService>(userDAO);

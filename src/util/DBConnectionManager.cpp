@@ -3,10 +3,55 @@
 #include <stdio.h>
 #include <filesystem>
 #include "util/Logger.h"
+#include "util/ConnectionPool.h"
 
+
+bool DBConnectionManager::initializePool()
+{
+    //从ini文件里读出数据库配置
+    IniReader config;
+    if (!config.load("config.ini")) { 
+        LOG_ERROR("function:initializePool 无法读取 config.ini 文件\n");
+        printf("CWD = %s\n", std::filesystem::current_path().string().c_str());
+        return false;
+    }
+    
+    std::string dbHost = config.getString("database", "host");
+    int dbPort = config.getInt("database", "port");
+    std::string dbUser = config.getString("database", "user");
+    std::string dbPass = config.getString("database", "password");
+    std::string dbName = config.getString("database", "database");
+    
+    // 读取连接池配置
+    int minConnections = config.getInt("connection_pool", "min_connections", 5);
+    int maxConnections = config.getInt("connection_pool", "max_connections", 20);
+    int maxIdleTime = config.getInt("connection_pool", "max_idle_time", 300);
+    
+    // 初始化连接池
+    bool result = ConnectionPool::getInstance().initialize(
+        dbHost, dbPort, dbUser, dbPass, dbName,
+        minConnections, maxConnections, maxIdleTime
+    );
+    
+    if (result) {
+        LOG_INFO("DBConnectionManager::initializePool 连接池初始化成功");
+    } else {
+        LOG_ERROR("DBConnectionManager::initializePool 连接池初始化失败");
+    }
+    
+    return result;
+}
+
+ConnectionGuard DBConnectionManager::getPoolConnection()
+{
+    auto conn = ConnectionPool::getInstance().getConnection();
+    return ConnectionGuard(conn);
+}
 
 bool DBConnectionManager::getConnection(MYSQL*& mysql)
 {
+    LOG_WARNING("DBConnectionManager::getConnection 使用了已废弃的接口，建议使用连接池");
+    
     //从ini文件里读出数据库配置
     IniReader config;
     if (!config.load("config.ini")) { 
@@ -68,4 +113,10 @@ void DBConnectionManager::closeConnection(MYSQL *mysql)
 {
     // 关闭数据库
 	mysql_close(mysql);
+}
+
+void DBConnectionManager::shutdownPool()
+{
+    ConnectionPool::getInstance().shutdown();
+    LOG_INFO("DBConnectionManager::shutdownPool 连接池已关闭");
 }

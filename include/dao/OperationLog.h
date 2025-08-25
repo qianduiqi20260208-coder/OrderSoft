@@ -5,6 +5,6 @@
 #include <iostream>
 #include <string>
 
-#define SQL_MAX 1024		// sql语句字符数组最大值
+#define SQL_MAX 99999		// sql语句字符数组最大值
 
 bool generateOperationLog(std::string, const Log&);

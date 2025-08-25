@@ -1,13 +1,15 @@
 #pragma once
 #include "IUserDAO.h"
+#include "BaseDAO.h"
 #include <mysql.h>
-#define SQL_MAX 1024		// sql语句字符数组最大值
+#define SQL_MAX 99999		// sql语句字符数组最大值
 
 
-class UserDAO :public IUserDAO
+class UserDAO : public IUserDAO, public BaseDAO
 {
 public:
-    UserDAO(MYSQL* ms);
+    UserDAO(); // 使用连接池，不需要MYSQL参数
+    UserDAO(MYSQL* ms); // 兼容旧接口（已废弃）
     std::vector<User> getUser()override;
     //返回一个空指针放在vector里代表查询失败
     std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)override;
