@@ -15,6 +15,9 @@ public:
 
     virtual int getModelVersionCount(std::string model) = 0;
     
+    virtual std::vector<std::pair<std::string,std::string>> selectModelUpdateNotesByModelName(std::string) = 0;
+
+
     virtual ~IModelDAO() = 0;
 };
 

@@ -117,3 +117,8 @@ std::vector<std::string> ModelService::getModelVersionByPartialModelVersion(std:
 
     return retVec;
 }
+
+std::vector<std::pair<std::string, std::string>> ModelService::exportModelVersionUpdateNotesToExcel(std::string modelName)
+{
+    return modelDAO_->selectModelUpdateNotesByModelName(modelName);
+}

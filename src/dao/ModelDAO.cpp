@@ -143,3 +143,29 @@ int ModelDAO::getModelVersionCount(std::string model)
 
     return count;
 }
+
+std::vector<std::pair<std::string, std::string>> ModelDAO::selectModelUpdateNotesByModelName(std::string modelName)
+{
+    if(!DBConnectionManager::ensureConnected(mysql))
+    {
+        return {};
+    }
+    std::vector<std::pair<std::string, std::string>> retVec;
+
+    snprintf(sql, SQL_MAX, "select mv.version,vi.update_content from version_iteration vi"
+        " join model_version mv on vi.new_model_version_id = mv.id"
+        " join work_order wo on wo.id = vi.work_order_id where wo.model ='%s';",modelName.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        LOG_ERROR("function:selectModelUpdateNotesByModelName 查询model_version表失败！失败原因：%s", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back({row[0],(row[1]?row[1]:"")});
+    }
+    mysql_free_result(res);
+
+    return retVec;
+}

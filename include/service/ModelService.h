@@ -19,6 +19,10 @@ public:
     int getModelVersionCount(std::string model) override;
 
     std::vector<std::string> getModelVersionByPartialModelVersion(std::string,std::string) override;
+    
+    std::vector<std::pair<std::string,std::string>> exportModelVersionUpdateNotesToExcel(std::string modelName) override;
+
+
 private:
     std::shared_ptr<IModelDAO> modelDAO_;
     std::shared_ptr<ITicketDAO> ticketDAO_;

@@ -16,6 +16,8 @@ public:
 
     int getModelVersionCount(std::string model) override;
 
+    std::vector<std::pair<std::string,std::string>> selectModelUpdateNotesByModelName(std::string) override;
+
     ~ModelDAO();
 private:
     MYSQL* mysql;
