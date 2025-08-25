@@ -37,8 +37,8 @@ std::map<int,std::string> id_name;
 int main() {
 
 	// 初始化日志系统
-	LoggerConfig::initFromConfig("./config/config.ini");
-    std::filesystem::path iniPath = std::filesystem::absolute("./config/config.ini");
+	LoggerConfig::initFromConfig("config.ini");
+    std::filesystem::path iniPath = std::filesystem::absolute("config.ini");
     std::cout << "INI文件绝对路径: " << iniPath.string() << std::endl;
 	LOG_INFO("ModelLifeManager 服务启动中..");
 

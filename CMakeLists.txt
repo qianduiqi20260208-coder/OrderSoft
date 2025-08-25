@@ -166,8 +166,12 @@ add_custom_command(TARGET ModelLifeManager POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${MINGW_BIN_DIR}/libwinpthread-1.dll"
         $<TARGET_FILE_DIR:ModelLifeManager>
-    
-    COMMENT "Copying required runtime DLLs to executable directory"
+        
+    # 复制 config.ini 到 bin 目录
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/config/config.ini"
+        $<TARGET_FILE_DIR:ModelLifeManager>
+    COMMENT "Copying required runtime DLLs and config.ini to executable directory"
 )
 
 # ==============================================================================

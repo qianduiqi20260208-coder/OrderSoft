@@ -10,7 +10,7 @@ bool DBConnectionManager::initializePool()
 {
     //从ini文件里读出数据库配置
     IniReader config;
-    if (!config.load("./config/config.ini")) { 
+    if (!config.load("config.ini")) { 
         LOG_ERROR("function:initializePool 无法读取 config.ini 文件\n");
         printf("CWD = %s\n", std::filesystem::current_path().string().c_str());
         return false;
@@ -54,7 +54,7 @@ bool DBConnectionManager::getConnection(MYSQL*& mysql)
     
     //从ini文件里读出数据库配置
     IniReader config;
-    if (!config.load("./config/config.ini")) { 
+    if (!config.load("config.ini")) { 
         LOG_ERROR("function:getConnection 无法读取 config.ini 文件\n");
         printf("CWD = %s\n", std::filesystem::current_path().string().c_str());
         return false;

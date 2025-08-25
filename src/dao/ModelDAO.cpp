@@ -153,10 +153,11 @@ int ModelDAO::getModelVersionCount(std::string model)
 
 std::vector<std::pair<std::string, std::string>> ModelDAO::selectModelUpdateNotesByModelName(std::string modelName)
 {
-    if(!DBConnectionManager::ensureConnected(mysql))
+    if(!ensureConnection())
     {
         return {};
     }
+    MYSQL* mysql = getConnection();
     std::vector<std::pair<std::string, std::string>> retVec;
 
     snprintf(sql, SQL_MAX, "select mv.version,vi.update_content from version_iteration vi"
