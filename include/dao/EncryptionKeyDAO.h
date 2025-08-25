@@ -1,11 +1,13 @@
 #include "IEncryptionKeyDAO.h"
+#include "BaseDAO.h"
 #include <mysql.h>
-#define SQL_MAX 1024	
+#define SQL_MAX 99999	
 
-class EncryptionKey : public IEncryptionKey
+class EncryptionKey : public IEncryptionKey, public BaseDAO
 {
 public:
-    EncryptionKey(MYSQL* m);
+    EncryptionKey(); // 使用连接池，不需要MYSQL参数
+    EncryptionKey(MYSQL* m); // 兼容旧接口（已废弃）
     std::vector<DongleInfo> getDongleInfo() override;
 
     bool createEncryptionKey(std::string,std::string) override;

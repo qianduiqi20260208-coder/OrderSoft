@@ -1,11 +1,13 @@
 #include "IModelDAO.h"
+#include "BaseDAO.h"
 #include <mysql.h>
-#define SQL_MAX 1024		// sql语句字符数组最大值
+#define SQL_MAX 99999		// sql语句字符数组最大值
 
-class ModelDAO :public IModelDAO
+class ModelDAO : public IModelDAO, public BaseDAO
 {
 public:
-    ModelDAO(MYSQL* ms);
+    ModelDAO(); // 使用连接池，不需要MYSQL参数
+    ModelDAO(MYSQL* ms); // 兼容旧接口（已废弃）
     std::vector<std::string> getModel()override;
     std::vector<std::string> getModelVersionByModel(std::string modelName)override;
     

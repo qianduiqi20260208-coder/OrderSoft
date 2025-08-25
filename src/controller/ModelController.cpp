@@ -155,4 +155,36 @@ void ModelController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         };
         return crow::response{ resp.dump() };
     }));
+
+    // 获取模型版本及其更新内容
+    CROW_ROUTE(app, "/model/version-list").methods("GET"_method)
+    (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        auto params = crow::query_string(req.url_params);
+        std::string modelID = params.get("modelID") ? params.get("modelID") : "";
+
+        // 查询 service 层
+        std::vector<std::pair<std::string, std::string>> versionNotes =
+            modelService->exportModelVersionUpdateNotesToExcel(modelID);
+
+        nlohmann::json list = nlohmann::json::array();
+        for (const auto& [version, updateNotes] : versionNotes) {
+            list.push_back({
+                {"version", version},
+                {"updateNotes", updateNotes}
+            });
+        }
+
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", list}
+            }}
+        };
+        return crow::response{ resp.dump() };
+    }));
 }

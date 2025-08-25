@@ -7,6 +7,7 @@ meta:
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
 
@@ -21,6 +22,8 @@ const dialogOtherVisible = ref(false)// 其他工单弹窗控制
 
 const userStore = useUserStore()
 const currentUserId = userStore.account // 获取当前登录用户ID
+
+const route = useRoute()
 
 // -----------------问题复现工单-----------------
 // 问题复现工单表单数据（上传后端）
@@ -589,6 +592,82 @@ async function submitOtherOrder() {
   }
 }
 
+onMounted(() => {
+  if (route.query.fromList === '1') {
+    console.warn('从工单列表跳转到创建页面，复制工单类型:', route.query.copyType)
+    // 判断是否为复制问题复现工单
+    if (route.query.copyType === '问题复现') {
+      dialogProblemVisible.value = true
+      // 预填字段
+      problemOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      problemOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      problemOrderForm.value.coordinationId = route.query.coordinationId as string || '' // 协调单号
+      problemOrderForm.value.description = route.query.description as string || '' // 复现内容
+    }
+    else if (route.query.copyType === '版本迭代') {
+      dialogIterVisible.value = true
+      // 预填字段
+      iterOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      iterOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      iterOrderForm.value.coordinationId = route.query.coordinationId as string || '' // 协调单号
+      iterOrderForm.value.updateNotes = route.query.updateNotes as string || '' // 更新内容
+      iterOrderForm.value.packageRequirement = route.query.packageRequirement as string || '' // 封装要求
+      iterOrderForm.value.apiChanged = route.query.apiChanged as string || '' // 接口是否变化
+    }
+    else if (route.query.copyType === '交付发送') {
+      dialogDeliverVisible.value = true
+      // 预填字段
+      deliverOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      deliverOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      deliverOrderForm.value.targetCustomer = route.query.targetCustomer as string || '' // 目标客户
+      deliverOrderForm.value.isCAEChecked = route.query.isCAEChecked as string || '' // CAE认证
+      deliverOrderForm.value.hasSensitiveInfo = route.query.hasSensitiveInfo as string || '' // 是否有敏感信息
+    }
+    else if (route.query.copyType === '版本迭代+交付发送') {
+      dialogIterDeliverVisible.value = true
+      // 预填字段
+      iterDeliverOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      iterDeliverOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      iterDeliverOrderForm.value.coordinationId = route.query.coordinationId as string || '' // 协调单号
+      iterDeliverOrderForm.value.updateNotes = route.query.updateNotes as string || '' // 更新内容
+      iterDeliverOrderForm.value.packageRequirement = route.query.packageRequirement as string || '' // 封装要求
+      iterDeliverOrderForm.value.apiChanged = route.query.apiChanged as string || '' // 接口是否变化
+      iterDeliverOrderForm.value.targetCustomer = route.query.targetCustomer as string || '' // 目标客户
+      iterDeliverOrderForm.value.isCAEChecked = route.query.isCAEChecked as string || '' // CAE认证
+      iterDeliverOrderForm.value.hasSensitiveInfo = route.query.hasSensitiveInfo as string || '' // 是否有敏感信息
+    }
+    else if (route.query.copyType === '功能开发') {
+      dialogDevVisible.value = true
+      // 预填字段
+      devOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      devOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      devOrderForm.value.featureDesc = route.query.featureDesc as string || '' // 功能描述
+    }
+    else if (route.query.copyType === '其他') {
+      dialogOtherVisible.value = true
+      // 预填字段
+      otherOrderForm.value.modelId = route.query.modelId as string || '' // 模型ATA章节号
+      otherOrderForm.value.modelVersionID = route.query.modelVersionID as string || '' // 基准版本
+      otherOrderForm.value.contentDesc = route.query.contentDesc as string || '' // 内容描述
+    }
+  }
+  else {
+    console.warn('不是跳转')
+  }
+})
+
+const router = useRouter()
+function closeAllDialogs() {
+  dialogProblemVisible.value = false
+  dialogIterVisible.value = false
+  dialogDeliverVisible.value = false
+  dialogIterDeliverVisible.value = false
+  dialogDevVisible.value = false
+  dialogOtherVisible.value = false
+  // 清除所有参数，只保留/order_create
+  router.replace({ path: '/order_create' })
+}
+
 // ---------------下拉菜单部分------------------
 const modelList = ref<string[]>(userStore.userModels) // 模型ID列表
 const modelVersionList = ref<string[]>([]) // 模型版本ID列表
@@ -858,7 +937,7 @@ async function fetchCustomerList() {
       </FaPageMain>
 
       <!-- 问题复现工单弹窗 -->
-      <FaModal v-model="dialogProblemVisible" title="创建工单" width="500px" :close-on-click-modal="false">
+      <FaModal v-model="dialogProblemVisible" title="创建工单" width="500px" :close-on-click-modal="false" @close="closeAllDialogs">
         <el-form :model="problemOrderForm" label-width="120px">
           <!-- 模型ID下拉框 -->
           <el-form-item label="模型" required>
@@ -942,7 +1021,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogProblemVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button
@@ -956,7 +1035,7 @@ async function fetchCustomerList() {
       </FaModal>
 
       <!-- 版本迭代工单弹窗 -->
-      <FaModal v-model="dialogIterVisible" title="创建版本迭代工单" width="500px" :close-on-click-overlay="false">
+      <FaModal v-model="dialogIterVisible" title="创建版本迭代工单" width="500px" :close-on-click-overlay="false" @close="closeAllDialogs">
         <el-form :model="iterOrderForm" label-width="120px">
           <!-- 将模型ID输入框下拉菜单 -->
           <el-form-item label="模型" required>
@@ -1092,7 +1171,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogIterVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button
@@ -1106,7 +1185,7 @@ async function fetchCustomerList() {
       </FaModal>
 
       <!-- 交付发送工单弹窗 -->
-      <FaModal v-model="dialogDeliverVisible" title="创建交付发送工单" width="500px" :close-on-click-overlay="false">
+      <FaModal v-model="dialogDeliverVisible" title="创建交付发送工单" width="500px" :close-on-click-overlay="false" @close="closeAllDialogs">
         <el-form :model="deliverOrderForm" label-width="140px">
           <el-form-item label="模型" required>
             <el-select
@@ -1193,7 +1272,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogDeliverVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button
@@ -1207,7 +1286,7 @@ async function fetchCustomerList() {
       </FaModal>
 
       <!-- 版本迭代+交付发送工单弹窗 -->
-      <FaModal v-model="dialogIterDeliverVisible" title="创建版本迭代+交付发送工单" width="500px" :close-on-click-modal="false">
+      <FaModal v-model="dialogIterDeliverVisible" title="创建版本迭代+交付发送工单" width="500px" :close-on-click-modal="false" @close="closeAllDialogs">
         <el-form :model="iterDeliverOrderForm" label-width="140px">
           <el-form-item label="模型" required>
             <el-select
@@ -1371,7 +1450,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogIterDeliverVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button
@@ -1392,7 +1471,7 @@ async function fetchCustomerList() {
       </FaModal>
 
       <!-- 功能开发工单弹窗 -->
-      <FaModal v-model="dialogDevVisible" title="创建功能开发工单" width="500px" :close-on-click-modal="false">
+      <FaModal v-model="dialogDevVisible" title="创建功能开发工单" width="500px" :close-on-click-modal="false" @close="closeAllDialogs">
         <el-form :model="devOrderForm" label-width="120px">
           <el-form-item label="模型" required>
             <el-select
@@ -1509,7 +1588,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogDevVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button
@@ -1523,7 +1602,7 @@ async function fetchCustomerList() {
       </FaModal>
 
       <!-- 其他类工单弹窗 -->
-      <FaModal v-model="dialogOtherVisible" title="创建其他类工单" width="500px" :close-on-click-modal="false">
+      <FaModal v-model="dialogOtherVisible" title="创建其他类工单" width="500px" :close-on-click-modal="false" @close="closeAllDialogs">
         <el-form :model="otherOrderForm" label-width="120px">
           <el-form-item label="模型" required>
             <el-select
@@ -1588,7 +1667,7 @@ async function fetchCustomerList() {
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogOtherVisible = false">
+          <el-button @click="closeAllDialogs">
             取消
           </el-button>
           <el-button

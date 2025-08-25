@@ -1,12 +1,14 @@
 #pragma once
 #include "ICustomerInfoDAO.h"
+#include "BaseDAO.h"
 #include <mysql.h>
-#define SQL_MAX 1024		// sql语句字符数组最大值
+#define SQL_MAX 99999		// sql语句字符数组最大值
 
-class CustomerInfoDAO : public ICustomerInfoDAO
+class CustomerInfoDAO : public ICustomerInfoDAO, public BaseDAO
 {
 public:
-    CustomerInfoDAO(MYSQL* ms);
+    CustomerInfoDAO(); // 使用连接池，不需要MYSQL参数
+    CustomerInfoDAO(MYSQL* ms); // 兼容旧接口（已废弃）
 
     bool createClient(std::string,std::string) override;
     //第一个string是原客户名称，第二个string是新客户名称，第三个string是客户信息备注

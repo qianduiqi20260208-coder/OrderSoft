@@ -1,4 +1,4 @@
-#include "DBConnectionManager.h"
+#include "ConnectionPool.h"
 #include "jwt_utils.h"
 #include "util/Logger.h"
 
@@ -11,20 +11,23 @@ auto withAspect(Handler&& handler) {
         auto response = handler(req);
 
         char sql[99999];
-        //使用静态类进行资源管理
-        static DBConnectionManagerForOperationLog dbcon;
-        dbcon.ensureConnected();
+        //使用连接池进行资源管理
+        ConnectionGuard conn(ConnectionPool::getInstance().getConnection());
+        if (!conn) {
+            LOG_ERROR("function:withAspect 获取数据库连接失败");
+            return response;
+        }
 
         std::string user_id = getAccountFromToken(req);
         snprintf(sql, 99999, "INSERT INTO user_operation_log(user_id,request_params,response_params,operation_url) "
 
         "VALUES('%s','%s', '%s', '%s');",user_id.c_str(),req.body.c_str(),response.body.c_str(),req.url.c_str());	
-	    int ret = mysql_real_query(dbcon.mysql, sql, (unsigned long)strlen(sql));
+	    int ret = mysql_real_query(conn.get(), sql, (unsigned long)strlen(sql));
 
         if(ret)
         {
             printf("sql:%s",sql);
-            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(dbcon.mysql));
+            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(conn.get()));
         }
 
         return response;
@@ -40,19 +43,22 @@ auto withAspectTicketDownload(Handler&& handler) {
         auto response = handler(req,ticketId,filename);
 
         char sql[1024];
-        //使用静态类进行资源管理
-        static DBConnectionManagerForOperationLog dbcon;
-        dbcon.ensureConnected();
+        //使用连接池进行资源管理
+        ConnectionGuard conn(ConnectionPool::getInstance().getConnection());
+        if (!conn) {
+            LOG_ERROR("function:withAspectTicketDownload 获取数据库连接失败");
+            return response;
+        }
 
         std::string user_id = getAccountFromToken(req);
         snprintf(sql, 1024, "INSERT INTO user_operation_log(user_id,request_params,response_params,operation_url) "
         "VALUES('%s','%s', '%s', '%s');",user_id.c_str(),req.body.c_str(),response.body.c_str(),req.url.c_str());	
-	    int ret = mysql_real_query(dbcon.mysql, sql, (unsigned long)strlen(sql));
+	    int ret = mysql_real_query(conn.get(), sql, (unsigned long)strlen(sql));
 
         if(ret)
         {
             printf("sql:%s",sql);
-            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(dbcon.mysql));
+            LOG_ERROR("function:withAspect 失败原因：%s", mysql_error(conn.get()));
         }
 
         return response;
@@ -68,18 +74,21 @@ auto withAspectApproveList(Handler&& handler) {
         auto response = handler(req,modelId);
 
         char sql[1024];
-        //使用静态类进行资源管理
-        static DBConnectionManagerForOperationLog dbcon;
-        dbcon.ensureConnected();
+        //使用连接池进行资源管理
+        ConnectionGuard conn(ConnectionPool::getInstance().getConnection());
+        if (!conn) {
+            LOG_ERROR("function:withAspectApproveList 获取数据库连接失败");
+            return response;
+        }
 
         std::string user_id = getAccountFromToken(req);
         snprintf(sql, 1024, "INSERT INTO user_operation_log(user_id,request_params,response_params,operation_url) "
         "VALUES('%s','%s', '%s', '%s');",user_id.c_str(),req.body.c_str(),response.body.c_str(),req.url.c_str());	
-	    int ret = mysql_real_query(dbcon.mysql, sql, (unsigned long)strlen(sql));
+	    int ret = mysql_real_query(conn.get(), sql, (unsigned long)strlen(sql));
 
         if(ret)
         {
-            LOG_ERROR("sql:%s,function:withAspect 失败原因：%s", sql,mysql_error(dbcon.mysql));
+            LOG_ERROR("sql:%s,function:withAspectApproveList 失败原因：%s", sql,mysql_error(conn.get()));
         }
 
         return response;

@@ -13,11 +13,11 @@
 
 // 日志级别枚举
 enum class LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARNING = 2,
+    DEBUG_LEVEL = 0,
+    INFO_LEVEL = 1,
+    WARNING_LEVEL = 2,
     ERROR_LEVEL = 3,
-    FATAL = 4
+    FATAL_LEVEL = 4
 };
 
 // 日志管理器类
@@ -27,8 +27,7 @@ public:
     static Logger& getInstance();
     
     // 初始化日志系统
-    bool initialize(const std::string& baseLogPath = "logs", LogLevel minLevel = LogLevel::INFO);
-    
+    bool initialize(const std::string& baseLogPath = "logs", LogLevel minLevel = LogLevel::INFO_LEVEL);
     // 写入日志
     void log(LogLevel level, const char* file, int line, const char* format, ...);
     
@@ -66,26 +65,26 @@ private:
     
 private:
     std::string m_baseLogPath = "logs";  // 基础日志路径
-    LogLevel m_minLogLevel = LogLevel::INFO;  // 最小日志级别
+    LogLevel m_minLogLevel = LogLevel::INFO_LEVEL;  // 最小日志级别
     std::mutex m_mutex;  // 线程安全锁
     bool m_initialized = false;  // 是否已初始化
 };
 
 // 便捷的日志宏定义
 #define LOG_DEBUG(format, ...) \
-    Logger::getInstance().log(LogLevel::DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
+    Logger::getInstance().log(LogLevel::DEBUG_LEVEL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 #define LOG_INFO(format, ...) \
-    Logger::getInstance().log(LogLevel::INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
+    Logger::getInstance().log(LogLevel::INFO_LEVEL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 #define LOG_WARNING(format, ...) \
-    Logger::getInstance().log(LogLevel::WARNING, __FILE__, __LINE__, format, ##__VA_ARGS__)
+    Logger::getInstance().log(LogLevel::WARNING_LEVEL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 #define LOG_ERROR(format, ...) \
     Logger::getInstance().log(LogLevel::ERROR_LEVEL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 #define LOG_FATAL(format, ...) \
-    Logger::getInstance().log(LogLevel::FATAL, __FILE__, __LINE__, format, ##__VA_ARGS__)
+    Logger::getInstance().log(LogLevel::FATAL_LEVEL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 // 兼容现有代码的宏定义
 #define LOGGER_PRINTF(format, ...) \

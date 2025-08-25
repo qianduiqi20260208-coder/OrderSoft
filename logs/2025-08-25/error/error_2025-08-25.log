@@ -1,0 +1,11 @@
+[13:19:08.746] [ERROR] [DBConnectionManager.cpp:14] function:initializePool 无法读取 config.ini 文件
+
+[13:19:08.750] [ERROR] [main.cpp:44] 数据库连接池初始化失败，程序退出
+[13:20:38.060] [ERROR] [DBConnectionManager.cpp:14] function:initializePool 无法读取 config.ini 文件
+
+[13:20:38.062] [ERROR] [main.cpp:44] 数据库连接池初始化失败，程序退出
+[13:22:04.631] [ERROR] [DBConnectionManager.cpp:14] function:initializePool 无法读取 config.ini 文件
+
+[13:22:04.633] [ERROR] [main.cpp:47] 数据库连接池初始化失败，程序退出
+[13:24:04.559] [ERROR] [DBConnectionManager.cpp:58] function:getConnection 无法读取 config.ini 文件
+

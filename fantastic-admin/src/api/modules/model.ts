@@ -22,4 +22,11 @@ export default {
       // baseURL: '/mock/', // mock数据接口地址
       params, // 请求参数
     }),
+
+  // 获取模型版本信息
+  getVersionList: (params: { modelID: string }) =>
+    api.get('model/version-list', {
+      params,
+      baseURL: '/mock/', // mock数据接口地址
+    }),
 }

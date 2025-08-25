@@ -1,19 +1,21 @@
 #pragma once
 
 #include "ITicketDAO.h"
+#include "BaseDAO.h"
 #include <mysql.h> // mysql文件
 #include <stdio.h>
 #include <iostream>
 #include <string>
 #include <nlohmann/json.hpp>
 
-#define SQL_MAX 1024		// sql语句字符数组最大值
+#define SQL_MAX 99999		// sql语句字符数组最大值
 
 //使用mysql数据库的DAO
-class TicketDAO :public ITicketDAO
+class TicketDAO : public ITicketDAO, public BaseDAO
 {
 public:
-    TicketDAO(MYSQL*);
+    TicketDAO(); // 使用连接池，不需要MYSQL参数
+    TicketDAO(MYSQL*); // 兼容旧接口（已废弃）
 
     //工单相关
     bool createTicket(Ticket& ticket) override;

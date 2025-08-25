@@ -1173,7 +1173,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 新增复杂工单查询分页接口
     CROW_ROUTE(app, "/order/details").methods("GET"_method)
-        (withAspect([this](const crow::request& req) {
+        ([this](const crow::request& req) {
             try {
                 // 解析查询参数
                 auto page_param = req.url_params.get("page");
@@ -1254,5 +1254,5 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 };
                 return crow::response(500, error.dump());
             }
-        }));
+        });
 }

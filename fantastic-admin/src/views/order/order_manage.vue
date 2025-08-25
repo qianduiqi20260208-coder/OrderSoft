@@ -1077,12 +1077,12 @@ onMounted(() => {
                     <!-- 工单前面加选择框 -->
                     <el-checkbox
                       :model-value="selectedOrderIds.includes(order.orderID)"
-                      style=" margin-right: 12px;margin-left: 8px;"
+                      style="margin-right: 12px; margin-left: 8px;"
                       @change="checked => handleSelectOrder(order.orderID, Boolean(checked))"
                     />
-                    工单#{{ order.orderID }}
+                    <!-- 工单类型在前，字号加大加粗 -->
                     <span
-                      class="ml-4 align-middle text-base font-bold"
+                      class="mr-4 text-xl font-black"
                       :class="{
                         'text-blue-700': order.type === '问题复现',
                         'text-green-700': order.type === '版本迭代',
@@ -1093,6 +1093,10 @@ onMounted(() => {
                       }"
                     >
                       {{ order.type }}
+                    </span>
+                    <!-- 工单号在后，字号较小 -->
+                    <span class="text-lg text-gray-600 font-bold">
+                      工单#{{ order.orderID }}
                     </span>
                   </span>
                   <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
