@@ -221,7 +221,10 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
     while(local_row = mysql_fetch_row(local_res))
     {
         std::shared_ptr<Ticket> sp = getUserConcreteOrder(local_row[3],atoi(local_row[0]));
-        
+        if (!sp) {
+            LOG_ERROR("getUserConcreteOrder返回空指针，跳过该工单");
+            continue; // 或其他错误处理逻辑
+        }
         //通用的插入代码
         {
             sp->id = atoi(local_row[0]);
@@ -690,7 +693,7 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
     std::ifstream ifs(filePath,std::ios::binary | std::ios::in);
     if(!ifs.is_open())
     {
-        printf("无法打开附件文件\n");
+        printf("无法打开附件文件 %s\n",filePath.c_str());
         return false;
     }
     ifs.seekg(0,std::ios::end);
