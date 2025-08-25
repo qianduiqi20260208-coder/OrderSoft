@@ -34,7 +34,5 @@ private:
     std::shared_ptr<IUserService> userService;
     std::shared_ptr<UserService> userService_test;
 
-    User user;
-
 };
 

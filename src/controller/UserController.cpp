@@ -85,7 +85,7 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
 
 
-        user = userService->getUserByJobNumber(jobNumber);
+        User user = userService->getUserByJobNumber(jobNumber);
 
         crow::response r;
         r.set_header("Content-Type", "application/json; charset = utf - 8");
@@ -128,6 +128,24 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
+
+		// 解析查询参数，获取用户ID和角色
+        auto params = crow::query_string(req.url_params);
+        std::string userID = params.get("userID") ? params.get("userID") : "";
+
+        // 安全转换 userID
+        int jobNumber = safeStoi(userID, -1);
+        if (jobNumber <= 0) {
+            nlohmann::json errorResp = {
+                {"status", 1},
+                {"error", "无效的用户ID"},
+                {"data", nlohmann::json::object()}
+            };
+            return crow::response(400, errorResp.dump());
+        }
+
+
+        User user = userService->getUserByJobNumber(jobNumber);
 
         std::vector<std::string> permissions;
 
