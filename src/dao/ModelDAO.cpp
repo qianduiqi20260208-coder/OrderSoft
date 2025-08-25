@@ -167,5 +167,21 @@ std::vector<std::pair<std::string, std::string>> ModelDAO::selectModelUpdateNote
     }
     mysql_free_result(res);
 
+    //新旧updateNotes的区分
+    retVec.push_back({});
+
+    snprintf(sql, SQL_MAX, "select model_version,update_content from history_updatenotes where model_name = '%s';",modelName.c_str());
+    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        LOG_ERROR("function:selectModelUpdateNotesByModelName 查询model_version表失败！失败原因：%s", mysql_error(mysql));
+        return {};
+    }
+    res = mysql_store_result(mysql);
+    while(row = mysql_fetch_row(res))
+    {
+        retVec.push_back({row[0],(row[1]?row[1]:"")});
+    }
+    mysql_free_result(res);
+
     return retVec;
 }
