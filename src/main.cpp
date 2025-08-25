@@ -27,7 +27,6 @@
 #include "EncryptionKeyDAO.h"
 #include "EncryptionKeyService.h"
 #include "EncryptionKeyController.h"
-#include "ConnectionPoolTestController.h"
 #include "DBConnectionManager.h"
 #include "util/LoggerConfig.h"
 #include "util/Logger.h"
