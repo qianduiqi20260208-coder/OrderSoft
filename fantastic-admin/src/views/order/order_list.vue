@@ -423,6 +423,100 @@ function handleBackToSendDetail() {
     tabbar.remove(currentTabPath)
   }, 100)
 }
+
+// 工单复制到创建页面
+function handleCopyOrder(order: OrderItem) {
+  // 问题复现工单为例
+  if (order.type === '问题复现') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '问题复现',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        coordinationId: order.coordinationID || '', // 协调单号
+        description: order.description || '', // 复现内容描述
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+  // 版本迭代工单复制
+  else if (order.type === '版本迭代') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '版本迭代',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        coordinationId: order.coordinationID || '', // 协调单
+        updateNotes: order.updateNotes || '', // 更新内容
+        packageRequirement: order.packageRequirement || '', // 封装要求
+        apiChanged: order.apiChanged || '', // 接口是否变化
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+  // 交付发送工单复制
+  else if (order.type === '交付发送') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '交付发送',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        targetCustomer: order.targetCustomer || '', // 目标客户
+        isCAEChecked: order.isCAEChecked || '', // CAE认证
+        hasSensitiveInfo: order.hasSensitiveInfo || '', // 是否有敏感信息
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+  // 版本迭代+交付发送工单复制
+  else if (order.type === '版本迭代+交付发送') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '版本迭代+交付发送',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        coordinationId: order.coordinationID || '', // 目标客户
+        updateNotes: order.updateNotes || '', // 更新内容
+        packageRequirement: order.packageRequirement || '', // 封装要求
+        apiChanged: order.apiChanged || '', // 接口是否变化
+        targetCustomer: order.targetCustomer || '', // 目标客户
+        isCAEChecked: order.isCAEChecked || '', // CAE认证
+        hasSensitiveInfo: order.hasSensitiveInfo || '', // 是否有敏感信息
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+  // 功能开发工单复制
+  else if (order.type === '功能开发') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '功能开发',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        featureDesc: order.featureDesc || '', // 功能描述
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+  // 其他类工单复制
+  else if (order.type === '其他') {
+    router.push({
+      path: '/order_create',
+      query: {
+        copyType: '其他',
+        modelId: order.modelID, // 模型ATA章节号
+        modelVersionID: order.modelVersionID, // 模型基准版本
+        contentDesc: order.contentDesc || '', // 内容描述
+        fromList: '1', // 跳转标记
+      },
+    })
+  }
+}
 </script>
 
 <template>
@@ -612,11 +706,29 @@ function handleBackToSendDetail() {
                     <span class="text-lg text-gray-600 font-bold">
                       工单#{{ order.orderID }}
                     </span>
-                    <!-- 详细信息按钮，左侧增加空格 -->
                     <span style="margin-left: 24px;">
-                      <el-button type="primary" size="small" @click="showOrderDetail(order)">
-                        详细信息
-                      </el-button>
+                      <div class="flex items-center gap-2">
+                        <!-- 详细信息按钮 -->
+                        <el-button
+                          type="primary"
+                          size="small"
+                          @click="showOrderDetail(order)"
+                        >
+                          <i class="i-mdi-file-document-outline mr-1" />
+                          详细信息
+                        </el-button>
+                        <!-- 复制工单按钮 -->
+                        <el-button
+                          v-auth="['SuperUser', 'ModelEngineer']"
+                          type="success"
+                          size="small"
+                          class="ml-2"
+                          @click="handleCopyOrder(order)"
+                        >
+                          <i class="i-mdi-content-copy mr-1" />
+                          复制工单
+                        </el-button>
+                      </div>
                     </span>
                   </span>
                   <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
@@ -633,7 +745,7 @@ function handleBackToSendDetail() {
                     </span>
                     <span>
                       <i class="i-mdi-account mr-1 text-blue-400" />
-                      <span class="text-gray-600">发起人ID：</span>
+                      <span class="text-gray-600">发起人：</span>
                       <span class="text-black font-bold">{{ order.promoterID }}</span>
                     </span>
                     <span>
@@ -1101,7 +1213,7 @@ function handleBackToSendDetail() {
                 <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4">
                   <!-- 基础信息 -->
                   <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">工单ID：</span>
+                    <span class="w-32 text-black font-semibold">工单：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.orderID" readonly>
                   </div>
                   <div class="flex items-center gap-2">
@@ -1109,7 +1221,7 @@ function handleBackToSendDetail() {
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.type" readonly>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发起人ID：</span>
+                    <span class="w-32 text-black font-semibold">发起人：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
                   </div>
                   <div class="flex items-center gap-2">
@@ -1145,7 +1257,7 @@ function handleBackToSendDetail() {
                       <span v-else class="text-gray-400">无</span>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1169,7 +1281,7 @@ function handleBackToSendDetail() {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1189,7 +1301,7 @@ function handleBackToSendDetail() {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1225,7 +1337,7 @@ function handleBackToSendDetail() {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1237,7 +1349,7 @@ function handleBackToSendDetail() {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1249,7 +1361,7 @@ function handleBackToSendDetail() {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -1284,7 +1396,7 @@ function handleBackToSendDetail() {
             <div class="grid grid-cols-2 gap-x-8 gap-y-4">
               <!-- 基础信息 -->
               <div class="flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">工单ID：</span>
+                <span class="w-32 text-black font-semibold">工单：</span>
                 <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.orderID" readonly>
               </div>
               <div class="flex items-center gap-2">
@@ -1292,7 +1404,7 @@ function handleBackToSendDetail() {
                 <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.type" readonly>
               </div>
               <div class="flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">发起人ID：</span>
+                <span class="w-32 text-black font-semibold">发起人：</span>
                 <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.promoterID" readonly>
               </div>
               <div class="flex items-center gap-2">
@@ -1319,7 +1431,7 @@ function handleBackToSendDetail() {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.description" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1356,7 +1468,7 @@ function handleBackToSendDetail() {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.apiChanged" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
@@ -1384,7 +1496,7 @@ function handleBackToSendDetail() {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
@@ -1428,7 +1540,7 @@ function handleBackToSendDetail() {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
@@ -1448,7 +1560,7 @@ function handleBackToSendDetail() {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.featureDesc" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
@@ -1468,7 +1580,7 @@ function handleBackToSendDetail() {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.contentDesc" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人ID：</span>
+                  <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
@@ -1513,7 +1625,7 @@ function handleBackToSendDetail() {
                 >
               </div>
               <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">执行人ID：</span>
+                <span class="w-32 text-black font-semibold">执行人：</span>
                 <input
                   class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
                   :class="['进行中', '已完成', '已退回'].includes(currentOrder.status) && currentOrder.executorID ? 'text-blue-700' : 'text-gray-400'"

@@ -18,6 +18,8 @@ public:
     
     virtual std::vector<std::string> getModelVersionByPartialModelVersion(std::string, std::string) = 0;
 
+    virtual std::vector<std::pair<std::string,std::string>> exportModelVersionUpdateNotesToExcel(std::string) = 0;
+
     virtual ~IModelService() =0;
 };
 
