@@ -146,6 +146,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
     meta: {
       title: '交付',
       icon: 'i-material-symbols:key-outline',
+      auth: ['SuperUser', 'SoftwareEngineer'],
     },
     children: [
       DongleManage, // 加密狗管理路由

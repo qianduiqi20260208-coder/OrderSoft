@@ -7,6 +7,25 @@
 
 
 
+std::string url_decode(const std::string& str) {
+    std::string ret;
+    char ch;
+    int i, ii;
+    for (i = 0; i < str.length(); i++) {
+        if (str[i] == '%') {
+            sscanf(str.substr(i + 1, 2).c_str(), "%x", &ii);
+            ch = static_cast<char>(ii);
+            ret += ch;
+            i = i + 2;
+        } else if (str[i] == '+') {
+            ret += ' ';
+        } else {
+            ret += str[i];
+        }
+    }
+    return ret;
+}
+
 TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketService(sp)
 {
     // 初始化 mock 客户列表
@@ -1039,10 +1058,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-        
-         LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, filename.c_str());
-        return downloadTicketFile(ticketId, filename);
+        std::string decodedFilename = url_decode(filename);
+        LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, decodedFilename.c_str());
+        return downloadTicketFile(ticketId, decodedFilename);
         }));
+
 
     CROW_ROUTE(app, "/order/statisticsAll").methods("GET"_method)
     ([this](const crow::request& req) {
