@@ -963,16 +963,17 @@ std::vector<nlohmann::json> TicketDAO::getVersionsWithPagination(const std::stri
        << "AND version IS NOT NULL "
        << "ORDER BY id DESC "
        << "LIMIT " << offset << ", " << pageSize << ";";
-
-    printf("sql:%s\n", ss.str().c_str());
-    ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     
-    if (ret) {
+    int local_ret;
+    local_ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
+    
+    if (local_ret) {
         LOG_ERROR("function:getVersionsWithPagination() 查询失败！失败原因：%s", mysql_store_result(conn));
         return {};
     }
     
-    res = mysql_store_result(conn);
+    MYSQL_RES* res = mysql_store_result(conn);
+    MYSQL_ROW row;
     while(row = mysql_fetch_row(res))
     {
         nlohmann::json versionJson;
@@ -1000,17 +1001,19 @@ unsigned long long TicketDAO::getVersionsCount(const std::string& modelName)
        << "FROM model_version "
        << "WHERE model = '" << modelName << "' "
        << "AND version IS NOT NULL;";
+    int local_ret;
 
-    printf("sql:%s\n", ss.str().c_str());
-    ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
+    local_ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     
-    if (ret) {
+    if (local_ret) {
         LOG_ERROR("function:getVersionsCount() 查询失败！失败原因：%s", mysql_store_result(conn));
         return 0;
     }
     
+    MYSQL_RES* res;
     res = mysql_store_result(conn);
     unsigned long long count = 0;
+    MYSQL_ROW row;
     if(row = mysql_fetch_row(res))
     {
         count = row[0] ? std::stoull(row[0]) : 0;
@@ -1285,14 +1288,15 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') "
        << ") ORDER BY id DESC;";
 
-    // printf("sql:%s\n", ss.str().c_str());
+    int ret;
     ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     
     if (ret) {
         LOG_ERROR("function:getWorkOrdersWithDetailsByVersions() 查询失败！失败原因：%s", mysql_store_result(conn));
         return {};
     }
-    
+    MYSQL_RES* res;
+    MYSQL_ROW row;
     res = mysql_store_result(conn);
     while(row = mysql_fetch_row(res))
     {
@@ -1371,6 +1375,9 @@ std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStati
     }
     MYSQL* conn = getConnection();
     std::vector<std::vector<std::pair<std::string,int>>> retVec;
+    int ret;
+    MYSQL_RES* res;
+    MYSQL_ROW row;
 
     //遍历所有的客户，针对每一个客户做一次查询
     for(const std::string& client: clientName)
