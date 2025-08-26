@@ -140,7 +140,7 @@ std::pair<int, int> CustomerInfoDAO::selectModelAndModelVersionCountByClient(std
     int local_ret;
     MYSQL_RES* local_res;
     MYSQL_ROW local_row;
-    snprintf(local_sql, SQL_MAX, "select count(distinct model) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' union select work_order_id from package_send where target_customer = '%s'); ",client.c_str(),client.c_str());
+    snprintf(local_sql, SQL_MAX, "select count(distinct model) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' and completed_at is not null  union select work_order_id from package_send where target_customer = '%s' and completed_at is not null); ",client.c_str(),client.c_str());
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s", mysql_error(conn));
@@ -154,7 +154,7 @@ std::pair<int, int> CustomerInfoDAO::selectModelAndModelVersionCountByClient(std
     mysql_free_result(local_res);
 
     //查询模型版本的数量（不用去重）
-    snprintf(local_sql, SQL_MAX, "select count(model_version_id) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' union select work_order_id from package_send where target_customer = '%s'); ",client.c_str(),client.c_str());
+    snprintf(local_sql, SQL_MAX, "select count(model_version_id) from work_order where id in(select work_order_id from delivery_send where target_customer = '%s' and completed_at is not null union select work_order_id from package_send where target_customer = '%s' and completed_at is not null); ",client.c_str(),client.c_str());
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:selectModelAndModelVersionCountByClient 查询 work_order 表失败！失败原因：%s", mysql_error(conn));

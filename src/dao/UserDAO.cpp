@@ -252,6 +252,7 @@ std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
         
     }
     mysql_free_result(local_res); 
+
     return userTicketVec;
 }
 
