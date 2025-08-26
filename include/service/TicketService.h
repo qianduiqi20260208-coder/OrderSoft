@@ -20,7 +20,7 @@ public:
 
     //工单流转的实现
     bool orderTransfer(const TicketExecutor& executor) override;
-    unsigned long long getOrderCount() override;
+    unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) override;
     std::vector<std::string> getClient() override;
 
     //第一个参数： 0是筛选出一周的数据 1是筛选出一个月的数据 2是筛选出半年的数据。 筛选版本迭代工单时需要传入的vector数据是:{""}

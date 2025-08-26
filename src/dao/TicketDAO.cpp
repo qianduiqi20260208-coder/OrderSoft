@@ -881,33 +881,93 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
     return true;
 }
 
-unsigned long long TicketDAO::getOrderCount()
+unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::string>& filter)
 {
-
-        // 使用BaseDAO的优化连接管理
     if (!ensureConnection()) {
-        return false;
+        return 0;
     }
-    
     MYSQL* conn = getConnection();
-    char local_sql[SQL_MAX];
-    int local_ret;
-    unsigned long long retCount = -1;
+    std::stringstream ss;
+    ss << "SELECT COUNT(*) FROM work_order ";
+    bool first = true;
+    std::set<std::string> intSet = {"id","creator_id","model_version_id","approver_id","dispatcher_id"};
 
-    snprintf(local_sql, SQL_MAX, "select count(*) from work_order;");
-    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (!filter.empty()) {
+        ss << "WHERE ";
+    }
+
+    for (const auto& ele : filter) {
+        if (!first) ss << " AND ";
+        if (intSet.find(ele.first) != intSet.end()) {
+            if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (iss >> token) {
+                    values.push_back(token);
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << values[i];
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            } else {
+                ss << ele.first << " = " << ele.second;
+            }
+        } else {
+            if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (iss >> token) {
+                    values.push_back(token);
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << "'" << values[i] << "'";
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            } else {
+                if (ele.second.find(',') != std::string::npos) {
+                    std::istringstream iss(ele.second);
+                    std::string token;
+                    std::vector<std::string> values;
+                    while (std::getline(iss, token, ',')) {
+                        token.erase(0, token.find_first_not_of(" \t"));
+                        token.erase(token.find_last_not_of(" \t") + 1);
+                        if (!token.empty()) {
+                            values.push_back(token);
+                        }
+                    }
+                    ss << ele.first << " IN (";
+                    for (size_t i = 0; i < values.size(); ++i) {
+                        ss << "'" << values[i] << "'";
+                        if (i != values.size() - 1) ss << ",";
+                    }
+                    ss << ")";
+                } else {
+                    ss << ele.first << " = '" << ele.second << "'";
+                }
+            }
+        }
+        first = false;
+    }
+
+    ss << ";";
+    int local_ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     if (local_ret) {
         LOG_ERROR("function:getOrderCount() 查询work_order表失败！失败原因：%s", mysql_store_result(conn));
-        return retCount;
+        return 0;
     }
     MYSQL_RES* res = mysql_store_result(conn);
     MYSQL_ROW row;
-    if(row = mysql_fetch_row(res))
-    {
-        retCount = atoi(row[0]);
+    unsigned long long retCount = 0;
+    if ((row = mysql_fetch_row(res))) {
+        retCount = row[0] ? std::stoull(row[0]) : 0;
     }
     mysql_free_result(res);
-
     return retCount;
 }
 

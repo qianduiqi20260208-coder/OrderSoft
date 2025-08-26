@@ -218,7 +218,14 @@ function openVersionDialog() {
 async function fetchVersionTableData() {
   versionDialogLoading.value = true
   try {
-    const res = await modelApi.getVersionList({ modelID: route.matched[0].name ? String(route.matched[0].name) : '' })
+    console.log('获取模型版本数据:', route.matched[0]);
+    let modelID
+    if(route.matched[0].name == 'ATA21_30_36_52_ECS'){
+      modelID = 'ATA21/30/36/52_ECS'
+    }else{
+      modelID = route.matched[0].name
+    }
+    const res = await modelApi.getVersionList({ modelID: modelID ? String(modelID) : '' })
     // 手动映射，确保每项都符合 ModelVersionInfo 类型
     versionTableData.value = (res?.data?.list || []).map((item: any) => ({
       version: item.version ?? '', // 模型版本号

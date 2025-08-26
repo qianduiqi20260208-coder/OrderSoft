@@ -27,6 +27,6 @@ export default {
   getVersionList: (params: { modelID: string }) =>
     api.get('model/version-list', {
       params,
-      baseURL: '/mock/', // mock数据接口地址
+      // baseURL: '/mock/', // mock数据接口地址
     }),
 }

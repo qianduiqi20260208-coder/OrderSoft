@@ -274,7 +274,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
 
         // 获取工单总数
-        long long totalCount = ticketService->getOrderCount();
+        long long totalCount = ticketService->getOrderCount(filter);
 
         // 构建响应
         nlohmann::json resp = {
@@ -1179,11 +1179,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 auto page_param = req.url_params.get("page");
                 auto pageSize_param = req.url_params.get("pageSize");
                 auto modelName_param = req.url_params.get("modelID");
-                
+
                 int page = page_param ? std::stoi(page_param) : 1;
                 int pageSize = pageSize_param ? std::stoi(pageSize_param) : 10;
                 std::string modelName = modelName_param ? std::string(modelName_param) : "ATA04_Aerodynamics";
-                
+                if(modelName == "ATA21_30_36_52_ECS"){
+                    modelName = "ATA21/30/36/52_ECS";
+                }
                 // 计算偏移量
                 int offset = (page - 1) * pageSize;
                 

@@ -530,7 +530,7 @@ std::vector<std::string> CustomerInfoDAO::getAllClientNames()
 std::vector<Authorization> CustomerInfoDAO::getShellAuthorizationInfo(const std::string& clientName, const std::string& shellNumber)
 {
     std::vector<Authorization> authorizationList;
-    
+    MYSQL* mysql = getConnection();
     // 查询该shell_number当前状态为"出库"的授权信息
     // 关键修改：只查询当前出库周期内生成的授权，避免查询到之前归还前的授权
     char local_sql[SQL_MAX];

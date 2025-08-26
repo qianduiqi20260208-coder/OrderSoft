@@ -10,7 +10,8 @@ export default {
   }),
 
   // 获取权限
-  permission: () => api.get('user/permission', {
+  permission: (data: { userID: string }) => api.get('user/permission', {
+    params: data,
     // baseURL: '/mock/',
   }),
 

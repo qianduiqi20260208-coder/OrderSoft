@@ -7,11 +7,11 @@ function Layout() {
 const routes: RouteRecordRaw = {
   path: '/ata21_30_36_52_ecs', // 一级路由路径
   component: Layout,
-  name: 'ATA21_30_36_52_ECS', // 路由名称，唯一标识
+  name: 'ATA21/30/36/52_ECS', // 路由名称，唯一标识
   meta: {
     title: 'ATA21_30_36_52_大环控模型', // 菜单或标签页显示的标题
     icon: 'i-ic:round-tab', // 菜单或标签页显示的图标
-    auth: 'ATA21_30_36_52_ECS.browse', // 需要的具体权限
+    auth: 'ATA21/30/36/52_ECS.browse', // 需要的具体权限
   },
   children: [
     {

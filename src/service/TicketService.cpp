@@ -61,9 +61,9 @@ bool TicketService::orderTransfer(const TicketExecutor &executor)
     return ticketDAO->orderTransfer(executor);
 }
 
-unsigned long long TicketService::getOrderCount()
+unsigned long long TicketService::getOrderCount(const std::map<std::string, std::string>& filter)
 {
-    return ticketDAO->getOrderCount();
+    return ticketDAO->getOrderCount(filter);
 }
 
 std::vector<std::string> TicketService::getClient()

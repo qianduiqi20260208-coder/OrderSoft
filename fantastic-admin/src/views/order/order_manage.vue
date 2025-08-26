@@ -2114,7 +2114,7 @@ onMounted(() => {
                 <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4">
                   <!-- 基础信息 -->
                   <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">工单ID：</span>
+                    <span class="w-32 text-black font-semibold">工单：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.orderID" readonly>
                   </div>
                   <div class="flex items-center gap-2">
@@ -2122,7 +2122,7 @@ onMounted(() => {
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.type" readonly>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发起人ID：</span>
+                    <span class="w-32 text-black font-semibold">发起人：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
                   </div>
                   <div class="flex items-center gap-2">
@@ -2158,7 +2158,7 @@ onMounted(() => {
                       <span v-else class="text-gray-400">无</span>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2186,7 +2186,7 @@ onMounted(() => {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2206,7 +2206,7 @@ onMounted(() => {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2246,7 +2246,7 @@ onMounted(() => {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2262,7 +2262,7 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2282,7 +2282,7 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人ID：</span>
+                      <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
@@ -2429,7 +2429,7 @@ onMounted(() => {
                 </h4>
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span class="text-gray-600 font-medium">工单ID：</span>
+                    <span class="text-gray-600 font-medium">工单：</span>
                     <span class="text-blue-700 font-bold">{{ confirmOrder.orderID }}</span>
                   </div>
                   <div>
@@ -2437,7 +2437,7 @@ onMounted(() => {
                     <span class="text-blue-700 font-bold">{{ confirmOrder.type }}</span>
                   </div>
                   <div>
-                    <span class="text-gray-600 font-medium">模型ID：</span>
+                    <span class="text-gray-600 font-medium">模型：</span>
                     <span class="text-blue-700 font-bold">{{ confirmOrder.modelID }}</span>
                   </div>
                   <div>

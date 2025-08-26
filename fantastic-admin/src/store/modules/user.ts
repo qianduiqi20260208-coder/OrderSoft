@@ -138,7 +138,7 @@ export const useUserStore = defineStore(
 
     // 获取权限
     async function getPermissions() {
-      const res = await apiUser.permission()
+      const res = await apiUser.permission({ userID: account.value })
       permissions.value = res.data.permissions
       console.warn('获取权限', permissions.value)
     }
