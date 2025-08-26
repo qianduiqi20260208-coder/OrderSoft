@@ -44,6 +44,9 @@ public:
     // 获取客户列表及统计信息
     nlohmann::json getClientList() override;
 
+    // 获取所有客户的suffix字段，返回带有客户标识的后缀列表
+    std::vector<std::pair<std::string, std::string>> getAllClientSuffixList();
+
 private:
     std::shared_ptr<ICustomerInfoDAO> customerInfoDAO_;
     std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getAllSendRecordGroupedByClient(std::string client);

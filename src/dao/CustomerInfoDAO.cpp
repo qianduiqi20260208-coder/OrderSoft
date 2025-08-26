@@ -622,6 +622,38 @@ std::vector<std::string> CustomerInfoDAO::selectAuthorizationByEncryptionKey(std
     return retVec;
 }
 
+std::vector<std::pair<std::string, std::string>> CustomerInfoDAO::getAllClientSuffixes()
+{
+    std::vector<std::pair<std::string, std::string>> retVec;
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getAllClientSuffixes 获取数据库连接失败");
+        return {};
+    }
+    
+    MYSQL* conn = getConnection();
+    char local_sql[SQL_MAX];
+    int local_ret;
+    
+    snprintf(local_sql, SQL_MAX, "select customer_name, suffix from customer_info where suffix is not null and suffix != '';");
+    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:getAllClientSuffixes 查询 customer_info 表失败！失败原因：%s", mysql_error(conn));
+        return {};
+    }
+    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_ROW local_row;
+    while(local_row = mysql_fetch_row(local_res))
+    {
+        if (local_row[0] && local_row[1]) {
+            retVec.push_back(std::make_pair(local_row[0], local_row[1]));
+        }
+    }
+    mysql_free_result(local_res);
+
+    return retVec;
+}
+
 CustomerInfoDAO::~CustomerInfoDAO()
 {
     DBConnectionManager::closeConnection(mysql);
