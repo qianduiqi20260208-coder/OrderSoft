@@ -11,7 +11,7 @@ const routes: RouteRecordRaw = {
   meta: {
     title: 'ATA21_30_36_52_大环控模型', // 菜单或标签页显示的标题
     icon: 'i-ic:round-tab', // 菜单或标签页显示的图标
-    auth: 'ATA21_30_36_52_ECS.browse', // 需要的具体权限
+    auth: 'ATA21/30/36/52_ECS.browse', // 需要的具体权限
   },
   children: [
     {

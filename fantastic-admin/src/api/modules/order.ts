@@ -267,8 +267,9 @@ export default {
 
   // 获取审批人信息列表
   fetchApproverList: (modelId: string) =>
-    api.get(`approver/list/${modelId}`, {
+    api.get('approver/list', {
       // baseURL: '/mock/',
+      params: { modelId },
     }),
 
   // 获取分发人信息列表
