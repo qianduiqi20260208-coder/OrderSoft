@@ -269,10 +269,8 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-
         auto params = crow::query_string(req.url_params);
         std::string modelId = params.get("modelId") ? params.get("modelId") : "";
-
         std::map<std::string, std::vector<std::pair<int, std::string>>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json approverListJson = nlohmann::json::array();
         for (const auto& approver : retMap["审批人"]) {
