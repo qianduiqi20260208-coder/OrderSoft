@@ -11,7 +11,7 @@ const routes: RouteRecordRaw = {
   meta: {
     title: 'ATA7x_发动机模型', // 菜单或标签页显示的标题
     icon: 'i-ic:round-tab', // 菜单或标签页显示的图标
-    auth: 'ATA07x_Engine.browse', // 需要的具体权限
+    auth: 'ATA7x_Engine.browse', // 需要的具体权限
   },
   children: [
     {
