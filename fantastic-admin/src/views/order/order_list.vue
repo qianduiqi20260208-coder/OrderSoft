@@ -1277,8 +1277,14 @@ function handleCopyOrder(order: OrderItem) {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -1293,7 +1299,7 @@ function handleCopyOrder(order: OrderItem) {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -1321,15 +1327,21 @@ function handleCopyOrder(order: OrderItem) {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -1464,8 +1476,14 @@ function handleCopyOrder(order: OrderItem) {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.apiChanged" readonly>
+                  <span class="w-32 text-black font-semibold">
+                    接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
+                  </span>
+                  <input
+                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    :value="currentOrder.apiChanged"
+                    readonly
+                  >
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
@@ -1488,7 +1506,7 @@ function handleCopyOrder(order: OrderItem) {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1524,15 +1542,21 @@ function handleCopyOrder(order: OrderItem) {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.apiChanged" readonly>
+                  <span class="w-32 text-black font-semibold">
+                    接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
+                  </span>
+                  <input
+                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    :value="currentOrder.apiChanged"
+                    readonly
+                  >
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">目标客户：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
                 </div>
                 <div class="flex items-center gap-2">
