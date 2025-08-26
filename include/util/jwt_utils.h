@@ -18,7 +18,7 @@
 inline bool checkToken(const crow::request& req) {
     std::string token = req.get_header_value("token");
     if (token.empty()) return false;
-    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
+    std::string secret = "afd7bad3b";
     try {
         auto decoded = jwt::decode(token);
         auto verifier = jwt::verify()
@@ -39,7 +39,7 @@ inline bool checkToken(const crow::request& req) {
  * @return 生成的token字符串
  */
 inline std::string generateToken(const std::string& account) {
-    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
+    std::string secret = "afd7bad3b";
     auto token = jwt::create()
         .set_issuer("crowTest")
         .set_type("JWS")
@@ -57,7 +57,7 @@ inline std::string generateToken(const std::string& account) {
 inline std::string getAccountFromToken(const crow::request& req) {
     std::string token = req.get_header_value("token");
     if (token.empty()) return "";
-    std::string secret = "afd7bad3ba4c66ceb0bc5d9e7729489f850c9364ff840ebd0e4a9af23beb8a84";
+    std::string secret = "afd7bad3b";
     try {
         auto decoded = jwt::decode(token);
         auto verifier = jwt::verify()
