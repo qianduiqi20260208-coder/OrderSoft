@@ -274,7 +274,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
 
         // 获取工单总数
-        long long totalCount = ticketService->getOrderCount();
+        long long totalCount = ticketService->getOrderCount(filter);
 
         // 构建响应
         nlohmann::json resp = {

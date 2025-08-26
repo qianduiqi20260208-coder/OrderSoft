@@ -28,7 +28,7 @@ public:
     std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string, std::string>& filter, int offset, int count) override;
 
     bool orderTransfer(const TicketExecutor& executor) override;
-    unsigned long long getOrderCount() override;
+    unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) override;
     std::vector<std::string> getOrderClient() override;
     
     //第一个筛选条件是时间范围（七天一个月或者半年），第二个是工单类型（版本迭代或者交付发送），第三个是客户的名字（可以为空也可以有多个）

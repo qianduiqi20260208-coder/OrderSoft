@@ -28,7 +28,7 @@ public:
     virtual std::vector<nlohmann::json> getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions) = 0;
 
     virtual bool orderTransfer(const TicketExecutor& executor) = 0;
-    virtual unsigned long long getOrderCount() = 0;
+    virtual unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) = 0;
 
     virtual std::vector<std::string> getClient() = 0;
 
