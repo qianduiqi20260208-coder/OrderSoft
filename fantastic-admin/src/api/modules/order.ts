@@ -30,15 +30,6 @@ export default {
       params, // 请求参数（用于筛选工单）
     }),
 
-  // // 获取当前用户近期发送工单
-  // fetchUserRecentOrderList: (params?: {
-  //   userID?: string // 用户ID（当前登录用户）
-  // }) =>
-  //   api.get('order/recent', {
-  //     baseURL: '/mock/', // mock数据接口地址
-  //     params, // 请求参数（用于筛选工单）
-  //   }),
-
   // 提交问题复现工单（支持FormData格式上传文件）
   submitProblemOrder: (data: FormData) =>
     api.post('order/problem', data, {
@@ -332,12 +323,6 @@ export default {
     api.get(`files/ticket/${ticketId}/${filename}`, {
       // baseURL: '/mock/',
     }),
-
-  // // 获取工单统计数据
-  // fetchOrderStatistics: () =>
-  //   api.get('order/statistics', {
-  //     baseURL: '/mock/',
-  //   }),
 
   // 获取工单统计数据
   fetchOrderStatisticsByCondition: (
