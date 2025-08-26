@@ -49,6 +49,7 @@ const form = useForm({
 // 登录提交逻辑
 const onSubmit = form.handleSubmit((values) => {
   loading.value = true
+  values.account = values.account.trim()
   userStore.login(values).then(() => {
     if (values.remember) {
       localStorage.setItem('login_account', values.account)
