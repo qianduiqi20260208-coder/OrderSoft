@@ -263,13 +263,14 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }));
 
     // 获取审批人信息列表
-    CROW_ROUTE(app, "/approver/list/<string>").methods("GET"_method)
-    (withAspectApproveList([this](const crow::request& req, const std::string& modelId) {
+    CROW_ROUTE(app, "/approver/list").methods("GET"_method)
+    (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
-
+        auto params = crow::query_string(req.url_params);
+        std::string modelId = params.get("modelId") ? params.get("modelId") : "";
         std::map<std::string, std::vector<std::pair<int, std::string>>> retMap = userService->getOrderRole_(modelId);
         nlohmann::json approverListJson = nlohmann::json::array();
         for (const auto& approver : retMap["审批人"]) {
