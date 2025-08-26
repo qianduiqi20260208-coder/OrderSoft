@@ -11,7 +11,7 @@ const routes: RouteRecordRaw = {
   meta: {
     title: 'ATA36_气源系统仿真模型', // 菜单或标签页显示的标题
     icon: 'i-ic:round-tab', // 菜单或标签页显示的图标
-    auth: 'ATA36_Pneumatic.browse', // 需要的具体权限
+    auth: 'ATA36_Penumatic.browse', // 需要的具体权限
   },
   children: [
     {
