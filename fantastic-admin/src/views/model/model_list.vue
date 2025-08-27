@@ -29,7 +29,7 @@ interface Order {
   // ------------------通用字段------------------------
   orderID: string // 关联工单ID
   // type: 'function' | 'reproduce' | 'delivery' | 'iteration' // 工单类型: 功能开发 | 问题复现 | 交付发送 | 版本迭代
-  type: '问题复现' | '版本迭代' | '交付发送' | '版本迭代+交付发送' | '功能开发' | '其他'
+  type: '问题复现' | '版本迭代' | '交付发送' | '直接封装+发送' | '功能开发' | '其他'
   status?: string // 工单状态
   startTime?: string // 发起时间
   promoterID?: string // 发起人ID
@@ -126,7 +126,7 @@ function preprocessOrders(list: Model[]): Model[] {
   return list.map((model) => {
     const newOrders: Order[] = []
     model.orders.forEach((order) => {
-      if (order.type === '版本迭代+交付发送') {
+      if (order.type === '直接封装+发送') {
         // 版本迭代工单，保留协调单信息
         newOrders.push({
           ...order,
@@ -218,11 +218,12 @@ function openVersionDialog() {
 async function fetchVersionTableData() {
   versionDialogLoading.value = true
   try {
-    console.log('获取模型版本数据:', route.matched[0]);
+    console.warn('获取模型版本数据:', route.matched[0])
     let modelID
-    if(route.matched[0].name == 'ATA21_30_36_52_ECS'){
+    if (route.matched[0].name === 'ATA21_30_36_52_ECS') {
       modelID = 'ATA21/30/36/52_ECS'
-    }else{
+    }
+    else {
       modelID = route.matched[0].name
     }
     const res = await modelApi.getVersionList({ modelID: modelID ? String(modelID) : '' })
@@ -543,7 +544,9 @@ function expandModel(version: string, expand: boolean) {
                       </div>
                       <!-- 接口变化 -->
                       <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">接口变化：</span>
+                        <span class="w-32 text-black font-semibold">
+                          接口与{{ order.baseModelVersion || '基准版本' }}是否变化：
+                        </span>
                         <input
                           class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
                           :value="order.apiChanged ? '是' : '否'"
@@ -588,15 +591,6 @@ function expandModel(version: string, expand: boolean) {
                           readonly
                         >
                       </div>
-                      <!-- 升级后模型版本 -->
-                      <!-- <div class="flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">升级后模型版本</span>
-                  <input
-                    class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-blue-700 font-bold"
-                    :value="order.finishModelVersion"
-                    readonly
-                  >
-                </div> -->
                       <!-- 基准版本 -->
                       <div class="flex items-start gap-2">
                         <span class="w-32 text-black font-semibold">基准版本</span>
@@ -841,7 +835,7 @@ function expandModel(version: string, expand: boolean) {
                         >
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">CAE平台验证状态：</span>
+                        <span class="w-32 text-black font-semibold">CAE-IPT平台验证状态：</span>
                         <input
                           class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
                           :class="order.isCAEChecked ? 'text-green-700' : 'text-red-700'"

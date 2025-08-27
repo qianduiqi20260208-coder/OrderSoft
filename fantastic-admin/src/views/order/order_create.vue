@@ -860,7 +860,7 @@ async function fetchCustomerList() {
               <li>模型（下拉选择）</li>
               <li>基准版本（下拉选择）</li>
               <li>目标客户（下拉选择）</li>
-              <li>是否通过CAE平台验证（是/否）</li>
+              <li>是否通过CAE-IPT平台验证（是/否）</li>
               <li>当前版本是否包含敏感信息（是/否）</li>
               <li>审批人（下拉选择）</li>
             </ol>
@@ -898,7 +898,7 @@ async function fetchCustomerList() {
               <li>封装要求（文本）</li>
               <li>接口是否变化（是/否）</li>
               <li>目标客户（下拉选择）</li>
-              <li>是否通过CAE平台验证（是/否）</li>
+              <li>是否通过CAE-IPT平台验证（是/否）</li>
               <li>当前版本是否包含敏感信息（是/否）</li>
               <li>审批人（下拉选择）</li>
             </ol>
@@ -1178,7 +1178,7 @@ async function fetchCustomerList() {
               placeholder="请输入封装要求"
             />
           </el-form-item>
-          <el-form-item label="接口是否变化" required>
+          <el-form-item required :label="`接口与${iterOrderForm.modelVersionID || '基准版本'}是否变化`" label-width="200px">
             <el-select v-model="iterOrderForm.apiChanged" placeholder="请选择">
               <el-option label="是" value="是" />
               <el-option label="否" value="否" />
@@ -1281,7 +1281,7 @@ async function fetchCustomerList() {
               <span class="font-medium">注意：</span>该客户暂无对应的后缀信息
             </div>
           </el-form-item>
-          <el-form-item label="CAE平台验证" required>
+          <el-form-item label="CAE-IPT平台验证" required>
             <el-select v-model="deliverOrderForm.isCAEChecked" placeholder="请选择">
               <el-option label="是" value="是" />
               <el-option label="否" value="否" />
@@ -1435,7 +1435,7 @@ async function fetchCustomerList() {
               placeholder="请输入封装要求"
             />
           </el-form-item>
-          <el-form-item label="接口是否变化" required>
+          <el-form-item required :label="`接口与${iterDeliverOrderForm.modelVersionID || '基准版本'}是否变化`" label-width="200px">
             <el-select v-model="iterDeliverOrderForm.apiChanged" placeholder="请选择">
               <el-option label="是" value="是" />
               <el-option label="否" value="否" />
@@ -1467,7 +1467,7 @@ async function fetchCustomerList() {
               <span class="font-medium">注意：</span>该客户暂无对应的后缀信息
             </div>
           </el-form-item>
-          <el-form-item label="CAE平台验证" required>
+          <el-form-item label="CAE-IPT平台验证" required>
             <el-select v-model="iterDeliverOrderForm.isCAEChecked" placeholder="请选择">
               <el-option label="是" value="是" />
               <el-option label="否" value="否" />

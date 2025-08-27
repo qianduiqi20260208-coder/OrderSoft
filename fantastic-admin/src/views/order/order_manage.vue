@@ -556,6 +556,23 @@ async function fetchUserOrders() {
 function openBatchApproveDialog() {
   batchLeaderPriority.value = ''
   batchDistributorID.value = ''
+
+  // 如果选择的工单不全是待审批状态的工单 报错
+  if (selectedOrderIds.value.some((id) => {
+    const order = userOrders.value.find(o => o.orderID === id)
+    return !order || order.status !== '待审批'
+  })) {
+    ElMessage.warning('请选择待审批状态的工单')
+    return
+  }
+
+  // 如果没有选择任何工单，则自动选中所有待审批工单
+  if (selectedOrderIds.value.length === 0) {
+    selectedOrderIds.value = userOrders.value
+      .filter(order => order.status === '待审批')
+      .map(order => order.orderID)
+  }
+  console.warn(selectedOrderIds.value)
   batchApproveDialogVisible.value = true
 }
 
@@ -563,6 +580,23 @@ function openBatchApproveDialog() {
 function openBatchDistributeDialog() {
   batchTaskPriority.value = ''
   batchExecutorID.value = ''
+
+  // 如果选择的工单不全是待分发状态的工单，报错
+  if (selectedOrderIds.value.some((id) => {
+    const order = userOrders.value.find(o => o.orderID === id)
+    return !order || order.status !== '待分发'
+  })) {
+    ElMessage.warning('请选择待分发状态的工单')
+    return
+  }
+
+  // 如果没有选择任何工单，则自动选中所有待分发工单
+  if (selectedOrderIds.value.length === 0) {
+    selectedOrderIds.value = userOrders.value
+      .filter(order => order.status === '待分发')
+      .map(order => order.orderID)
+  }
+
   batchDistributeDialogVisible.value = true
 }
 
@@ -1080,20 +1114,10 @@ onMounted(() => {
               <el-tooltip
                 content="请选择待审批工单"
                 placement="top"
-                :disabled="selectedOrderIds.length > 0 && selectedOrderIds.every(id => {
-                  const order = userOrders.find(o => o.orderID === id)
-                  return order && order.status === '待审批'
-                })"
+                :disabled="true"
               >
                 <el-button
                   type="primary"
-                  :disabled="
-                    selectedOrderIds.length === 0
-                      || selectedOrderIds.some(id => {
-                        const order = userOrders.find(o => o.orderID === id)
-                        return !order || order.status !== '待审批'
-                      })
-                  "
                   @click="openBatchApproveDialog"
                 >
                   一键审批
@@ -1102,20 +1126,10 @@ onMounted(() => {
               <el-tooltip
                 content="请选择待分发工单"
                 placement="top"
-                :disabled="selectedOrderIds.length > 0 && selectedOrderIds.every(id => {
-                  const order = userOrders.find(o => o.orderID === id)
-                  return order && order.status === '待分发'
-                })"
+                :disabled="true"
               >
                 <el-button
                   type="success"
-                  :disabled="
-                    selectedOrderIds.length === 0
-                      || selectedOrderIds.some(id => {
-                        const order = userOrders.find(o => o.orderID === id)
-                        return !order || order.status !== '待分发'
-                      })
-                  "
                   @click="openBatchDistributeDialog"
                 >
                   一键分发
@@ -2224,8 +2238,14 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -2240,7 +2260,7 @@ onMounted(() => {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2272,15 +2292,21 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2369,7 +2395,7 @@ onMounted(() => {
           <el-dialog
             v-model="batchApproveDialogVisible"
             title="批量审批"
-            width="400px"
+            width="50vw"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2396,6 +2422,36 @@ onMounted(() => {
                   />
                 </el-select>
               </el-form-item>
+              <!-- 新增：批量审批工单信息预览 -->
+              <el-form-item label="已选工单" label-width="80px">
+                <div style="max-height: 120px; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align: left;">
+                          工单号
+                        </th>
+                        <th style="text-align: left;">
+                          模型
+                        </th>
+                        <th style="text-align: left;">
+                          基准版本
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="order in userOrders.filter(o => selectedOrderIds.includes(o.orderID))" :key="order.orderID">
+                        <td>{{ order.orderID }}</td>
+                        <td>{{ order.modelID }}</td>
+                        <td>{{ order.modelVersionID }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="selectedOrderIds.length === 0" class="mt-2 text-xs text-gray-400">
+                    暂无选中工单
+                  </div>
+                </div>
+              </el-form-item>
             </el-form>
             <template #footer>
               <el-button @click="batchApproveDialogVisible = false">
@@ -2410,11 +2466,12 @@ onMounted(() => {
               </el-button>
             </template>
           </el-dialog>
+
           <!-- 批量分发弹窗 -->
           <el-dialog
             v-model="batchDistributeDialogVisible"
             title="批量分发"
-            width="400px"
+            width="50vw"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2440,6 +2497,36 @@ onMounted(() => {
                     :value="item.id"
                   />
                 </el-select>
+              </el-form-item>
+              <!-- 新增：批量分发工单信息预览 -->
+              <el-form-item label="已选工单" label-width="80px">
+                <div style="max-height: 120px; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align: left;">
+                          工单号
+                        </th>
+                        <th style="text-align: left;">
+                          模型
+                        </th>
+                        <th style="text-align: left;">
+                          基准版本
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="order in userOrders.filter(o => selectedOrderIds.includes(o.orderID))" :key="order.orderID">
+                        <td>{{ order.orderID }}</td>
+                        <td>{{ order.modelID }}</td>
+                        <td>{{ order.modelVersionID }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="selectedOrderIds.length === 0" class="mt-2 text-xs text-gray-400">
+                    暂无选中工单
+                  </div>
+                </div>
               </el-form-item>
             </el-form>
             <template #footer>
