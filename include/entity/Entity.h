@@ -161,7 +161,7 @@ struct Ticket {
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
                 // 倒序遍历：从最新的流转记录开始，跳过第一条记录
-                for (int i = 0; i < transferCount; ++i) {
+                for (int i = transferCount - 1; i >= 0; --i) {
                     nlohmann::json transfer;
                     transfer["transferCreatorID"] = executor.createId[i];
                     transfer["transferExecutorID"] = executor.executor[i];
