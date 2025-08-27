@@ -785,7 +785,7 @@ TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
     DBConnectionManager::getConnection(mysql);
     TicketExecutor executor;
 
-    snprintf(local_sql, SQL_MAX, "select * from work_order_executor where work_order_id = %d order by id desc;",workOrderId);
+    snprintf(local_sql, SQL_MAX, "select executor_id,create_at,transfer_reason,create_id from work_order_executor where work_order_id = %d and status = '流转' order by id desc;",workOrderId);
     int local_ret = mysql_real_query(mysql, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:queryTicketExecutor() 查询work_order_executor表失败！失败原因：%s", mysql_error(mysql));
@@ -797,18 +797,24 @@ TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
     extern std::map<int,std::string> id_name;
     while(local_row = mysql_fetch_row(local_res))
     {
-        if(local_row[2])
-            executor.executor.push_back(id_name[atoi(local_row[2])]);
+        if(local_row[0])// 执行人
+            executor.executor.push_back(id_name[atoi(local_row[0])]);
         else
             executor.executor.push_back("");
-        if(local_row[4])
-            executor.reason.push_back(local_row[4]);
-        else
-            executor.reason.push_back("");
-        if(local_row[3])
-            executor.timestamp.push_back(local_row[3]);
+
+        if(local_row[1])// 流转时间
+            executor.timestamp.push_back(local_row[1]);
         else
             executor.timestamp.push_back("");
+        if(local_row[2])// 流转原因
+            executor.reason.push_back(local_row[2]);
+        else
+            executor.reason.push_back("");
+
+        if(local_row[3])// 创建人
+            executor.createId.push_back(local_row[3]);
+        else
+            executor.createId.push_back("");
 
     }
     mysql_free_result(local_res);

@@ -45,6 +45,7 @@ struct TicketExecutor {
     std::vector<std::string> executor;
     std::vector<std::string> timestamp;
     std::vector<std::string> reason;
+    std::vector<std::string> createId;
 };
 
 struct Ticket {
@@ -105,8 +106,10 @@ struct Ticket {
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
                 // 倒序遍历：从最新的流转记录开始，跳过第一条记录
-                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                for (int i = 0; i < transferCount; ++i) {
                     nlohmann::json transfer;
+                     // TODO 流转记录中的创建人ID
+                    // transfer["transferCreatorID"] = executor.createId[i];
                     transfer["transferExecutorID"] = executor.executor[i];
                     transfer["transferReason"] = executor.reason[i];
                     transfer["transferTime"] = executor.timestamp[i];
@@ -143,12 +146,14 @@ struct Ticket {
         // 安全检查：确保数组不为空且大小一致
         if (!executor.executor.empty() && 
             !executor.timestamp.empty() && 
-            !executor.reason.empty()) {
+            !executor.reason.empty() &&
+            !executor.createId.empty()) {
             
             size_t transferCount = std::min({
                 executor.executor.size(),
                 executor.timestamp.size(), 
-                executor.reason.size()
+                executor.reason.size(),
+                executor.createId.size()
             });
 
             j["executorID"] = executor.executor[0];  // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
@@ -156,8 +161,9 @@ struct Ticket {
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
                 // 倒序遍历：从最新的流转记录开始，跳过第一条记录
-                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                for (int i = 0; i < transferCount; ++i) {
                     nlohmann::json transfer;
+                    transfer["transferCreatorID"] = executor.createId[i];
                     transfer["transferExecutorID"] = executor.executor[i];
                     transfer["transferReason"] = executor.reason[i];
                     transfer["transferTime"] = executor.timestamp[i];
@@ -370,7 +376,7 @@ struct TicketDelivery :public Ticket{
 
         // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["targetCustomer"] = targetClient;  // 目标客户
