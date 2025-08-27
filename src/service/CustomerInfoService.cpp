@@ -207,6 +207,77 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     return result;
 }
 
+nlohmann::json CustomerInfoService::getCustomerAuthorizationsByGroup(const std::string& clientName)
+{
+    nlohmann::json result = {
+        {"status", 1},
+        {"error", ""},
+        {"data", {
+            {"list", nlohmann::json::array()}
+        }}
+    };
+    
+    try {
+        // 获取原始数据
+        std::vector<std::vector<std::string>> rawData = customerInfoDAO_->getCustomerAuthorizationsByGroup(clientName);
+        
+        // 按授权ID分组
+        std::map<std::string, std::vector<std::vector<std::string>>> groupedData;
+        
+        for (const auto& row : rawData) {
+            if (row.size() >= 8) {
+                std::string authId = row[0]; // authorization_code
+                if (!authId.empty()) {
+                    groupedData[authId].push_back(row);
+                }
+            }
+        }
+        
+        // 转换为指定格式
+        nlohmann::json authList = nlohmann::json::array();
+        
+        for (const auto& group : groupedData) {
+            nlohmann::json authItem;
+            authItem["authId"] = group.first;
+            authItem["shellNumberList"] = nlohmann::json::array();
+            
+            for (const auto& row : group.second) {
+                nlohmann::json shellItem;
+                shellItem["shellNumber"] = row[6]; // shell_number
+                
+                // 根据encryption_type确定deviceType
+                std::string encryptionType = row[3]; // encryption_type
+                if (encryptionType == "网络锁") {
+                    shellItem["deviceType"] = "网络锁";
+                } else if (encryptionType == "本地锁") {
+                    shellItem["deviceType"] = "本地锁";
+                } else if (encryptionType == "软锁授权") {
+                    shellItem["deviceType"] = "软锁授权";
+                } else {
+                    shellItem["deviceType"] = "本地锁"; // 默认值
+                }
+                
+                shellItem["description"] = row[4]; // remark
+                shellItem["startTime"] = row[1]; // authorization_start_date
+                shellItem["endTime"] = row[2]; // authorization_end_date
+                
+                authItem["shellNumberList"].push_back(shellItem);
+            }
+            
+            authList.push_back(authItem);
+        }
+        
+        result["data"]["list"] = authList;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("getCustomerAuthorizationsByGroup 处理数据时发生异常: %s", e.what());
+        result["status"] = 0;
+        result["error"] = "处理数据时发生异常";
+    }
+    
+    return result;
+}
+
 std::vector<Authorization> CustomerInfoService::getCustomerAllAuthorizations(const std::string& clientName)
 {
     std::vector<Authorization> allAuthorizations;
