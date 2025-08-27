@@ -49,7 +49,8 @@ interface OrderItem {
   distributorID?: string // 分发人ID
   approveTime?: string // 审批时间
   distributeTime?: string // 分发时间
-  rejectReason?: string // 拒绝原因
+  rejectReason?: string // 审批环节拒绝原因
+  rejectReason_dispatch?: string // 分发环节拒绝原因
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
   matlabVersion?: string // matlab版本号
@@ -1160,9 +1161,15 @@ function handleCopyOrder(order: OrderItem) {
                         title="已完成"
                       />
                       <span
-                        v-else-if="order.status === '已退回'"
+                        v-else-if="order.status === '已退回' && order.rejectReason_dispatch"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #ef4444;border-radius: 50%;"
+                        title="已退回"
+                      />
+                      <span
+                        v-else-if="order.status === '已退回' && order.rejectReason_dispatch === ''"
+                        class="ml-2 inline-block align-middle"
+                        style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
                     </div>
@@ -1197,10 +1204,10 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
                   </div>
                   <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
-                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                  <div v-if="order.status === '已退回' && order.rejectReason_dispatch" class="mt-2 w-full flex items-start">
                     <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
                     <textarea
-                      :value="order.rejectReason"
+                      :value="order.rejectReason_dispatch"
                       class="flex-1 border border-red-300 rounded bg-red-50 px-3 py-2 text-sm text-red-700"
                       style="min-width: 220px;max-width: 100%;max-height: 80px;overflow-y: auto;word-break: break-all;white-space: pre-line;"
                       rows="2"
@@ -1235,9 +1242,15 @@ function handleCopyOrder(order: OrderItem) {
                         title="已完成"
                       />
                       <span
-                        v-else-if="order.status === '已退回'"
+                        v-else-if="order.status === '已退回' && order.rejectReason"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #ef4444;border-radius: 50%;"
+                        title="已退回"
+                      />
+                      <span
+                        v-else-if="order.status === '已退回' && order.rejectReason === ''"
+                        class="ml-2 inline-block align-middle"
+                        style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
                     </div>
@@ -1272,7 +1285,7 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
                   </div>
                   <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
-                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                  <div v-if="order.status === '已退回' && order.rejectReason" class="mt-2 w-full flex items-start">
                     <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
                     <textarea
                       :value="order.rejectReason"

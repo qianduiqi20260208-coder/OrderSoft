@@ -42,6 +42,7 @@ interface OrderItem {
   rejectReason?: string // 拒绝原因
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
+  targetDeliveryTime?: string // 预计发送时间 工单审批时填写
 
   // ----------问题复现工单（创建）----------
   coordinationID?: string // 协调单号
@@ -199,6 +200,7 @@ async function handleApprove(order: OrderItem) {
     approverID: String(order.approverID ?? ''), // 审批人ID（当前用户）强制转换为String后发送后端
     approveTime: order.approveTime, // 审批通过时间（系统自动获取）
     referencePriority: order.referencePriority, // 参考优先级（审批时设置）
+    targetDeliveryTime: order.targetDeliveryTime ?? '', // 预计发送时间
     distributorID: String(order.distributorID ?? ''), // 下一流程负责人ID（分发人ID）强制转换为String后发送后端
   })
   // 显示后端返回的 message
@@ -632,7 +634,9 @@ async function confirmBatchApprove() {
         approverID: String(order.approverID ?? ''),
         approveTime: order.approveTime,
         referencePriority: order.referencePriority,
+        targetDeliveryTime: order.targetDeliveryTime ?? '',
         distributorID: String(order.distributorID ?? ''),
+
       })
       if (res?.status === 1) {
         successCount++
@@ -1961,7 +1965,7 @@ onMounted(() => {
                     <el-button
                       type="success"
                       size="default"
-                      :disabled="order.status !== '待分发' || !leaderPriority"
+                      :disabled="order.status !== '待分发' || !leaderPriority || !order.executorID"
                       @click="handleDistribute(order)"
                     >
                       <i class="i-mdi-check-circle-outline mr-1" /> 同意
@@ -2065,12 +2069,32 @@ onMounted(() => {
                         :value="item.id"
                       />
                     </el-select>
+
+                    <!-- 新增：预计发送时间 -->
+                    <span class="ml-4 text-gray-700 font-semibold">预计发送时间：</span>
+                    <template v-if="order.status === '待审批'">
+                      <el-date-picker
+                        v-model="order.targetDeliveryTime"
+                        type="datetime"
+                        placeholder="请选择时间"
+                        format="YYYY-MM-DD HH:mm:ss"
+                        value-format="YYYY-MM-DD HH:mm:ss"
+                        style="width: 200px;"
+                        :disabled="order.status !== '待审批'"
+                        clearable
+                      />
+                    </template>
+                    <template v-else>
+                      <span class="rounded bg-gray-100 px-2 py-1 text-blue-700 font-bold">
+                        {{ order.targetDeliveryTime || '未填写' }}
+                      </span>
+                    </template>
                   </div>
                   <div class="flex items-center gap-3">
                     <el-button
                       type="success"
                       size="default"
-                      :disabled="order.status !== '待审批' || !leaderPriority"
+                      :disabled="order.status !== '待审批' || !leaderPriority || !order.targetDeliveryTime || !order.distributorID"
                       @click="handleApprove(order)"
                     >
                       <i class="i-mdi-check-circle-outline mr-1" /> 同意

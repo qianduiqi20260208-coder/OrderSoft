@@ -128,6 +128,7 @@ export default {
     approverID: string // 审批人ID（当前用户）
     approveTime: string // 审批通过时间（系统自动获取）
     referencePriority: string // 参考优先级（审批时设置）
+    targetDeliveryTime: string // 预计发送时间
     distributorID: string // 下一流程负责人ID（分发人ID）
   }) => api.post('order/approve', data, {
     // baseURL: '/mock/',
