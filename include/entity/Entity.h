@@ -216,7 +216,7 @@ struct TicketReproduce :public Ticket{
 
     // 多态序列化接口order_manage专用
     nlohmann::json to_json_order_manage() const override {
-        nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+        nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
         //j["id"] = id; // 如果子类id和基类id不同步，可保留
         //j["ticketId"] = ticketId;
 		j["coordinationID"] = coordinationId; // 协调单ID
@@ -265,7 +265,7 @@ struct TicketVersion :public Ticket{
 
         // 多态序列化接口 order_manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["coordinationID"] = coordinationId; // 协调单ID
@@ -325,7 +325,7 @@ struct TicketPackage :public Ticket{
 
     // 多态序列化接口 order_manage专用
     nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
         j["type"] = "版本迭代+交付发送"; // 工单类型，子类重写
@@ -414,7 +414,7 @@ struct TicketFeature :public Ticket{
 
     // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["featureDesc"] = featureInit; // 功能描述
@@ -445,7 +445,7 @@ struct TicketOther :public Ticket{
 
     // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["contentDesc"] = description; // 内容描述
