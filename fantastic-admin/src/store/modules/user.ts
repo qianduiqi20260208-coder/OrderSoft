@@ -91,11 +91,12 @@ export const useUserStore = defineStore(
       token.value = res.data.token
       avatar.value = res.data.avatar
       userModels.value = modelsData
-      
+
       // 登录成功后获取客户后缀数据
       try {
         await clientSuffixStore.fetchClientSuffixes()
-      } catch (error) {
+      }
+      catch (error) {
         console.warn('获取客户后缀数据失败，但不影响登录:', error)
       }
     }
