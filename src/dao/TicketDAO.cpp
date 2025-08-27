@@ -1246,7 +1246,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "END AS featureFinal "
        << "FROM model_version mv "
        << "LEFT JOIN work_order wo ON mv.id = wo.model_version_id "
-       << "LEFT JOIN work_order_executor woe ON woe.work_order_id = wo.id "
+       << "LEFT JOIN (SELECT woe1.* FROM work_order_executor woe1 INNER JOIN (SELECT work_order_id, MAX(id) as max_id FROM work_order_executor GROUP BY work_order_id) woe2 ON woe1.work_order_id = woe2.work_order_id AND woe1.id = woe2.max_id) woe ON woe.work_order_id = wo.id "
        << "LEFT JOIN issue_reproduction ir ON ir.work_order_id = wo.id "
        << "LEFT JOIN issue_reproduction_attachment ira ON ira.ticket_id = ir.work_order_id "
        << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id "
@@ -1368,7 +1368,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "LEFT JOIN version_iteration vi ON vi.work_order_id = wo.id AND wo.type = '版本迭代' "
        << "LEFT JOIN function_development fd ON fd.work_order_id = wo.id AND wo.type = '功能开发' "
        << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id AND wo.type = '直接封装+发送' "
-       << "LEFT JOIN work_order_executor woe ON woe.work_order_id = wo.id " // TODO 流转记录中的执行人ID只记录最后一个
+       << "LEFT JOIN (SELECT woe1.* FROM work_order_executor woe1 INNER JOIN (SELECT work_order_id, MAX(id) as max_id FROM work_order_executor GROUP BY work_order_id) woe2 ON woe1.work_order_id = woe2.work_order_id AND woe1.id = woe2.max_id) woe ON woe.work_order_id = wo.id "
        << "LEFT JOIN user u1 ON u1.username = wo.creator_id "
        << "LEFT JOIN user u2 ON u2.username = wo.approver_id "
        << "LEFT JOIN user u3 ON u3.username = wo.dispatcher_id "
