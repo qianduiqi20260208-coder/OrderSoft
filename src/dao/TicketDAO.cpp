@@ -350,7 +350,15 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
             mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
             return false;
         }
-
+        // 按照ticket.id更新delivery_send表的targetDeliveryTime
+        snprintf(local_sql, SQL_MAX, "update delivery_send set targetDeliveryTime = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
+        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        if (local_ret) {
+            LOG_ERROR("function:createTicket 修改delivery_send表失败！失败原因：%s", mysql_store_result(conn));
+            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+        LOG_INFO("function:approveTicket 更新delivery_send表的targetDeliveryTime:%s", ticket.targetDeliveryTime.c_str());
         //记录另一个人的待办
         snprintf(local_sql, SQL_MAX, "INSERT INTO user_multi_role(user_id,flow_role,work_order_id) values('%s','分发人',%d);", ticket.distributorId.c_str(),ticket.id);	
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));

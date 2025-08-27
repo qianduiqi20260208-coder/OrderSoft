@@ -63,6 +63,7 @@ struct Ticket {
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间
     std::string completedTime; // 完成时间
+    std::string targetDeliveryTime; //预计发送时间
     std::string rejectReason; // 拒绝原因
     TicketExecutor executor;//流转工单时对应的执行人们
 
