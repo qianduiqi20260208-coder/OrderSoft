@@ -371,7 +371,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
 
     return true;
 }
-bool TicketDAO::dispatchTicket(const Ticket& ticket)
+bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
 {
 
         // 使用BaseDAO的优化连接管理
@@ -409,8 +409,9 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
             return false;
         }
 
-        //记录工单执行人
-        snprintf(local_sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,'%s',NOW());", ticket.id,ticket.executorId.c_str());
+        //记录工单执行人 ---
+        // 分发-- 只是封装
+        snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '封装', '%s');", ticket.id,ticket.executorId.c_str(),account.c_str());
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:dispatchTicket 修改work_order_executor表失败!失败原因：%s", mysql_store_result(conn));

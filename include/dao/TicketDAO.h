@@ -20,7 +20,7 @@ public:
     //工单相关
     bool createTicket(Ticket& ticket) override;
     bool approveTicket(const Ticket& ticket) override;
-    bool dispatchTicket(const Ticket& ticket) override;
+    bool dispatchTicket(const Ticket& ticket, const std::string& account) override;
     bool completeTicket(const Ticket& ticket) override;
 
 

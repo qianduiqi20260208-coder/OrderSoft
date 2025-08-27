@@ -649,7 +649,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.priorityTask = body.value("taskPriority", ""); // 任务优先级
         ticket.executorId = (body.value("executorID", "")); // 执行人ID
 
-        bool ok = ticketService->dispatchTicket(ticket);
+        // 获取当前登录用户的account
+        std::string account = getAccountFromToken(req);
+        if (account.empty()) {
+            return crow::response(401, R"({"status":0,"error":"无法获取用户信息","data":{}})");
+        }
+        
+        bool ok = ticketService->dispatchTicket(ticket, account);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -688,7 +694,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.distributedTime = body.value("distributeTime", ""); // 分发时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因
 
-        bool ok = ticketService->dispatchTicket(ticket);
+        // 获取当前登录用户的account
+        std::string account = getAccountFromToken(req);
+        if (account.empty()) {
+            return crow::response(401, R"({"status":0,"error":"无法获取用户信息","data":{}})");
+        }
+        
+        bool ok = ticketService->dispatchTicket(ticket, account);
         nlohmann::json resp;
         if (ok) {
             resp = {
