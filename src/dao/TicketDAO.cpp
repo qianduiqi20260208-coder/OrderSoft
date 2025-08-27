@@ -351,7 +351,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
             return false;
         }
         // 按照ticket.id更新delivery_send表的targetDeliveryTime
-        snprintf(local_sql, SQL_MAX, "update delivery_send set targetDeliveryTime = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
+        snprintf(local_sql, SQL_MAX, "update delivery_send set target_delivery_time = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:createTicket 修改delivery_send表失败！失败原因：%s", mysql_store_result(conn));
