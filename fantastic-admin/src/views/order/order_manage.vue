@@ -752,7 +752,7 @@ async function fetchCustomerAuthIds(order?: OrderItem) {
 
     // 调用后端接口，传入目标客户参数
     const res = await orderApi.fetchCustomerAuthIds(targetCustomer)
-    
+
     if (res?.data?.list) {
       // 处理返回的授权详情列表
       customerAuthIds.value = res.data.list.map((authDetail: any) => ({
@@ -762,7 +762,8 @@ async function fetchCustomerAuthIds(order?: OrderItem) {
         deviceType: authDetail.deviceType,
         authNote: authDetail.description || '',
       }))
-    } else {
+    }
+    else {
       customerAuthIds.value = []
     }
   }
@@ -772,38 +773,6 @@ async function fetchCustomerAuthIds(order?: OrderItem) {
 
     // 显示错误提示
     ElMessage.error('获取授权ID列表失败，请稍后重试')
-  }
-}
-
-// 根据授权ID获取外壳号列表
-async function fetchShellsByAuthId(authId: string, targetCustomer: string, order: OrderItem) {
-  try {
-    if (!authId || !targetCustomer) {
-      console.warn('授权ID或目标客户信息缺失，无法获取外壳号列表')
-      return
-    }
-
-    // 调用后端接口，根据授权ID获取外壳号列表
-    const res = await orderApi.fetchShellsByAuthId(authId, targetCustomer)
-    
-    if (res?.data?.shellNumbers && res.data.shellNumbers.length > 0) {
-      // 如果只有一个外壳号，直接设置
-      if (res.data.shellNumbers.length === 1) {
-        order.finishShellNo = res.data.shellNumbers[0]
-      } else {
-        // 多个外壳号，显示选择弹窗
-        shellNumbersForSelection.value = res.data.shellNumbers
-        currentOrderForShellSelection.value = order
-        shellSelectDialogVisible.value = true
-      }
-    } else {
-      console.warn('未找到对应的外壳号')
-      ElMessage.warning('未找到该授权ID对应的外壳号')
-    }
-  }
-  catch (error) {
-    console.error('获取外壳号列表失败:', error)
-    ElMessage.error('获取外壳号列表失败，请稍后重试')
   }
 }
 
@@ -927,12 +896,47 @@ const authDetailsForSelection = ref<Array<{
   remainingDays: string
   remainingDaysColor: string
   deviceType: string
-}>>([]);
+  authNote: string
+}>>([])
 
 // 外壳号选择弹窗相关状态
 const shellSelectDialogVisible = ref(false)
 const currentOrderForShellSelection = ref<OrderItem | null>(null)
 const shellNumbersForSelection = ref<string[]>([])
+
+// 根据授权ID获取外壳号列表
+async function fetchShellsByAuthId(authId: string, targetCustomer: string, order: OrderItem) {
+  try {
+    if (!authId || !targetCustomer) {
+      console.warn('授权ID或目标客户信息缺失，无法获取外壳号列表')
+      return
+    }
+
+    // 调用后端接口，根据授权ID获取外壳号列表
+    const res = await orderApi.fetchShellsByAuthId(authId, targetCustomer)
+
+    if (res?.data?.shellNumbers && res.data.shellNumbers.length > 0) {
+      // 如果只有一个外壳号，直接设置
+      if (res.data.shellNumbers.length === 1) {
+        order.finishShellNo = res.data.shellNumbers[0]
+      }
+      else {
+        // 多个外壳号，显示选择弹窗
+        shellNumbersForSelection.value = res.data.shellNumbers
+        currentOrderForShellSelection.value = order
+        shellSelectDialogVisible.value = true
+      }
+    }
+    else {
+      console.warn('未找到对应的外壳号')
+      ElMessage.warning('未找到该授权ID对应的外壳号')
+    }
+  }
+  catch (error) {
+    console.error('获取外壳号列表失败:', error)
+    ElMessage.error('获取外壳号列表失败，请稍后重试')
+  }
+}
 
 // 处理授权ID下拉框点击事件
 async function handleAuthIdSelectClick(order: OrderItem) {
@@ -941,13 +945,14 @@ async function handleAuthIdSelectClick(order: OrderItem) {
   try {
     // 获取目标客户的授权ID列表
     await fetchCustomerAuthIds(order)
-    
+
     // 将获取到的授权ID列表设置到选择弹窗中
     authDetailsForSelection.value = customerAuthIds.value
-    
+
     if (authDetailsForSelection.value.length > 0) {
       authSelectDialogVisible.value = true
-    } else {
+    }
+    else {
       ElMessage.warning('该客户暂无可用的授权ID')
     }
   }
@@ -961,7 +966,7 @@ async function handleAuthIdSelectClick(order: OrderItem) {
 async function selectAuthId(authId: string) {
   if (currentOrder.value) {
     currentOrder.value.finishAuthId = authId
-    
+
     // 根据选择的授权ID获取外壳号列表
     await fetchShellsByAuthId(authId, currentOrder.value.targetCustomer ?? '', currentOrder.value)
   }
@@ -1455,17 +1460,17 @@ onMounted(() => {
                         </div>
                       </div>
                       <!-- 外壳号显示（只读） -->
-                       <div class="col-span-1 w-full flex items-center gap-2">
-                         <span class="w-32 text-black font-semibold">
-                           外壳号：</span>
-                         <el-input
-                           v-model="order.finishShellNo"
-                           placeholder="选择授权ID后自动获取"
-                           readonly
-                           class="flex-1"
-                           :disabled="order.status === '已完成'"
-                         />
-                       </div>
+                      <div class="col-span-1 w-full flex items-center gap-2">
+                        <span class="w-32 text-black font-semibold">
+                          外壳号：</span>
+                        <el-input
+                          v-model="order.finishShellNo"
+                          placeholder="选择授权ID后自动获取"
+                          readonly
+                          class="flex-1"
+                          :disabled="order.status === '已完成'"
+                        />
+                      </div>
                     </template>
 
                     <!-- 第三行：备注 -->
@@ -1643,17 +1648,17 @@ onMounted(() => {
                         </div>
                       </div>
                       <!-- 外壳号显示（只读） -->
-                       <div class="col-span-1 w-full flex items-center gap-2">
-                         <span class="w-32 text-black font-semibold">
-                           外壳号：</span>
-                         <el-input
-                           v-model="order.finishShellNo"
-                           placeholder="选择授权ID后自动获取"
-                           readonly
-                           class="flex-1"
-                           :disabled="order.status === '已完成'"
-                         />
-                       </div>
+                      <div class="col-span-1 w-full flex items-center gap-2">
+                        <span class="w-32 text-black font-semibold">
+                          外壳号：</span>
+                        <el-input
+                          v-model="order.finishShellNo"
+                          placeholder="选择授权ID后自动获取"
+                          readonly
+                          class="flex-1"
+                          :disabled="order.status === '已完成'"
+                        />
+                      </div>
                     </template>
 
                     <!-- 第三行：备注 -->

@@ -9,8 +9,8 @@ import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import orderApi from '@/api/modules/order'
-import { useUserStore } from '@/store/modules/user'
 import { useClientSuffixStore } from '@/store/modules/clientSuffix'
+import { useUserStore } from '@/store/modules/user'
 
 // -----------------数据结构-----------------
 // 弹窗控制
@@ -175,22 +175,6 @@ function handleCompleteVersionInput(value: string) {
   iterOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
-// 计算属性：获取交付发送工单选中客户的后缀列表
-const deliverCustomerSuffixes = computed(() => {
-  if (!deliverOrderForm.value.targetCustomer) {
-    return []
-  }
-  return clientSuffixStore.getSuffixesByClient(deliverOrderForm.value.targetCustomer)
-})
-
-// 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
-const iterDeliverCustomerSuffixes = computed(() => {
-  if (!iterDeliverOrderForm.value.targetCustomer) {
-    return []
-  }
-  return clientSuffixStore.getSuffixesByClient(iterDeliverOrderForm.value.targetCustomer)
-})
-
 // 提交版本迭代工单方法
 // 修改：提交版本迭代工单方法
 async function submitIterOrder() {
@@ -261,6 +245,59 @@ const deliverOrderForm = ref({
   approverID: '', // 审批人ID
 })
 
+// 计算属性：获取交付发送工单选中客户的后缀列表
+const deliverCustomerSuffixes = computed(() => {
+  if (!deliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(deliverOrderForm.value.targetCustomer)
+})
+
+const deliverConfirmDialogVisible = ref(false)
+const deliverConfirmInfo = ref<{ customer: string, suffix: string, isMatch: boolean }>({ customer: '', suffix: '', isMatch: false })
+
+// 获取模型版本后缀（最后一位字母）
+function getModelVersionSuffix(modelVersionID: string): string {
+  // 取最后一段
+  const lastPart = modelVersionID.split('.').pop() || ''
+  // 只保留最后一位字母
+  const match = lastPart.match(/[a-z]$/i)
+  return match ? match[0] : ''
+}
+
+async function handleDeliverOrderSubmit() {
+  // 校验必填项
+  if (
+    !deliverOrderForm.value.modelId
+    || !deliverOrderForm.value.modelVersionID
+    || !deliverOrderForm.value.targetCustomer
+    || !deliverOrderForm.value.isCAEChecked
+    || !deliverOrderForm.value.hasSensitiveInfo
+    || !deliverOrderForm.value.approverID
+  ) {
+    ElMessage.error('请完整填写所有必填项')
+    return
+  }
+
+  // 获取后缀和匹配结果
+  const modelVersionSuffix = getModelVersionSuffix(deliverOrderForm.value.modelVersionID)
+  const isMatch = clientSuffixStore.validateSuffixForClient(deliverOrderForm.value.targetCustomer, modelVersionSuffix)
+
+  // 弹出二次确认弹窗，内容根据匹配结果显示
+  deliverConfirmInfo.value = {
+    customer: deliverOrderForm.value.targetCustomer,
+    suffix: modelVersionSuffix,
+    isMatch,
+  }
+  deliverConfirmDialogVisible.value = true
+}
+
+// 二次确认弹窗确认提交
+async function confirmDeliverOrderSubmit() {
+  deliverConfirmDialogVisible.value = false
+  await submitDeliverOrder()
+}
+
 // 提交交付发送工单的方法
 async function submitDeliverOrder() {
   // 校验必填项
@@ -275,14 +312,7 @@ async function submitDeliverOrder() {
     ElMessage.error('请完整填写所有必填项')
     return
   }
-  
-  // 验证目标客户与模型版本后缀的映射关系
-  const modelVersionSuffix = deliverOrderForm.value.modelVersionID.split('.').pop() || ''
-  if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(deliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
-    ElMessage.warning(`警告：目标客户 "${deliverOrderForm.value.targetCustomer}" 与模型版本后缀 "${modelVersionSuffix}" 不匹配`)
-    // 这里可以选择阻止提交或者只是警告
-    // return // 如果要阻止提交，取消注释这行
-  }
+
   // 提交到后端
   const res = await orderApi.submitDeliverOrder({
     orderID: '', // 新建时可为空或由后端生成
@@ -329,6 +359,14 @@ const iterDeliverOrderForm = ref({
   isCAEChecked: '', // 是否CAE检查
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
+})
+
+// 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
+const iterDeliverCustomerSuffixes = computed(() => {
+  if (!iterDeliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(iterDeliverOrderForm.value.targetCustomer)
 })
 
 watch(() => iterDeliverOrderForm.value.modelVersionID, (val) => {
@@ -386,7 +424,11 @@ function handleIterDeliverCompleteVersionInput(value: string) {
   iterDeliverOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
-// 提交模型迭代+交付发送工单方法
+// 新增：版本迭代+交付发送工单二次确认弹窗控制变量
+const iterDeliverConfirmDialogVisible = ref(false)
+const iterDeliverConfirmInfo = ref<{ customer: string, suffix: string, isMatch: boolean }>({ customer: '', suffix: '', isMatch: false })
+
+// 修改：版本迭代+交付发送工单提交方法，弹出二次确认弹窗
 async function submitIterDeliverOrder() {
   // 校验必填项
   if (
@@ -406,18 +448,26 @@ async function submitIterDeliverOrder() {
 
   // 验证完成模型版本号格式
   if (!validateCompleteVersionNumber(iterDeliverOrderForm.value.completeModelVersionNumber)) {
-    ElMessage.error('完成模型版本号只能输入数字')
+    ElMessage.error('完成模型版本号只能输入数字或字母')
     return
   }
-  
-  // 验证目标客户与模型版本后缀的映射关系
-  const modelVersionSuffix = iterDeliverOrderForm.value.modelVersionID.split('.').pop() || ''
-  if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(iterDeliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
-    ElMessage.warning(`警告：目标客户 "${iterDeliverOrderForm.value.targetCustomer}" 与模型版本后缀 "${modelVersionSuffix}" 不匹配`)
-    // 这里可以选择阻止提交或者只是警告
-    // return // 如果要阻止提交，取消注释这行
-  }
 
+  // 获取后缀和匹配结果
+  const modelVersionSuffix = getModelVersionSuffix(iterDeliverOrderForm.value.modelVersionID)
+  const isMatch = clientSuffixStore.validateSuffixForClient(iterDeliverOrderForm.value.targetCustomer, modelVersionSuffix)
+
+  // 弹出二次确认弹窗，内容根据匹配结果显示
+  iterDeliverConfirmInfo.value = {
+    customer: iterDeliverOrderForm.value.targetCustomer,
+    suffix: modelVersionSuffix,
+    isMatch,
+  }
+  iterDeliverConfirmDialogVisible.value = true
+}
+
+// 新增：版本迭代+交付发送工单二次确认弹窗确认提交
+async function confirmIterDeliverOrderSubmit() {
+  iterDeliverConfirmDialogVisible.value = false
   // 提交到后端
   const res = await orderApi.submitIterDeliverOrder({
     orderID: '', // 新建时可为空或由后端生成
@@ -425,7 +475,7 @@ async function submitIterDeliverOrder() {
     promoterID: String(currentUserId), // 当前用户ID
     modelID: iterDeliverOrderForm.value.modelId, // 模型ID
     modelVersionID: iterDeliverOrderForm.value.modelVersionID, // 模型版本ID
-    completeModelVersion: iterDeliverCompleteModelVersionDisplay.value, // 新增：期望完成模型版本
+    completeModelVersion: iterDeliverCompleteModelVersionDisplay.value, // 期望完成模型版本
     coordinationID: iterDeliverOrderForm.value.coordinationId, // 协调单号
     updateNotes: iterDeliverOrderForm.value.updateNotes, // 更新说明
     packageRequirement: iterDeliverOrderForm.value.packageRequirement, // 封装要求
@@ -436,11 +486,9 @@ async function submitIterDeliverOrder() {
     approverID: String(iterDeliverOrderForm.value.approverID), // 审批人ID
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
-  // 显示后端返回的 message
   if (res?.data?.message) {
     ElMessage.success(res.data.message)
   }
-
   dialogIterDeliverVisible.value = false
   // 清空表单
   iterDeliverOrderForm.value = {
@@ -448,7 +496,7 @@ async function submitIterDeliverOrder() {
     modelVersionID: '',
     completeModelVersionFirst: '',
     completeModelVersionSecond: '',
-    completeModelVersionNumber: '', // 新增：重置完成模型版本号
+    completeModelVersionNumber: '',
     coordinationId: '',
     updateNotes: '',
     packageRequirement: '',
@@ -1264,7 +1312,7 @@ async function fetchCustomerList() {
           <el-button
             type="primary"
             :disabled="!deliverOrderForm.modelId || !deliverOrderForm.targetCustomer || !deliverOrderForm.isCAEChecked || !deliverOrderForm.modelVersionID || !deliverOrderForm.approverID"
-            @click="submitDeliverOrder"
+            @click="handleDeliverOrderSubmit"
           >
             提交
           </el-button>
@@ -1622,6 +1670,68 @@ async function fetchCustomerList() {
           </el-button>
         </template>
       </FaModal>
+
+      <!-- 交付发送类工单客户名称与版本后缀是否匹配二次确认弹窗 -->
+      <el-dialog
+        v-model="deliverConfirmDialogVisible"
+        title="提交确认"
+        width="400px"
+        :close-on-click-modal="false"
+      >
+        <div class="mb-4 text-base text-gray-700">
+          <p>
+            <strong>目标客户：</strong> {{ deliverConfirmInfo.customer }}
+          </p>
+          <p>
+            <strong>模型版本后缀：</strong> {{ deliverConfirmInfo.suffix }}
+          </p>
+          <p v-if="!deliverConfirmInfo.isMatch" class="mt-2 text-red-600">
+            警告：目标客户与模型版本后缀不匹配，是否继续提交？
+          </p>
+          <p v-else class="mt-2 text-green-600">
+            客户与模型版本后缀匹配，是否确认提交？
+          </p>
+        </div>
+        <template #footer>
+          <el-button @click="deliverConfirmDialogVisible = false">
+            取消
+          </el-button>
+          <el-button type="primary" @click="confirmDeliverOrderSubmit">
+            确认提交
+          </el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 版本迭代+交付发送工单二次确认弹窗 -->
+      <el-dialog
+        v-model="iterDeliverConfirmDialogVisible"
+        title="提交确认"
+        width="400px"
+        :close-on-click-modal="false"
+      >
+        <div class="mb-4 text-base text-gray-700">
+          <p>
+            <strong>目标客户：</strong> {{ iterDeliverConfirmInfo.customer }}
+          </p>
+          <p>
+            <strong>模型版本后缀：</strong> {{ iterDeliverConfirmInfo.suffix }}
+          </p>
+          <p v-if="!iterDeliverConfirmInfo.isMatch" class="mt-2 text-red-600">
+            警告：目标客户与模型版本后缀不匹配，是否继续提交？
+          </p>
+          <p v-else class="mt-2 text-green-600">
+            客户与模型版本后缀匹配，是否确认提交？
+          </p>
+        </div>
+        <template #footer>
+          <el-button @click="iterDeliverConfirmDialogVisible = false">
+            取消
+          </el-button>
+          <el-button type="primary" @click="confirmIterDeliverOrderSubmit">
+            确认提交
+          </el-button>
+        </template>
+      </el-dialog>
     </div>
   </div>
 </template>
