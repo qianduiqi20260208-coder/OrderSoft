@@ -845,7 +845,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
     }
 
 }
-
+// 工单流转
 bool TicketDAO::orderTransfer(const TicketExecutor &executor)
 {
 
@@ -863,8 +863,8 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
         LOG_ERROR("function:orderTransfer 事务开始失败！失败原因：%s", mysql_store_result(conn));
         return false;
     }
-
-    snprintf(local_sql, SQL_MAX, "insert into work_order_executor values(NULL,%d,'%s',NOW(),'%s');", executor.ticketId,executor.executor[1].c_str(),executor.reason[0].c_str());
+    //流转 状态未发送
+    snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`, `transfer_reason`, `status`, `create_id`, `encryption_status`) VALUES (%d, %d, NOW(), '%s', '流转', %d, '0');", executor.ticketId, stoi(executor.executor[1]), executor.reason[0].c_str(), stoi(executor.executor[0]));
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:orderTransfer 添加work_order_executor表失败！失败原因：%s", mysql_store_result(conn));
