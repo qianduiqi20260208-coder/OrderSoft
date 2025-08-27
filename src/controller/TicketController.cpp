@@ -301,6 +301,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 		// 解析请求体中的多部分表单数据
         const std::string content_type = req.get_header_value("Content-Type");
         MultipartResult result = parseMultipartForm(content_type, req.body);
+
         // 检查字段
         ticketreproduce.ticketType = "问题复现"; // 工单类型
         ticketreproduce.status = "待审批"; // 工单状态
@@ -344,6 +345,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (body.is_discarded()) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
+
+        TicketVersion ticketversion; // 定义本地ticketversion变量
 
         // 检查字段
         ticketversion.ticketType = "版本迭代"; // 工单类型
@@ -391,6 +394,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        TicketDelivery ticketdelivery; // 定义本地ticketdelivery变量
+
         ticketdelivery.ticketType = "交付发送"; // 工单类型
         ticketdelivery.status = "待审批"; // 工单状态
         ticketdelivery.creatorId = (body.value("promoterID", "")); // 发起人ID
@@ -432,6 +437,9 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (body.is_discarded()) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
+
+        // 定义本地ticketpackage变量
+        TicketPackage ticketpackage;
 
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型
         ticketpackage.status = "待审批"; // 工单状态
@@ -481,6 +489,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        TicketFeature ticketfeature; // 定义本地ticketfeature变量
+
         ticketfeature.ticketType = "功能开发"; // 工单类型
         ticketfeature.status = "待审批"; // 工单状态
         ticketfeature.creatorId = (body.value("promoterID", "")); // 发起人ID
@@ -521,6 +531,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (body.is_discarded()) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
+
+        TicketOther ticketother;
 
         ticketother.ticketType = "其他"; // 工单类型
         ticketother.status = "待审批"; // 工单状态
@@ -771,6 +783,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        TicketVersion ticketversion;
+
         // 检查字段
         ticketversion.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketversion.model = body.value("modelID", ""); // 关联模型
@@ -811,6 +825,9 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (body.is_discarded()) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
+
+        // 定义本地ticketdelivery变量
+        TicketDelivery ticketdelivery;
 
         // 检查字段
         ticketdelivery.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
@@ -911,6 +928,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        TicketFeature ticketfeature; // 定义本地ticketfeature变量
+
         // 检查字段
         ticketfeature.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketfeature.status = "已完成"; // 更新工单状态为已完成
@@ -952,6 +971,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        TicketOther ticketother; // 定义本地ticketother变量
+
         // 检查字段
         ticketother.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketother.status = "已完成"; // 更新工单状态为已完成
@@ -990,6 +1011,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (body.is_discarded()) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
+
+        TicketExecutor ticketexecutor;
 
         // 清空并重新填充数组
         ticketexecutor.executor.clear();
