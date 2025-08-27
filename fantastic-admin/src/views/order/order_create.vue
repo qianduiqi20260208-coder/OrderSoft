@@ -1101,7 +1101,7 @@ async function fetchCustomerList() {
           </el-form-item>
 
           <!-- 完成模型版本输入（验证码样式） -->
-          <el-form-item label="完成模型版本" required>
+          <el-form-item label="Matlab版本" required>
             <div class="version-input-container">
               <!-- 第一个数字（可编辑，默认基准版本第一位） -->
               <el-input
@@ -1358,7 +1358,7 @@ async function fetchCustomerList() {
           </el-form-item>
 
           <!-- 完成模型版本 - 验证码样式 -->
-          <el-form-item label="完成模型版本" required>
+          <el-form-item label="Matlab版本" required>
             <div class="version-input-container">
               <!-- 第一个数字（可编辑，默认基准版本第一位） -->
               <el-input

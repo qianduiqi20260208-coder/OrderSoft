@@ -11,12 +11,41 @@ import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
 
 // -----------------数据结构-----------------
-// 流转相关数据结构
+// 完成工单流转信息
 interface TransferInfo {
-  transferExecutorID: string
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
   transferReason: string
   transferTime: string
 }
+
+// 加密环节流转信息
+interface TransferInfo_Encrypted
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
+// 发送环节流转信息
+interface TransferInfo_Delivery
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
+// 封装环节流转信息
+interface TransferInfo_Version
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
 // 工单数据结构定义，统一用 interface 进行类型约束
 interface OrderItem {
   // 工单类型
@@ -84,7 +113,7 @@ interface OrderItem {
   finishShellNo?: string[] // 外壳号（字母+数字）
 
   // 功能开发类（完成）
-  finishModelVersionId?: string // 完成后模型版本ID
+  // finishModelVersionId?: string // 完成后模型版本ID
   finishFeatureDesc?: string // 完成功能描述
 
   // 其他类（完成）
@@ -96,6 +125,8 @@ interface OrderItem {
   // transferTime?: string
   // transferExecutorID?: string
   transfers?: TransferInfo[] // 多次流转记录
+
+  transfers_Encrypted?: TransferInfo_Encrypted[] // 加密环节流转记录
 
   // 前端本次编辑用（不提交时不影响历史）
   transferReasonEdit?: string
@@ -133,28 +164,6 @@ const batchTaskPriority = ref<'' | '紧急' | '一般'>('') // 批量分发时�
 const batchExecutorID = ref('') // 批量分发时统一设置下一流程负责人ID（执行人ID）
 
 // -----------事件处理函数--------------
-// 一键展开/收起
-// function expandOrder(orderId: string, expand: boolean) {
-//   expandedMap.value[orderId] = expand
-
-//   if (expand) {
-//     const order = userOrders.value.find(o => o.orderID === orderId)
-//     if (order && order.status === '进行中' && order.completeModelVersion) {
-//       orderApi.fetchUsedModelVersion(order.modelID, order.completeModelVersion)
-//         .then((res) => {
-//           // 假设后端返回 { usedModelVersions: ['xxx'] }
-//           if (res?.data?.usedModelVersions) {
-//             order.usedModelVersions = res.data.usedModelVersions || []
-//           }
-//         })
-//         .catch((err) => {
-//           ElMessage.error('获取新版本号失败')
-//           console.error(err)
-//         })
-//     }
-//   }
-// }
-
 function expandOrder(orderId: string, expand: boolean) {
   expandedMap.value[orderId] = expand
 
@@ -387,7 +396,7 @@ async function confirmFinishOrder() {
       modelID: confirmOrder.value.modelID,
       modelVersion: confirmOrder.value.modelVersionID,
       finishTime: confirmOrder.value.finishTime,
-      finishModelVersionId: confirmOrder.value.finishModelVersionId ?? '',
+      finishModelVersionId: confirmOrder.value.finishModelVersion ?? '',
       finishFeatureDesc: confirmOrder.value.finishFeatureDesc ?? '',
       executorID: confirmOrder.value.executorID ?? '',
     })
@@ -521,7 +530,6 @@ async function fetchUserOrders() {
         isEncrypted: order.isEncrypted || '', // 是否加密
         finishAuthId: order.finishAuthId || '', // 授权ID
         finishShellNo: order.finishShellNo || [], // 外壳号
-        finishModelVersionId: order.finishModelVersionId || '', // 完成后模型版本ID
         finishFeatureDesc: order.finishFeatureDesc || '', // 完成后功能描述
         finishRemarkOther: order.finishRemarkOther || '', // 其他类工单完成时备注
 
@@ -1062,6 +1070,7 @@ function handleFinishVersionInput(order: OrderItem, field: 'number' | 'letter', 
       version += `.${order.finishModelVersionNumber}${order.finishModelVersionLetter || ''}`
     }
     order.finishModelVersion = version
+    console.warn('fin', order.finishModelVersion)
   }
 }
 
@@ -1283,7 +1292,7 @@ onMounted(() => {
                     <div class="col-span-1 w-full flex items-center gap-2">
                       <span class="w-40 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
-                        升级后模型版本：</span>
+                        升级后版本：</span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
                         <div v-if="order.status !== '已完成'" class="version-input-container">
@@ -1461,7 +1470,7 @@ onMounted(() => {
                     <div class="col-span-1 w-full flex items-center gap-2">
                       <span class="w-40 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
-                        升级后模型版本：</span>
+                        升级后版本：</span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
                         <div v-if="order.status !== '已完成'" class="version-input-container">
@@ -1636,7 +1645,7 @@ onMounted(() => {
                     <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-40 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
-                        升级后模型版本：
+                        完成后版本：
                       </span>
                       <div class="flex flex-1 flex-col gap-2">
                         <!-- 验证码样式的版本输入 -->
@@ -1687,7 +1696,7 @@ onMounted(() => {
                           <!-- 如果没有completeModelVersion，显示传统输入框 -->
                           <template v-else>
                             <input
-                              v-model="order.finishModelVersionId"
+                              v-model="order.finishModelVersion"
                               class="border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
                               :placeholder="`当前版本: ${order.modelVersionID}`"
                             >
@@ -1858,7 +1867,8 @@ onMounted(() => {
                           />
                         </div>
                         <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                          <span>流转负责人：{{ transfer.transferExecutorID }}</span>
+                          <span>流转发起人：{{ transfer.transferCreatorID }}</span>
+                          <span>流转执行人：{{ transfer.transferExecutorID }}</span>
                           <span>流转时间：{{ transfer.transferTime }}</span>
                         </div>
                       </div>
@@ -2070,31 +2080,38 @@ onMounted(() => {
                       />
                     </el-select>
 
-                    <!-- 新增：预计发送时间 -->
-                    <span class="ml-4 text-gray-700 font-semibold">预计发送时间：</span>
-                    <template v-if="order.status === '待审批'">
-                      <el-date-picker
-                        v-model="order.targetDeliveryTime"
-                        type="datetime"
-                        placeholder="请选择时间"
-                        format="YYYY-MM-DD HH:mm:ss"
-                        value-format="YYYY-MM-DD HH:mm:ss"
-                        style="width: 200px;"
-                        :disabled="order.status !== '待审批'"
-                        clearable
-                      />
-                    </template>
-                    <template v-else>
-                      <span class="rounded bg-gray-100 px-2 py-1 text-blue-700 font-bold">
-                        {{ order.targetDeliveryTime || '未填写' }}
-                      </span>
+                    <!-- 新增：预计发送时间，仅交付发送和版本迭代+交付发送类工单显示 -->
+                    <span
+                      v-if="['交付发送', '版本迭代+交付发送'].includes(order.type)"
+                      class="ml-4 text-gray-700 font-semibold"
+                    >
+                      预计发送时间：
+                    </span>
+                    <template v-if="['交付发送', '版本迭代+交付发送'].includes(order.type)">
+                      <template v-if="order.status === '待审批'">
+                        <el-date-picker
+                          v-model="order.targetDeliveryTime"
+                          type="datetime"
+                          placeholder="请选择时间"
+                          format="YYYY-MM-DD HH:mm:ss"
+                          value-format="YYYY-MM-DD HH:mm:ss"
+                          style="width: 200px;"
+                          :disabled="order.status !== '待审批'"
+                          clearable
+                        />
+                      </template>
+                      <template v-else>
+                        <span class="rounded bg-gray-100 px-2 py-1 text-blue-700 font-bold">
+                          {{ order.targetDeliveryTime || '未填写' }}
+                        </span>
+                      </template>
                     </template>
                   </div>
                   <div class="flex items-center gap-3">
                     <el-button
                       type="success"
                       size="default"
-                      :disabled="order.status !== '待审批' || !leaderPriority || !order.targetDeliveryTime || !order.distributorID"
+                      :disabled="order.status !== '待审批' || !leaderPriority || !order.distributorID"
                       @click="handleApprove(order)"
                     >
                       <i class="i-mdi-check-circle-outline mr-1" /> 同意
@@ -2205,7 +2222,7 @@ onMounted(() => {
                   <!-- 版本迭代类 -->
                   <template v-else-if="order.type === '版本迭代'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <span class="w-32 text-black font-semibold">Matlab版本：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2259,7 +2276,7 @@ onMounted(() => {
                   <!-- 版本迭代+交付发送类 -->
                   <template v-else-if="order.type === '版本迭代+交付发送'">
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                      <span class="w-32 text-black font-semibold">Matlab版本：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.completeModelVersion" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2320,14 +2337,6 @@ onMounted(() => {
 
                   <!-- 其他类 -->
                   <template v-else-if="order.type === '其他'">
-                    <!-- <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelID" readonly>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">模型版本ID：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.modelVersionID" readonly>
-                    </div> -->
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">内容描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
@@ -2587,7 +2596,7 @@ onMounted(() => {
                 <template v-else-if="confirmOrder.type === '版本迭代'">
                   <div class="text-sm space-y-3">
                     <div>
-                      <span class="text-gray-600 font-medium">升级后模型版本：</span>
+                      <span class="text-gray-600 font-medium">升级后版本：</span>
                       <div class="mt-1 border rounded bg-white p-2 text-blue-700 font-bold">
                         {{ confirmOrder.finishModelVersion || '未填写' }}
                       </div>
@@ -2637,7 +2646,7 @@ onMounted(() => {
                 <template v-else-if="confirmOrder.type === '版本迭代+交付发送'">
                   <div class="text-sm space-y-3">
                     <div>
-                      <span class="text-gray-600 font-medium">升级后模型版本：</span>
+                      <span class="text-gray-600 font-medium">升级后版本：</span>
                       <div class="mt-1 border rounded bg-white p-2 text-blue-700 font-bold">
                         {{ confirmOrder.finishModelVersion || '未填写' }}
                       </div>
@@ -2675,9 +2684,9 @@ onMounted(() => {
                 <template v-else-if="confirmOrder.type === '功能开发'">
                   <div class="text-sm space-y-3">
                     <div>
-                      <span class="text-gray-600 font-medium">升级后模型版本：</span>
+                      <span class="text-gray-600 font-medium">完成后版本：</span>
                       <div class="mt-1 border rounded bg-white p-2 text-blue-700 font-bold">
-                        {{ confirmOrder.finishModelVersionId || '未填写' }}
+                        {{ confirmOrder.finishModelVersion || '未填写' }}
                       </div>
                     </div>
                     <div>

@@ -54,7 +54,7 @@ interface OrderItem {
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
   matlabVersion?: string // matlab版本号
-  expectedSendTime?: string // 预计发送时间
+  targetDeliveryTime?: string // 预计发送时间
 
   // ----------问题复现工单（创建）----------
   coordinationID?: string // 协调单号
@@ -267,6 +267,58 @@ function handleSearch() {
   // 重置展开状态
   expandedMap.value = {}
   fetchUserOrders(1)
+}
+
+async function handleFilterMine() {
+  const myId = userStore.account
+  if (!myId) {
+    ElMessage.warning('无法获取当前用户ID')
+    return
+  }
+  loading.value = true
+  try {
+    // 构造筛选条件，四个角色都传当前用户ID
+    const params: {
+      page: number
+      pageSize: number
+      promoterID?: string
+      approverID?: string
+      distributorID?: string
+      executorID?: string
+      // 其它筛选条件可按需补充
+    } = {
+      page: 1,
+      pageSize,
+      promoterID: myId,
+      approverID: myId,
+      distributorID: myId,
+      executorID: myId,
+    }
+    const res = await orderApi.fetchOrderPage(params)
+    userOrders.value = (res.data.list || []).map((order: any) => {
+      // 文件数组处理
+      if (order.hasAttachment && order.fileName && order.fileUrl) {
+        order.files = [{
+          fileName: order.fileName,
+          fileUrl: order.fileUrl,
+        }]
+      }
+      else {
+        order.files = []
+      }
+      return order
+    })
+    total.value = res.data.total || 0
+    currentPage.value = res.data.page || 1
+    ElMessage.success('已筛选与当前用户相关的工单')
+  }
+  catch (error) {
+    ElMessage.error('筛选失败')
+    console.error(error)
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 // 修改分页组件页码变化事件
@@ -648,6 +700,10 @@ function handleCopyOrder(order: OrderItem) {
             <i class="i-mdi-magnify mr-2" />
             搜索
           </el-button>
+          <el-button type="success" size="large" @click="handleFilterMine">
+            <i class="i-mdi-account-search mr-2" />
+            与我相关
+          </el-button>
         </div>
       </div>
     </FaPageMain>
@@ -761,7 +817,7 @@ function handleCopyOrder(order: OrderItem) {
                       </span>
                       <span>
                         <span class="text-gray-600">预计发送时间：</span>
-                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">当前状态：</span>
@@ -797,7 +853,7 @@ function handleCopyOrder(order: OrderItem) {
                       </span>
                       <span>
                         <span class="text-gray-600">预计发送时间：</span>
-                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">任务优先级：</span>
