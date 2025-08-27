@@ -506,6 +506,12 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         return crow::response{ resp.dump() };
         }));
 
+    // 获取所有客户suffix列表
+    CROW_ROUTE(app, "/client/suffixes").methods("GET"_method)
+        ([this](const crow::request& req) {
+            return handleGetAllClientSuffixes(req);
+        });
+
     // // 注册获取所有客户名称列表路由
     // CROW_ROUTE(app, "/customer/list").methods("GET"_method)
     //     ([this](const crow::request& req) {
@@ -669,4 +675,52 @@ std::string CustomerInfoController::getAllClientNames()
     
     // 将JSON对象转换为字符串返回
     return result.dump();
+}
+
+crow::response CustomerInfoController::handleGetAllClientSuffixes(const crow::request& req)
+{
+    // JWT校验
+    if (!checkToken(req)) {
+        return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+    }
+    
+    try {
+        LOG_DEBUG("获取所有客户suffix列表\n");
+        
+        // 调用Service层获取所有客户suffix列表
+        std::vector<std::pair<std::string, std::string>> suffixList = customerInfoService_->getAllClientSuffixList();
+        
+        // 构建JSON数组，包含客户名和后缀信息
+        nlohmann::json suffixArray = nlohmann::json::array();
+        for (const auto& clientSuffix : suffixList) {
+            nlohmann::json suffixItem = {
+                {"clientName", clientSuffix.first},
+                {"suffix", clientSuffix.second}
+            };
+            suffixArray.push_back(suffixItem);
+        }
+        
+        // 构建JSON响应
+        nlohmann::json response = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"suffixes", suffixArray}
+            }}
+        };
+        
+        // 设置响应头
+        crow::response res(200, response.dump());
+        res.add_header("Content-Type", "application/json; charset=utf-8");
+        return res;
+    }
+    catch (const std::exception& e) {
+        LOG_ERROR("获取客户suffix列表失败: %s", e.what());
+        nlohmann::json errorResponse = {
+            {"status", 1},
+            {"error", std::string("获取客户suffix列表失败: ") + e.what()},
+            {"data", nlohmann::json::object()}
+        };
+        return crow::response(500, errorResponse.dump());
+    }
 }

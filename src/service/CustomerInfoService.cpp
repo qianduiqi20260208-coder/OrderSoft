@@ -207,6 +207,44 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     return result;
 }
 
+std::vector<std::pair<std::string, std::string>> CustomerInfoService::getAllClientSuffixList()
+{
+    std::vector<std::pair<std::string, std::string>> result;
+    
+    // 从DAO层获取所有客户的suffix字段
+    std::vector<std::pair<std::string, std::string>> clientSuffixes = customerInfoDAO_->getAllClientSuffixes();
+    
+    // 将每个逗号分隔的字符串拆分为单独的元素，并标识客户
+    for (const auto& clientSuffix : clientSuffixes) {
+        const std::string& clientName = clientSuffix.first;
+        const std::string& suffixStr = clientSuffix.second;
+        
+        if (!suffixStr.empty()) {
+            // 使用逗号分隔字符串
+            std::string current = suffixStr;
+            size_t pos = 0;
+            while ((pos = current.find(',')) != std::string::npos) {
+                std::string token = current.substr(0, pos);
+                // 去除前后空格
+                token.erase(0, token.find_first_not_of(" \t"));
+                token.erase(token.find_last_not_of(" \t") + 1);
+                if (!token.empty()) {
+                    result.push_back(std::make_pair(clientName, token));
+                }
+                current.erase(0, pos + 1);
+            }
+            // 处理最后一个元素
+            current.erase(0, current.find_first_not_of(" \t"));
+            current.erase(current.find_last_not_of(" \t") + 1);
+            if (!current.empty()) {
+                result.push_back(std::make_pair(clientName, current));
+            }
+        }
+    }
+    
+    return result;
+}
+
 nlohmann::json CustomerInfoService::getClientList()
 {
     nlohmann::json result;

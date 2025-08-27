@@ -33,5 +33,8 @@ public:
 
     virtual std::vector<std::string> selectAuthorizationByEncryptionKey(std::string encryptionKey) = 0;
 
+    // 获取所有客户的suffix字段，返回客户名和对应的后缀对
+    virtual std::vector<std::pair<std::string, std::string>> getAllClientSuffixes() = 0;
+
     virtual ~ICustomerInfoDAO() = default;
 };

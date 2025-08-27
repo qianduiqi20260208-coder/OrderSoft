@@ -45,6 +45,10 @@ public:
     virtual int getAllSendRecordGroupedCountByClient(std::string client) =0;
 
     virtual std::vector<std::vector<std::string>> getAllModelLatestVesrionByClient(std::string client) =0;
+
+    // 获取所有客户的suffix字段，返回带有客户标识的后缀列表
+    virtual std::vector<std::pair<std::string, std::string>> getAllClientSuffixList() = 0;
+
     virtual ~ICustomerInfoService() = default;
 };
 

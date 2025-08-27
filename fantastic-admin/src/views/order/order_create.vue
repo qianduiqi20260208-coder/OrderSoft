@@ -10,6 +10,7 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
+import { useClientSuffixStore } from '@/store/modules/clientSuffix'
 
 // -----------------数据结构-----------------
 // 弹窗控制
@@ -21,6 +22,7 @@ const dialogDevVisible = ref(false)// 功能开发工单弹窗控制
 const dialogOtherVisible = ref(false)// 其他工单弹窗控制
 
 const userStore = useUserStore()
+const clientSuffixStore = useClientSuffixStore()
 const currentUserId = userStore.account // 获取当前登录用户ID
 
 const route = useRoute()
@@ -173,6 +175,22 @@ function handleCompleteVersionInput(value: string) {
   iterOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
+// 计算属性：获取交付发送工单选中客户的后缀列表
+const deliverCustomerSuffixes = computed(() => {
+  if (!deliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(deliverOrderForm.value.targetCustomer)
+})
+
+// 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
+const iterDeliverCustomerSuffixes = computed(() => {
+  if (!iterDeliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(iterDeliverOrderForm.value.targetCustomer)
+})
+
 // 提交版本迭代工单方法
 // 修改：提交版本迭代工单方法
 async function submitIterOrder() {
@@ -256,6 +274,14 @@ async function submitDeliverOrder() {
   ) {
     ElMessage.error('请完整填写所有必填项')
     return
+  }
+  
+  // 验证目标客户与模型版本后缀的映射关系
+  const modelVersionSuffix = deliverOrderForm.value.modelVersionID.split('.').pop() || ''
+  if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(deliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
+    ElMessage.warning(`警告：目标客户 "${deliverOrderForm.value.targetCustomer}" 与模型版本后缀 "${modelVersionSuffix}" 不匹配`)
+    // 这里可以选择阻止提交或者只是警告
+    // return // 如果要阻止提交，取消注释这行
   }
   // 提交到后端
   const res = await orderApi.submitDeliverOrder({
@@ -382,6 +408,14 @@ async function submitIterDeliverOrder() {
   if (!validateCompleteVersionNumber(iterDeliverOrderForm.value.completeModelVersionNumber)) {
     ElMessage.error('完成模型版本号只能输入数字')
     return
+  }
+  
+  // 验证目标客户与模型版本后缀的映射关系
+  const modelVersionSuffix = iterDeliverOrderForm.value.modelVersionID.split('.').pop() || ''
+  if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(iterDeliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
+    ElMessage.warning(`警告：目标客户 "${iterDeliverOrderForm.value.targetCustomer}" 与模型版本后缀 "${modelVersionSuffix}" 不匹配`)
+    // 这里可以选择阻止提交或者只是警告
+    // return // 如果要阻止提交，取消注释这行
   }
 
   // 提交到后端
@@ -1182,6 +1216,14 @@ async function fetchCustomerList() {
                 :value="item"
               />
             </el-select>
+            <!-- 显示选中客户的后缀信息 -->
+            <div v-if="deliverOrderForm.targetCustomer && deliverCustomerSuffixes.length > 0" class="mt-2 text-sm text-gray-600">
+              <span class="font-medium">该客户对应的后缀：</span>
+              <span class="text-blue-600">{{ deliverCustomerSuffixes.join(', ') }}</span>
+            </div>
+            <div v-else-if="deliverOrderForm.targetCustomer && deliverCustomerSuffixes.length === 0" class="mt-2 text-sm text-orange-600">
+              <span class="font-medium">注意：</span>该客户暂无对应的后缀信息
+            </div>
           </el-form-item>
           <el-form-item label="CAE-IPT平台验证" required>
             <el-select v-model="deliverOrderForm.isCAEChecked" placeholder="请选择">
@@ -1360,6 +1402,14 @@ async function fetchCustomerList() {
                 :value="item"
               />
             </el-select>
+            <!-- 显示选中客户的后缀信息 -->
+            <div v-if="iterDeliverOrderForm.targetCustomer && iterDeliverCustomerSuffixes.length > 0" class="mt-2 text-sm text-gray-600">
+              <span class="font-medium">该客户对应的后缀：</span>
+              <span class="text-blue-600">{{ iterDeliverCustomerSuffixes.join(', ') }}</span>
+            </div>
+            <div v-else-if="iterDeliverOrderForm.targetCustomer && iterDeliverCustomerSuffixes.length === 0" class="mt-2 text-sm text-orange-600">
+              <span class="font-medium">注意：</span>该客户暂无对应的后缀信息
+            </div>
           </el-form-item>
           <el-form-item label="CAE-IPT平台验证" required>
             <el-select v-model="iterDeliverOrderForm.isCAEChecked" placeholder="请选择">
