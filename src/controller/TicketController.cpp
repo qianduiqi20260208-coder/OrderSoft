@@ -584,12 +584,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.priorityHint = body.value("referencePriority", ""); // 参考优先级
         ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
-        // targetDeliveryTime 必填
         ticket.targetDeliveryTime = (body.value("targetDeliveryTime", "")); // 预计发送时间
-        if (ticket.targetDeliveryTime.empty()) {
-            return crow::response(400, R"({"status":1,"error":"预计发送时间不能为空","data":{}})");
-            // ticket.targetDeliveryTime = "2099-12-31 23:59:59";
-        }
 
         bool ok = ticketService->approveTicket(ticket);
         nlohmann::json resp;
