@@ -145,8 +145,15 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         const TicketPackage& tmp = dynamic_cast<const TicketPackage&>(ticket);
         if(tmp.encrypted)
         {
+            std::string dongleStr = "";
+            if (!tmp.dongle.empty()) {
+                for (size_t i = 0; i < tmp.dongle.size(); ++i) {
+                    if (i > 0) dongleStr += ",";
+                    dongleStr += tmp.dongle[i];
+                }
+            }
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,tmp.dongle.c_str(),tmp.license.c_str(),tmp.dongle.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.license.c_str(),dongleStr.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         }
@@ -733,7 +740,10 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
 
             tmp->newModelVersion = row[9]?row[9]:"";
             tmp->encrypted = atoi((row[10]?row[10]:"-1"));
-            tmp->dongle =  row[11]?row[11]:"";
+            tmp->dongle.clear();
+            if (row[11] && strlen(row[11]) > 0) {
+                tmp->dongle.push_back(row[11]);
+            }
             tmp->license =  row[12]?row[12]:"";
             tmp->remark = (row[13]?row[13]:"");
         }

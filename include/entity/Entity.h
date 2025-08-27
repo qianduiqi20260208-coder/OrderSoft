@@ -290,7 +290,7 @@ struct TicketPackage :public Ticket{
     std::string newModelVersion; // 升级后模型版本
     std::string baseModelVersion;// 模型基版本
     bool encrypted; // 是否加密
-    std::string dongle; // 外壳号
+    std::vector<std::string> dongle; // 外壳号列表
     std::string license; // 授权ID
     std::string remark; // 备注
 

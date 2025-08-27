@@ -854,6 +854,9 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
         }
 
+        // 定义本地ticketpackage变量
+        TicketPackage ticketpackage;
+        
         // 检查字段
         ticketpackage.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型 显示指定
@@ -863,7 +866,17 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本ID
         ticketpackage.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketpackage.license = body.value("finishAuthId", ""); // 授权ID
-        ticketpackage.dongle = body.value("finishShellNo", ""); // 外壳号
+        // 处理外壳号列表
+        if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
+            ticketpackage.dongle.clear();
+            for (const auto& shellNo : body["finishShellNo"]) {
+                if (shellNo.is_string()) {
+                    ticketpackage.dongle.push_back(shellNo.get<std::string>());
+                }
+            }
+        } else {
+            ticketpackage.dongle.clear();
+        }
         ticketpackage.remark = body.value("finishRemark", ""); // 备注
         ticketpackage.executorId = (body.value("executorID", "")); // 执行人ID
 
