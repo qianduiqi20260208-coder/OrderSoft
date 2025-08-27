@@ -9,8 +9,8 @@ import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import orderApi from '@/api/modules/order'
-import { useUserStore } from '@/store/modules/user'
 import { useClientSuffixStore } from '@/store/modules/clientSuffix'
+import { useUserStore } from '@/store/modules/user'
 
 // -----------------数据结构-----------------
 // 弹窗控制
@@ -175,22 +175,6 @@ function handleCompleteVersionInput(value: string) {
   iterOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
-// 计算属性：获取交付发送工单选中客户的后缀列表
-const deliverCustomerSuffixes = computed(() => {
-  if (!deliverOrderForm.value.targetCustomer) {
-    return []
-  }
-  return clientSuffixStore.getSuffixesByClient(deliverOrderForm.value.targetCustomer)
-})
-
-// 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
-const iterDeliverCustomerSuffixes = computed(() => {
-  if (!iterDeliverOrderForm.value.targetCustomer) {
-    return []
-  }
-  return clientSuffixStore.getSuffixesByClient(iterDeliverOrderForm.value.targetCustomer)
-})
-
 // 提交版本迭代工单方法
 // 修改：提交版本迭代工单方法
 async function submitIterOrder() {
@@ -261,6 +245,14 @@ const deliverOrderForm = ref({
   approverID: '', // 审批人ID
 })
 
+// 计算属性：获取交付发送工单选中客户的后缀列表
+const deliverCustomerSuffixes = computed(() => {
+  if (!deliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(deliverOrderForm.value.targetCustomer)
+})
+
 // 提交交付发送工单的方法
 async function submitDeliverOrder() {
   // 校验必填项
@@ -275,7 +267,7 @@ async function submitDeliverOrder() {
     ElMessage.error('请完整填写所有必填项')
     return
   }
-  
+
   // 验证目标客户与模型版本后缀的映射关系
   const modelVersionSuffix = deliverOrderForm.value.modelVersionID.split('.').pop() || ''
   if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(deliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
@@ -329,6 +321,14 @@ const iterDeliverOrderForm = ref({
   isCAEChecked: '', // 是否CAE检查
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
+})
+
+// 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
+const iterDeliverCustomerSuffixes = computed(() => {
+  if (!iterDeliverOrderForm.value.targetCustomer) {
+    return []
+  }
+  return clientSuffixStore.getSuffixesByClient(iterDeliverOrderForm.value.targetCustomer)
 })
 
 watch(() => iterDeliverOrderForm.value.modelVersionID, (val) => {
@@ -409,7 +409,7 @@ async function submitIterDeliverOrder() {
     ElMessage.error('完成模型版本号只能输入数字')
     return
   }
-  
+
   // 验证目标客户与模型版本后缀的映射关系
   const modelVersionSuffix = iterDeliverOrderForm.value.modelVersionID.split('.').pop() || ''
   if (modelVersionSuffix && !clientSuffixStore.validateSuffixForClient(iterDeliverOrderForm.value.targetCustomer, modelVersionSuffix)) {
