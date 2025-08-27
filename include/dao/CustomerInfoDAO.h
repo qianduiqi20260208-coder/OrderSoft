@@ -36,6 +36,9 @@ public:
 
     std::vector<std::string> selectAuthorizationByEncryptionKey(std::string encryptionKey) override;
 
+    // 根据授权代码查询对应的外壳号列表
+    std::vector<std::string> selectShellsByAuthorizationCode(const std::string& authorizationCode, const std::string& clientName);
+
     // 获取所有客户的suffix字段，返回客户名和对应的后缀对
     std::vector<std::pair<std::string, std::string>> getAllClientSuffixes();
 

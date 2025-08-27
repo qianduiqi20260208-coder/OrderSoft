@@ -488,12 +488,12 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         nlohmann::json authIDList = nlohmann::json::array();
         std::vector<Authorization> authList = customerInfoService_->getShellAuthorization(targetCustomer, shellNumber);
         for (const auto& auth : authList) {
-            authIDList.push_back({
-                {"authId", auth.authId},
-                {"endDate", auth.endDate},
-                {"deviceType", auth.authType},
-                {"description", auth.authNote}
-            });
+            nlohmann::json authItem;
+            authItem["authId"] = auth.authId;
+            authItem["endDate"] = auth.endDate;
+            authItem["deviceType"] = auth.authType;
+            authItem["description"] = auth.authNote;
+            authIDList.push_back(authItem);
         }
         
         nlohmann::json resp = {
@@ -501,6 +501,145 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             {"error", ""},
             {"data", {
                 {"list", authIDList}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        }));
+
+    // 获取客户的所有授权ID列表
+    CROW_ROUTE(app, "/order/customer-auth-ids").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        // 从查询参数中获取参数
+        auto params = crow::query_string(req.url_params);
+        std::string targetCustomer = "";
+
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+
+        // 参数验证
+        if (targetCustomer.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+         LOG_DEBUG("获取客户所有授权ID列表，targetCustomer: %s\n", 
+               targetCustomer.c_str());
+        
+        nlohmann::json authIDList = nlohmann::json::array();
+        std::vector<Authorization> authList = customerInfoService_->getCustomerAllAuthorizations(targetCustomer);
+        for (const auto& auth : authList) {
+            nlohmann::json authItem;
+            authItem["authId"] = auth.authId;
+            authItem["endDate"] = auth.endDate;
+            authItem["deviceType"] = auth.authType;
+            authItem["description"] = auth.authNote;
+            authIDList.push_back(authItem);
+        }
+        
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"list", authIDList}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        }));
+
+    // 根据授权ID获取对应的外壳号
+    CROW_ROUTE(app, "/order/shell-by-auth").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        // 从查询参数中获取参数
+        auto params = crow::query_string(req.url_params);
+        std::string authId = "";
+        std::string targetCustomer = "";
+
+        if (params.get("authId") != nullptr) {
+            authId = params.get("authId");
+        }
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+
+        // 参数验证
+        if (authId.empty() || targetCustomer.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：authId 或 targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+         LOG_DEBUG("根据授权ID获取外壳号，authId: %s, targetCustomer: %s\n", 
+               authId.c_str(), targetCustomer.c_str());
+        
+        std::string shellNumber = customerInfoService_->getShellByAuthId(authId, targetCustomer);
+        
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"shellNumber", shellNumber}
+            }}
+        };
+        return crow::response{ resp.dump() };
+        }));
+
+    // 根据授权ID获取对应的外壳号列表
+    CROW_ROUTE(app, "/order/shells-by-auth").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        }
+        // 从查询参数中获取参数
+        auto params = crow::query_string(req.url_params);
+        std::string authId = "";
+        std::string targetCustomer = "";
+
+        if (params.get("authId") != nullptr) {
+            authId = params.get("authId");
+        }
+        if (params.get("targetCustomer") != nullptr) {
+            targetCustomer = params.get("targetCustomer");
+        }
+
+        // 参数验证
+        if (authId.empty() || targetCustomer.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：authId 或 targetCustomer"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+         LOG_DEBUG("根据授权ID获取外壳号列表，authId: %s, targetCustomer: %s\n", 
+               authId.c_str(), targetCustomer.c_str());
+        
+        std::vector<std::string> shellNumbers = customerInfoService_->getShellListByAuthId(authId, targetCustomer);
+        
+        nlohmann::json shellList = nlohmann::json::array();
+        for (const auto& shell : shellNumbers) {
+            shellList.push_back(shell);
+        }
+        
+        nlohmann::json resp = {
+            {"status", 1},
+            {"error", ""},
+            {"data", {
+                {"shellNumbers", shellList}
             }}
         };
         return crow::response{ resp.dump() };

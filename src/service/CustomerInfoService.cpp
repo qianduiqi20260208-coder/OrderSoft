@@ -207,6 +207,48 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     return result;
 }
 
+std::vector<Authorization> CustomerInfoService::getCustomerAllAuthorizations(const std::string& clientName)
+{
+    std::vector<Authorization> allAuthorizations;
+    
+    // 获取客户的所有外壳号
+    std::vector<std::string> shellNumbers = customerInfoDAO_->selectEncryptionKeyByClient(clientName);
+    
+    // 遍历每个外壳号，获取其授权信息
+    for (const auto& shellNumber : shellNumbers) {
+        std::vector<Authorization> shellAuths = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+        allAuthorizations.insert(allAuthorizations.end(), shellAuths.begin(), shellAuths.end());
+    }
+    
+    return allAuthorizations;
+}
+
+std::string CustomerInfoService::getShellByAuthId(const std::string& authId, const std::string& clientName)
+{
+    // 获取客户的所有外壳号
+    std::vector<std::string> shellNumbers = customerInfoDAO_->selectEncryptionKeyByClient(clientName);
+    
+    // 遍历每个外壳号，查找匹配的授权ID
+    for (const auto& shellNumber : shellNumbers) {
+        std::vector<Authorization> shellAuths = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+        
+        for (const auto& auth : shellAuths) {
+            if (auth.authId == authId) {
+                return shellNumber;
+            }
+        }
+    }
+    
+    // 如果没有找到匹配的授权ID，返回空字符串
+    return "";
+}
+
+std::vector<std::string> CustomerInfoService::getShellListByAuthId(const std::string& authId, const std::string& clientName)
+{
+    // 直接通过授权代码查询对应的外壳号列表
+    return customerInfoDAO_->selectShellsByAuthorizationCode(authId, clientName);
+}
+
 std::vector<std::pair<std::string, std::string>> CustomerInfoService::getAllClientSuffixList()
 {
     std::vector<std::pair<std::string, std::string>> result;

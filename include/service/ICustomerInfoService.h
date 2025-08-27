@@ -40,6 +40,15 @@ public:
     // 获取指定客户、指定外壳号下的授权信息
     virtual std::vector<Authorization> getShellAuthorization(const std::string& clientName, const std::string& shellNumber) = 0;
 
+    // 获取客户的所有授权ID列表
+    virtual std::vector<Authorization> getCustomerAllAuthorizations(const std::string& clientName) = 0;
+
+    // 根据授权ID获取对应的外壳号
+    virtual std::string getShellByAuthId(const std::string& authId, const std::string& clientName) = 0;
+
+    // 根据授权ID获取对应的外壳号列表
+    virtual std::vector<std::string> getShellListByAuthId(const std::string& authId, const std::string& clientName) = 0;
+
     virtual std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getSendRecordByClientPagedByDate(std::string,int,int) = 0;
 
     virtual int getAllSendRecordGroupedCountByClient(std::string client) =0;
