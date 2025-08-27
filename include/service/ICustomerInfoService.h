@@ -49,6 +49,9 @@ public:
     // 根据授权ID获取对应的外壳号列表
     virtual std::vector<std::string> getShellListByAuthId(const std::string& authId, const std::string& clientName) = 0;
 
+    // 获取客户的授权信息（按授权ID分组）
+    virtual nlohmann::json getCustomerAuthorizationsByGroup(const std::string& clientName) = 0;
+
     virtual std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getSendRecordByClientPagedByDate(std::string,int,int) = 0;
 
     virtual int getAllSendRecordGroupedCountByClient(std::string client) =0;

@@ -711,6 +711,72 @@ std::vector<std::string> CustomerInfoDAO::selectShellsByAuthorizationCode(const 
     return retVec;
 }
 
+std::vector<std::vector<std::string>> CustomerInfoDAO::getCustomerAuthorizationsByGroup(const std::string& clientName)
+{
+    std::vector<std::vector<std::string>> result;
+    
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getCustomerAuthorizationsByGroup 获取数据库连接失败");
+        return result;
+    }
+    
+    MYSQL* conn = getConnection();
+    char local_sql[SQL_MAX];
+    int local_ret;
+    
+    snprintf(local_sql, SQL_MAX, 
+        "SELECT "
+        "    pa.authorization_code, "
+        "    pai.authorization_start_date, "
+        "    pai.authorization_end_date, "
+        "    pai.encryption_type, "
+        "    pai.remark, "
+        "    ekh.status, "
+        "    ek.shell_number, "
+        "    pa.id "
+        "FROM "
+        "    customer_info ci "
+        "JOIN "
+        "    encryption_key_history ekh ON ci.customer_name = ekh.customer "
+        "JOIN "
+        "    encryption_key ek ON ekh.encryption_key = ek.shell_number "
+        "JOIN ( "
+        "    SELECT encryption_key, MAX(id) as max_id "
+        "    FROM encryption_key_history "
+        "    GROUP BY encryption_key "
+        ") latest ON ekh.encryption_key = latest.encryption_key AND ekh.id = latest.max_id "
+        "LEFT JOIN "
+        "    product_authorization pa ON ek.shell_number = pa.encryption_key "
+        "LEFT JOIN "
+        "    product_authorization_info pai ON pa.id = pai.authorization_id "
+        "WHERE "
+        "    ci.customer_name = '%s' "
+        "    AND ekh.status = '出库' AND pa.return = '0' "
+        "ORDER BY pa.authorization_code, ek.shell_number;",
+        clientName.c_str());
+    
+    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:getCustomerAuthorizationsByGroup 查询失败！失败原因：%s", mysql_error(conn));
+        return result;
+    }
+    
+    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_ROW local_row;
+    
+    while ((local_row = mysql_fetch_row(local_res))) {
+        std::vector<std::string> row;
+        for (int i = 0; i < 8; i++) {
+            row.push_back(local_row[i] ? local_row[i] : "");
+        }
+        result.push_back(row);
+    }
+    
+    mysql_free_result(local_res);
+    return result;
+}
+
 CustomerInfoDAO::~CustomerInfoDAO()
 {
     DBConnectionManager::closeConnection(mysql);

@@ -42,6 +42,9 @@ public:
     // 获取所有客户的suffix字段，返回客户名和对应的后缀对
     std::vector<std::pair<std::string, std::string>> getAllClientSuffixes();
 
+    // 获取客户的授权信息（按授权ID分组）
+    std::vector<std::vector<std::string>> getCustomerAuthorizationsByGroup(const std::string& clientName) override;
+
     ~CustomerInfoDAO();
 
 private:
