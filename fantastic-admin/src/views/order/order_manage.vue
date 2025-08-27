@@ -624,18 +624,21 @@ function getBatchModelId(): string | undefined {
 }
 
 // 批量审批确认
+const batchTargetDeliveryTime = ref<string>('')
 async function confirmBatchApprove() {
   let successCount = 0
   for (const orderID of selectedOrderIds.value) {
     const order = userOrders.value.find(o => o.orderID === orderID)
     if (order && order.status === '待审批') {
-      // 设置参考优先级和分发人ID
       order.referencePriority = batchLeaderPriority.value
       order.status = '待分发'
       order.distributorID = batchDistributorID.value
       order.approverID = currentUserId
       order.approveTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
-      // 调用单个审批接口
+      // 批量设置预计发送时间（仅交付发送和版本迭代+交付发送）
+      if (['交付发送', '版本迭代+交付发送'].includes(order.type)) {
+        order.targetDeliveryTime = batchTargetDeliveryTime.value
+      }
       const res = await orderApi.approveOrder({
         orderID: order.orderID,
         status: order.status,
@@ -644,7 +647,6 @@ async function confirmBatchApprove() {
         referencePriority: order.referencePriority,
         targetDeliveryTime: order.targetDeliveryTime ?? '',
         distributorID: String(order.distributorID ?? ''),
-
       })
       if (res?.status === 1) {
         successCount++
@@ -2388,6 +2390,7 @@ onMounted(() => {
             v-model="batchApproveDialogVisible"
             title="批量审批"
             width="50vw"
+            height="40vh"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2414,19 +2417,37 @@ onMounted(() => {
                   />
                 </el-select>
               </el-form-item>
-              <!-- 新增：批量审批工单信息预览 -->
+              <!-- 新增：预计发送时间，仅交付发送和版本迭代+交付发送类工单显示 -->
+              <el-form-item
+                v-if="userOrders
+                  .filter(o => selectedOrderIds.includes(o.orderID))
+                  .some(o => ['交付发送', '版本迭代+交付发送'].includes(o.type))"
+                label="预计发送时间"
+                required
+              >
+                <el-date-picker
+                  v-model="batchTargetDeliveryTime"
+                  type="datetime"
+                  placeholder="请选择时间"
+                  format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 200px;"
+                  clearable
+                />
+              </el-form-item>
+              <!-- 工单信息预览 -->
               <el-form-item label="已选工单" label-width="80px">
-                <div style="max-height: 120px; overflow-y: auto;">
-                  <table style="width: 100%; font-size: 12px;">
+                <div style="width: 100%;max-height: 36vh; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 14px; border-collapse: separate;">
                     <thead>
                       <tr>
-                        <th style="text-align: left;">
+                        <th style=" position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           工单号
                         </th>
-                        <th style="text-align: left;">
+                        <th style=" position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           模型
                         </th>
-                        <th style="text-align: left;">
+                        <th style=" position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           基准版本
                         </th>
                       </tr>
@@ -2451,7 +2472,7 @@ onMounted(() => {
               </el-button>
               <el-button
                 type="primary"
-                :disabled="!batchLeaderPriority || !batchDistributorID"
+                :disabled="!batchLeaderPriority || !batchDistributorID || (userOrders.filter(o => selectedOrderIds.includes(o.orderID)).some(o => ['交付发送', '版本迭代+交付发送'].includes(o.type)) && !batchTargetDeliveryTime)"
                 @click="confirmBatchApprove"
               >
                 确定
@@ -2464,6 +2485,7 @@ onMounted(() => {
             v-model="batchDistributeDialogVisible"
             title="批量分发"
             width="50vw"
+            height="40vh"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2492,17 +2514,17 @@ onMounted(() => {
               </el-form-item>
               <!-- 新增：批量分发工单信息预览 -->
               <el-form-item label="已选工单" label-width="80px">
-                <div style="max-height: 120px; overflow-y: auto;">
-                  <table style="width: 100%; font-size: 12px;">
+                <div style="width: 100%;max-height: 36vh; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 14px; border-collapse: separate;">
                     <thead>
                       <tr>
-                        <th style="text-align: left;">
+                        <th style="position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           工单号
                         </th>
-                        <th style="text-align: left;">
+                        <th style="position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           模型
                         </th>
-                        <th style="text-align: left;">
+                        <th style="position: sticky; top: 0; z-index: 2;text-align: left; background: #f3f4f6;">
                           基准版本
                         </th>
                       </tr>
