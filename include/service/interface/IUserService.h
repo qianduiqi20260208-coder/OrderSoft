@@ -19,6 +19,8 @@ public:
 
     virtual bool editPassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) = 0;
 
+    virtual std::vector<std::shared_ptr<Ticket>> getMyOrder(const std::string& userId) = 0;
+
     virtual ~IUserService() =0;
 };
 

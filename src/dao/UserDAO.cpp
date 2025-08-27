@@ -497,6 +497,7 @@ bool UserDAO::updatePassword(const std::string& userId, const std::string& oldPa
     return true;
 }
 
+
 std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, int workOrderId)
 {
     
@@ -552,7 +553,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->updateNote = local_row[3];
             tmp->packRequirement = local_row[4];
             tmp->interfaceChanged = atoi(local_row[5]);
-            tmp->remark = (local_row[7]?local_row[7]:"");
+            tmp->matlab_version = (local_row[8]?local_row[8]:"");
         }
         mysql_free_result(local_res);
 
@@ -578,7 +579,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->targetClient = local_row[6];
             tmp->validatedByCAE =atoi(local_row[7]);
             tmp->sensitiveInfo = local_row[8];
-            tmp->remark = (local_row[13]?local_row[13]:"");
+            tmp->remark = (local_row[14]?local_row[14]:"");
 
         }
         mysql_free_result(local_res);

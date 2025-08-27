@@ -142,6 +142,14 @@ CREATE TABLE IF NOT EXISTS version_iteration (
 	ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS history_updatenotes (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+	model_name VARCHAR(64),
+	model_version VARCHAR(64),
+    update_content TEXT
+);
+
+
 CREATE TABLE IF NOT EXISTS function_development (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     work_order_id BIGINT NOT NULL,

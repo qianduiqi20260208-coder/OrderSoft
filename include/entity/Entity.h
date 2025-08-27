@@ -241,6 +241,8 @@ struct TicketVersion :public Ticket{
     std::string baseModelVersion;//模型基版本
     std::string remark; // 备注 
 
+    std::string matlab_version; // 备注 
+
     // 多态序列化接口
 	nlohmann::json to_json() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
@@ -253,6 +255,7 @@ struct TicketVersion :public Ticket{
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishRemark"] = remark; // 备注
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 
@@ -268,6 +271,8 @@ struct TicketVersion :public Ticket{
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["completeModelVersion"] = remark; // 备注
+
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 };
@@ -294,6 +299,7 @@ struct TicketPackage :public Ticket{
     std::string license; // 授权ID
     std::string remark; // 备注
 
+    std::string matlab_version; // 备注 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
@@ -313,6 +319,7 @@ struct TicketPackage :public Ticket{
 		j["finishShellNo"] = dongle; // 外壳号
 		j["finishAuthId"] = license; // 授权ID
 		j["finishRemark"] = remark; // 备注
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 
@@ -335,6 +342,7 @@ struct TicketPackage :public Ticket{
 		j["finishShellNo"] = dongle; // 外壳号
 		j["finishAuthId"] = license; // 授权ID
 		j["completeModelVersion"] = remark; // 备注
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 };

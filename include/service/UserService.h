@@ -6,11 +6,12 @@
 
 #include <vector>
 #include <string>
+#include "TicketDAO.h"
 
 class UserService :public IUserService
 {
 public:
-    UserService(std::shared_ptr<IUserDAO> sp);
+    UserService(std::shared_ptr<IUserDAO> sp,std::shared_ptr<ITicketDAO> sp2);
     
     /**
      * @brief 根据工号获取用户信息(获取当前登录的用户信息)
@@ -56,8 +57,10 @@ public:
      */
     bool editPassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) override;
     
+    std::vector<std::shared_ptr<Ticket>> getMyOrder(const std::string& userId) override;
+
 private:
     std::shared_ptr<IUserDAO> userDAO_;
-
+    std::shared_ptr<ITicketDAO> ticketDAO_;
     std::vector<User> users_; // 存储用户列表
 };

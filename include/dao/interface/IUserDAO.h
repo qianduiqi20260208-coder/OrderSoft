@@ -22,6 +22,7 @@ public:
 
     virtual bool updatePassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) = 0;
 
+
     virtual ~IUserDAO() = 0; 
 };
 

@@ -9,6 +9,8 @@
 #include "UserDAO.h"
 #include "UserService.h"
 
+std::map<int,std::string> id_name;
+
 
 MYSQL* mysql;
 auto ticketDAO = std::make_shared<TicketDAO>(mysql);
@@ -78,8 +80,6 @@ TEST_CASE("function dev new model version") {
 }
 
 TEST_CASE("select order sum") {
-
-    auto ret = ticketSvc->getOrderCount();
 }
 
 TEST_CASE("get client") {
