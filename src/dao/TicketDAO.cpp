@@ -399,7 +399,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
     //看任务优先级变量里是否有数据，没有数据表示拒绝，拒绝的话需要填写拒绝原因
     if(ticket.priorityTask == "")
     {
-        snprintf(local_sql, SQL_MAX, "update work_order set status = '已退回',reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
+        snprintf(local_sql, SQL_MAX, "update work_order set status = '已退回',dispatcher_reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:dispatchTicket 修改work_order表失败！失败原因：%s", mysql_store_result(conn));
