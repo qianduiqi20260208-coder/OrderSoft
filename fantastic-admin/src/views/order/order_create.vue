@@ -163,16 +163,16 @@ const versionNumberPlaceholder = computed(() => {
   return '1'
 })
 
-// 新增：验证完成模型版本号格式
+// 新增：验证完成模型版本号格式（第三位允许大小写字母和数字）
 function validateCompleteVersionNumber(value: string): boolean {
-  // 只允许输入数字
-  return /^\d+$/.test(value)
+  // 只允许输入大小写字母和数字，至少1位
+  return /^[a-z0-9]+$/i.test(value)
 }
 
 // 新增：处理完成模型版本号输入
 function handleCompleteVersionInput(value: string) {
-  // 只保留数字
-  iterOrderForm.value.completeModelVersionNumber = value.replace(/\D/g, '')
+  // 只保留大小写字母和数字
+  iterOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
 // 计算属性：获取交付发送工单选中客户的后缀列表
@@ -382,8 +382,8 @@ const iterDeliverVersionNumberPlaceholder = computed(() => {
 
 // 新增：版本迭代+交付发送工单的完成模型版本号输入处理
 function handleIterDeliverCompleteVersionInput(value: string) {
-  // 只保留数字
-  iterDeliverOrderForm.value.completeModelVersionNumber = value.replace(/\D/g, '')
+  // 只保留大小写字母和数字
+  iterDeliverOrderForm.value.completeModelVersionNumber = value.replace(/[^a-z0-9]/gi, '')
 }
 
 // 提交模型迭代+交付发送工单方法
@@ -472,59 +472,10 @@ const devOrderForm = ref({
   approverID: '', // 审批人ID
 })
 
-// 初始化前两位
-watch(() => devOrderForm.value.modelVersionID, (val) => {
-  const parts = val ? val.split('.') : []
-  devOrderForm.value.completeModelVersionFirst = parts[0] || ''
-  devOrderForm.value.completeModelVersionSecond = parts[1] || ''
-})
-
-// 功能开发工单的版本前缀计算（直接用数字，不做substring）
-const devVersionParts = computed(() => {
-  if (!devOrderForm.value.modelVersionID) {
-    return { first: '', second: '' }
-  }
-  const parts = devOrderForm.value.modelVersionID.split('.')
-  if (parts.length >= 2) {
-    return {
-      first: parts[0], // 例如 '4'
-      second: parts[1], // 例如 '1'
-    }
-  }
-  return { first: '', second: '' }
-})
-
-// 功能开发工单的完成模型版本计算（去掉V，直接拼接数字）
-const devCompleteModelVersionDisplay = computed(() => {
-  const first = devOrderForm.value.completeModelVersionFirst || devVersionParts.value.first
-  const second = devOrderForm.value.completeModelVersionSecond || devVersionParts.value.second
-  const third = devOrderForm.value.completeModelVersionNumber
-  if (first && second && third) {
-    return `${first}.${second}.${third}`
-  }
-  return ''
-})
-
-// 功能开发工单的数字输入框placeholder
-const devVersionNumberPlaceholder = computed(() => {
-  if (!devOrderForm.value.modelVersionID) {
-    return ''
-  }
-  const versionParts = devOrderForm.value.modelVersionID.split('.')
-  if (versionParts.length >= 3) {
-    const thirdPart = versionParts[2]
-    const numberMatch = thirdPart.match(/^\d+/)
-    if (numberMatch) {
-      const currentNumber = Number.parseInt(numberMatch[0])
-      return String(currentNumber + 1)
-    }
-  }
-  return '1'
-})
-
-// 功能开发工单的完成模型版本号输入处理
-function handleDevCompleteVersionInput(value: string) {
-  devOrderForm.value.completeModelVersionNumber = value.replace(/\D/g, '')
+// 功能开发工单完整版本号，直接取基准版本前三位
+function getCompleteModelVersion(modelVersionID: string): string {
+  const parts = modelVersionID.split('.')
+  return parts.slice(0, 3).join('.')
 }
 
 // 提交功能开发工单的方法
@@ -533,17 +484,10 @@ async function submitDevOrder() {
   if (
     !devOrderForm.value.modelId
     || !devOrderForm.value.modelVersionID
-    || !devOrderForm.value.completeModelVersionNumber
     || !devOrderForm.value.featureDesc
     || !devOrderForm.value.approverID
   ) {
     ElMessage.error('请完整填写所有必填项')
-    return
-  }
-
-  // 验证完成模型版本号格式
-  if (!validateCompleteVersionNumber(devOrderForm.value.completeModelVersionNumber)) {
-    ElMessage.error('完成模型版本号只能输入数字')
     return
   }
 
@@ -554,7 +498,7 @@ async function submitDevOrder() {
     promoterID: String(currentUserId), // 当前用户ID
     modelID: devOrderForm.value.modelId, // 模型ID
     modelVersionID: devOrderForm.value.modelVersionID, // 模型版本ID
-    completeModelVersion: devCompleteModelVersionDisplay.value, // 新增：完整的完成模型版本
+    completeModelVersion: getCompleteModelVersion(devOrderForm.value.modelVersionID), // 只取前三位
     featureDesc: devOrderForm.value.featureDesc, // 功能描述
     approverID: String(devOrderForm.value.approverID), // 审批人ID
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
@@ -572,7 +516,7 @@ async function submitDevOrder() {
     modelVersionID: '',
     completeModelVersionFirst: '',
     completeModelVersionSecond: '',
-    completeModelVersionNumber: '', // 新增：重置完成模型版本号
+    completeModelVersionNumber: '',
     featureDesc: '',
     approverID: '',
   }
@@ -1556,57 +1500,6 @@ async function fetchCustomerList() {
                 :value="ver"
               />
             </el-select>
-          </el-form-item>
-
-          <!-- 完成模型版本 - 验证码样式 -->
-          <el-form-item label="完成模型版本" required>
-            <div class="version-input-container">
-              <!-- 第一个数字（可编辑，默认基准版本第一位） -->
-              <el-input
-                v-model="devOrderForm.completeModelVersionFirst"
-                :placeholder="devVersionParts.first"
-                maxlength="3"
-                class="version-input"
-                :disabled="!devOrderForm.modelVersionID"
-              />
-
-              <!-- 第一个点 -->
-              <div class="version-part static">
-                .
-              </div>
-
-              <!-- 第二个数字（可编辑，默认基准版本第二位） -->
-              <el-input
-                v-model="devOrderForm.completeModelVersionSecond"
-                :placeholder="devVersionParts.second"
-                maxlength="3"
-                class="version-input"
-                :disabled="!devOrderForm.modelVersionID"
-              />
-
-              <!-- 第二个点 -->
-              <div class="version-part static">
-                .
-              </div>
-
-              <!-- 用户输入的数字 -->
-              <el-input
-                v-model="devOrderForm.completeModelVersionNumber"
-                :placeholder="devVersionNumberPlaceholder"
-                maxlength="5"
-                class="version-input"
-                :disabled="!devOrderForm.modelVersionID"
-                @input="handleDevCompleteVersionInput"
-              />
-            </div>
-
-            <!-- 完整版本预览 -->
-            <div v-if="devCompleteModelVersionDisplay" class="mt-3 text-sm text-gray-600">
-              <span class="font-semibold">完整版本:</span>
-              <span class="ml-2 rounded bg-blue-50 px-3 py-1 text-lg text-blue-700 font-bold font-mono">
-                {{ devCompleteModelVersionDisplay }}
-              </span>
-            </div>
           </el-form-item>
 
           <el-form-item label="功能描述" required>
