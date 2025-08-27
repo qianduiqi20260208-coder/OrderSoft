@@ -16,9 +16,9 @@ bool TicketService::approveTicket(const Ticket &ticket)
     return ticketDAO->approveTicket(ticket);
 }
 
-bool TicketService::dispatchTicket(const Ticket &ticket)
+bool TicketService::dispatchTicket(const Ticket &ticket, const std::string& account)
 {
-    return ticketDAO->dispatchTicket(ticket);
+    return ticketDAO->dispatchTicket(ticket, account);
 }
 
 bool TicketService::completeTicket(const Ticket &ticket)

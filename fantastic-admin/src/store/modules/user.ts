@@ -1,6 +1,7 @@
 import { ElMessage } from 'element-plus'
 import apiUser from '@/api/modules/user'
 import router from '@/router'
+import { useClientSuffixStore } from './clientSuffix'
 
 export const useUserStore = defineStore(
   // 唯一ID
@@ -11,6 +12,7 @@ export const useUserStore = defineStore(
     const routeStore = useRouteStore()
     const menuStore = useMenuStore()
     const tabbarStore = useTabbarStore()
+    const clientSuffixStore = useClientSuffixStore()
 
     // 用户账号（从本地存储读取，支持刷新后自动恢复）
     const account = ref(localStorage.account ?? '')
@@ -89,6 +91,14 @@ export const useUserStore = defineStore(
       token.value = res.data.token
       avatar.value = res.data.avatar
       userModels.value = modelsData
+
+      // 登录成功后获取客户后缀数据
+      try {
+        await clientSuffixStore.fetchClientSuffixes()
+      }
+      catch (error) {
+        console.warn('获取客户后缀数据失败，但不影响登录:', error)
+      }
     }
 
     // 手动登出
@@ -134,6 +144,8 @@ export const useUserStore = defineStore(
       tabbarStore.clean()
       routeStore.removeRoutes()
       menuStore.setActived(0)
+      // 清除客户后缀数据
+      clientSuffixStore.clearSuffixData()
     }
 
     // 获取权限

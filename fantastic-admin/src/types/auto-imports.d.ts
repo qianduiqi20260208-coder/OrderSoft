@@ -67,6 +67,7 @@ declare global {
   const unref: typeof import('vue')['unref']
   const useAttrs: typeof import('vue')['useAttrs']
   const useAuth: typeof import('../utils/composables/useAuth')['default']
+  const useClientSuffixStore: typeof import('../store/modules/clientSuffix')['useClientSuffixStore']
   const useCssModule: typeof import('vue')['useCssModule']
   const useCssVars: typeof import('vue')['useCssVars']
   const useGlobalProperties: typeof import('../utils/composables/useGlobalProperties')['default']
@@ -96,4 +97,7 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { ClientSuffix } from '../store/modules/clientSuffix'
+  import('../store/modules/clientSuffix')
 }

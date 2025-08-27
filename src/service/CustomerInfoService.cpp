@@ -205,6 +205,157 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     return result;
 }
 
+nlohmann::json CustomerInfoService::getCustomerAuthorizationsByGroup(const std::string& clientName)
+{
+    nlohmann::json result = {
+        {"status", 1},
+        {"error", ""},
+        {"data", {
+            {"list", nlohmann::json::array()}
+        }}
+    };
+    
+    try {
+        // 获取原始数据
+        std::vector<std::vector<std::string>> rawData = customerInfoDAO_->getCustomerAuthorizationsByGroup(clientName);
+        
+        // 按授权ID分组
+        std::map<std::string, std::vector<std::vector<std::string>>> groupedData;
+        
+        for (const auto& row : rawData) {
+            if (row.size() >= 8) {
+                std::string authId = row[0]; // authorization_code
+                if (!authId.empty()) {
+                    groupedData[authId].push_back(row);
+                }
+            }
+        }
+        
+        // 转换为指定格式
+        nlohmann::json authList = nlohmann::json::array();
+        
+        for (const auto& group : groupedData) {
+            nlohmann::json authItem;
+            authItem["authId"] = group.first;
+            authItem["shellNumberList"] = nlohmann::json::array();
+            
+            for (const auto& row : group.second) {
+                nlohmann::json shellItem;
+                shellItem["shellNumber"] = row[6]; // shell_number
+                
+                // 根据encryption_type确定deviceType
+                std::string encryptionType = row[3]; // encryption_type
+                if (encryptionType == "网络锁") {
+                    shellItem["deviceType"] = "网络锁";
+                } else if (encryptionType == "本地锁") {
+                    shellItem["deviceType"] = "本地锁";
+                } else if (encryptionType == "软锁授权") {
+                    shellItem["deviceType"] = "软锁授权";
+                } else {
+                    shellItem["deviceType"] = "本地锁"; // 默认值
+                }
+                
+                shellItem["description"] = row[4]; // remark
+                shellItem["startTime"] = row[1]; // authorization_start_date
+                shellItem["endTime"] = row[2]; // authorization_end_date
+                
+                authItem["shellNumberList"].push_back(shellItem);
+            }
+            
+            authList.push_back(authItem);
+        }
+        
+        result["data"]["list"] = authList;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("getCustomerAuthorizationsByGroup 处理数据时发生异常: %s", e.what());
+        result["status"] = 0;
+        result["error"] = "处理数据时发生异常";
+    }
+    
+    return result;
+}
+
+std::vector<Authorization> CustomerInfoService::getCustomerAllAuthorizations(const std::string& clientName)
+{
+    std::vector<Authorization> allAuthorizations;
+    
+    // 获取客户的所有外壳号
+    std::vector<std::string> shellNumbers = customerInfoDAO_->selectEncryptionKeyByClient(clientName);
+    
+    // 遍历每个外壳号，获取其授权信息
+    for (const auto& shellNumber : shellNumbers) {
+        std::vector<Authorization> shellAuths = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+        allAuthorizations.insert(allAuthorizations.end(), shellAuths.begin(), shellAuths.end());
+    }
+    
+    return allAuthorizations;
+}
+
+std::string CustomerInfoService::getShellByAuthId(const std::string& authId, const std::string& clientName)
+{
+    // 获取客户的所有外壳号
+    std::vector<std::string> shellNumbers = customerInfoDAO_->selectEncryptionKeyByClient(clientName);
+    
+    // 遍历每个外壳号，查找匹配的授权ID
+    for (const auto& shellNumber : shellNumbers) {
+        std::vector<Authorization> shellAuths = customerInfoDAO_->getShellAuthorizationInfo(clientName, shellNumber);
+        
+        for (const auto& auth : shellAuths) {
+            if (auth.authId == authId) {
+                return shellNumber;
+            }
+        }
+    }
+    
+    // 如果没有找到匹配的授权ID，返回空字符串
+    return "";
+}
+
+std::vector<std::string> CustomerInfoService::getShellListByAuthId(const std::string& authId, const std::string& clientName)
+{
+    // 直接通过授权代码查询对应的外壳号列表
+    return customerInfoDAO_->selectShellsByAuthorizationCode(authId, clientName);
+}
+
+std::vector<std::pair<std::string, std::string>> CustomerInfoService::getAllClientSuffixList()
+{
+    std::vector<std::pair<std::string, std::string>> result;
+    
+    // 从DAO层获取所有客户的suffix字段
+    std::vector<std::pair<std::string, std::string>> clientSuffixes = customerInfoDAO_->getAllClientSuffixes();
+    
+    // 将每个逗号分隔的字符串拆分为单独的元素，并标识客户
+    for (const auto& clientSuffix : clientSuffixes) {
+        const std::string& clientName = clientSuffix.first;
+        const std::string& suffixStr = clientSuffix.second;
+        
+        if (!suffixStr.empty()) {
+            // 使用逗号分隔字符串
+            std::string current = suffixStr;
+            size_t pos = 0;
+            while ((pos = current.find(',')) != std::string::npos) {
+                std::string token = current.substr(0, pos);
+                // 去除前后空格
+                token.erase(0, token.find_first_not_of(" \t"));
+                token.erase(token.find_last_not_of(" \t") + 1);
+                if (!token.empty()) {
+                    result.push_back(std::make_pair(clientName, token));
+                }
+                current.erase(0, pos + 1);
+            }
+            // 处理最后一个元素
+            current.erase(0, current.find_first_not_of(" \t"));
+            current.erase(current.find_last_not_of(" \t") + 1);
+            if (!current.empty()) {
+                result.push_back(std::make_pair(clientName, current));
+            }
+        }
+    }
+    
+    return result;
+}
+
 nlohmann::json CustomerInfoService::getClientList()
 {
     nlohmann::json result;

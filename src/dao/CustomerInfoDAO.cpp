@@ -97,28 +97,45 @@ std::vector<std::pair<std::string, std::string>> CustomerInfoDAO::selectAllClien
 std::vector<std::string> CustomerInfoDAO::selectEncryptionKeyByClient(std::string client)
 {
     std::vector<std::string> retVec;
-    // 使用BaseDAO的优化连接管理
-    if (!ensureConnection()) {
+    
+    // 使用连接池获取连接
+    ConnectionGuard conn = DBConnectionManager::getPoolConnection();
+    if (!conn) {
         LOG_ERROR("function:selectEncryptionKeyByClient 获取数据库连接失败");
-        return {""};
+        return retVec;
     }
     
-    MYSQL* conn = getConnection();
-    //查询出库时间以及入库时间
     char local_sql[SQL_MAX];
     int local_ret;
-    
-    snprintf(local_sql, SQL_MAX, "select distinct encryption_key from encryption_key_history where customer ='%s' and status = '出库';",client.c_str());
-    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-    if (local_ret) {
-        LOG_ERROR("function:selectEncryptionKeyByClient 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(conn));
-        return {""};
-    }
-    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_RES* local_res;
     MYSQL_ROW local_row;
+    
+    // 参考getClientAuthInfo方法的写法，查询当前状态为"出库"的加密狗
+    snprintf(local_sql, SQL_MAX, 
+        "SELECT DISTINCT ek.shell_number "
+        "FROM customer_info ci "
+        "JOIN encryption_key_history ekh ON ci.customer_name = ekh.customer "
+        "JOIN encryption_key ek ON ekh.encryption_key = ek.shell_number "
+        "JOIN ("
+        "    SELECT encryption_key, MAX(id) as max_id "
+        "    FROM encryption_key_history "
+        "    GROUP BY encryption_key"
+        ") latest ON ekh.encryption_key = latest.encryption_key AND ekh.id = latest.max_id "
+        "WHERE ci.customer_name = '%s' AND ekh.status = '出库';", 
+        client.c_str());
+    
+    local_ret = mysql_real_query(conn.get(), local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:selectEncryptionKeyByClient 查询失败！失败原因：%s", mysql_error(conn.get()));
+        return retVec;
+    }
+    
+    local_res = mysql_store_result(conn.get());
     while(local_row = mysql_fetch_row(local_res))
     {
-        retVec.push_back(local_row[0]);
+        if (local_row[0]) {
+            retVec.push_back(local_row[0]);
+        }
     }
     mysql_free_result(local_res);
 
@@ -620,6 +637,144 @@ std::vector<std::string> CustomerInfoDAO::selectAuthorizationByEncryptionKey(std
     mysql_free_result(local_res);
 
     return retVec;
+}
+
+std::vector<std::pair<std::string, std::string>> CustomerInfoDAO::getAllClientSuffixes()
+{
+    std::vector<std::pair<std::string, std::string>> retVec;
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getAllClientSuffixes 获取数据库连接失败");
+        return {};
+    }
+    
+    MYSQL* conn = getConnection();
+    char local_sql[SQL_MAX];
+    int local_ret;
+    
+    snprintf(local_sql, SQL_MAX, "select customer_name, suffix from customer_info where suffix is not null and suffix != '';");
+    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:getAllClientSuffixes 查询 customer_info 表失败！失败原因：%s", mysql_error(conn));
+        return {};
+    }
+    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_ROW local_row;
+    while(local_row = mysql_fetch_row(local_res))
+    {
+        if (local_row[0] && local_row[1]) {
+            retVec.push_back(std::make_pair(local_row[0], local_row[1]));
+        }
+    }
+    mysql_free_result(local_res);
+
+    return retVec;
+}
+
+std::vector<std::string> CustomerInfoDAO::selectShellsByAuthorizationCode(const std::string& authorizationCode, const std::string& clientName)
+{
+    std::vector<std::string> retVec;
+    
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:selectShellsByAuthorizationCode 获取数据库连接失败");
+        return retVec;
+    }
+    
+    MYSQL* conn = getConnection();
+    char local_sql[SQL_MAX];
+    int local_ret;
+    
+    // 根据授权代码和客户名称查询对应的外壳号列表
+    snprintf(local_sql, SQL_MAX, 
+        "SELECT DISTINCT pa.encryption_key "
+        "FROM product_authorization pa "
+        "WHERE pa.authorization_code = '%s' AND pa.client = '%s';",
+        authorizationCode.c_str(), clientName.c_str());
+        
+    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:selectShellsByAuthorizationCode 查询 product_authorization 表失败！失败原因：%s", mysql_error(conn));
+        return retVec;
+    }
+    
+    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_ROW local_row;
+    while(local_row = mysql_fetch_row(local_res))
+    {
+        if (local_row[0]) {
+            retVec.push_back(local_row[0]);
+        }
+    }
+    mysql_free_result(local_res);
+
+    return retVec;
+}
+
+std::vector<std::vector<std::string>> CustomerInfoDAO::getCustomerAuthorizationsByGroup(const std::string& clientName)
+{
+    std::vector<std::vector<std::string>> result;
+    
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getCustomerAuthorizationsByGroup 获取数据库连接失败");
+        return result;
+    }
+    
+    MYSQL* conn = getConnection();
+    char local_sql[SQL_MAX];
+    int local_ret;
+    
+    snprintf(local_sql, SQL_MAX, 
+        "SELECT "
+        "    pa.authorization_code, "
+        "    pai.authorization_start_date, "
+        "    pai.authorization_end_date, "
+        "    pai.encryption_type, "
+        "    pai.remark, "
+        "    ekh.status, "
+        "    ek.shell_number, "
+        "    pa.id "
+        "FROM "
+        "    customer_info ci "
+        "JOIN "
+        "    encryption_key_history ekh ON ci.customer_name = ekh.customer "
+        "JOIN "
+        "    encryption_key ek ON ekh.encryption_key = ek.shell_number "
+        "JOIN ( "
+        "    SELECT encryption_key, MAX(id) as max_id "
+        "    FROM encryption_key_history "
+        "    GROUP BY encryption_key "
+        ") latest ON ekh.encryption_key = latest.encryption_key AND ekh.id = latest.max_id "
+        "LEFT JOIN "
+        "    product_authorization pa ON ek.shell_number = pa.encryption_key "
+        "LEFT JOIN "
+        "    product_authorization_info pai ON pa.id = pai.authorization_id "
+        "WHERE "
+        "    ci.customer_name = '%s' "
+        "    AND ekh.status = '出库' AND pa.return = '0' "
+        "ORDER BY pa.authorization_code, ek.shell_number;",
+        clientName.c_str());
+    
+    local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:getCustomerAuthorizationsByGroup 查询失败！失败原因：%s", mysql_error(conn));
+        return result;
+    }
+    
+    MYSQL_RES* local_res = mysql_store_result(conn);
+    MYSQL_ROW local_row;
+    
+    while ((local_row = mysql_fetch_row(local_res))) {
+        std::vector<std::string> row;
+        for (int i = 0; i < 8; i++) {
+            row.push_back(local_row[i] ? local_row[i] : "");
+        }
+        result.push_back(row);
+    }
+    
+    mysql_free_result(local_res);
+    return result;
 }
 
 CustomerInfoDAO::~CustomerInfoDAO()

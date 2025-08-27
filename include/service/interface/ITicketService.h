@@ -11,7 +11,7 @@ protected:
 public:
     virtual bool createTicket(Ticket& ticket){return true;};
     virtual bool approveTicket(const Ticket& ticket){return true;};
-    virtual bool dispatchTicket(const Ticket& ticket){return true;};
+    virtual bool dispatchTicket(const Ticket& ticket, const std::string& account){return true;};
     virtual bool completeTicket(const Ticket& ticket){return true;};
 
 

@@ -33,5 +33,14 @@ public:
 
     virtual std::vector<std::string> selectAuthorizationByEncryptionKey(std::string encryptionKey) = 0;
 
+    // 获取所有客户的suffix字段，返回客户名和对应的后缀对
+    virtual std::vector<std::pair<std::string, std::string>> getAllClientSuffixes() = 0;
+
+    // 根据授权码获取外壳号列表
+    virtual std::vector<std::string> selectShellsByAuthorizationCode(const std::string& authorizationCode, const std::string& clientName) = 0;
+
+    // 获取客户的授权信息（按授权ID分组）
+    virtual std::vector<std::vector<std::string>> getCustomerAuthorizationsByGroup(const std::string& clientName) = 0;
+
     virtual ~ICustomerInfoDAO() = default;
 };

@@ -12,7 +12,7 @@ public:
     TicketService(std::shared_ptr<ITicketDAO>,std::shared_ptr<IModelDAO>);
     bool createTicket(Ticket& ticket) override;
     bool approveTicket(const Ticket& ticket)override;
-    bool dispatchTicket(const Ticket& ticket)override;
+    bool dispatchTicket(const Ticket& ticket, const std::string& account)override;
     bool completeTicket(const Ticket& ticket)override;
 
     //根据条件筛选工单

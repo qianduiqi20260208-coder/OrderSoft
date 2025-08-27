@@ -199,7 +199,7 @@ export default {
     finishTime: string // 完成时间
     isEncrypted: string // 是否加密（是/否）
     finishAuthId: string // 授权ID
-    finishShellNo: string // 外壳号
+    finishShellNo: string[] // 外壳号
     finishRemark: string // 备注
     executorID: string // 完成人ID
   }) => api.post('order/finish-deliver', data, {
@@ -215,7 +215,7 @@ export default {
     finishModelVersion: string // 升级后模型版本
     isEncrypted: string // 是否加密（是/否）
     finishAuthId: string // 授权ID
-    finishShellNo: string // 外壳号
+    finishShellNo: string[] // 外壳号
     finishRemark: string // 备注
     executorID: string // 完成人ID
   }) => api.post('order/finish-iter-deliver', data, {
@@ -312,7 +312,26 @@ export default {
       params: { targetCustomer },
     }),
 
-  // 获取授权ID列表
+  // 获取客户的所有授权ID列表
+  fetchCustomerAuthIds: (clientName: string) =>
+    api.get('order/customer-auth-ids', {
+      params: { clientName },
+      // baseURL: '/mock/',
+    }),
+
+  // 根据授权ID获取对应的外壳号
+  fetchShellByAuthId: (authId: string, targetCustomer: string) =>
+    api.get('order/shell-by-auth', {
+      params: { authId, targetCustomer },
+    }),
+
+  // 根据授权ID获取外壳号列表
+  fetchShellsByAuthId: (authId: string, targetCustomer: string) =>
+    api.get('order/shells-by-auth', {
+      params: { authId, targetCustomer },
+    }),
+
+  // 获取授权ID列表（保留原有方法以兼容其他功能）
   fetchAuthIds: (shellNumber: string, targetCustomer: string) =>
     api.get('order/auth-ids', {
       // baseURL: '/mock/',

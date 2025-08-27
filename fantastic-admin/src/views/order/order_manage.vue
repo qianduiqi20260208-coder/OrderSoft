@@ -80,7 +80,7 @@ interface OrderItem {
   // 交付发送类（完成）
   isEncrypted?: string // 是否加密（是/否）
   finishAuthId?: string // 授权ID（数字）
-  finishShellNo?: string // 外壳号（字母+数字）
+  finishShellNo?: string[] // 外壳号（字母+数字）
 
   // 功能开发类（完成）
   finishModelVersionId?: string // 完成后模型版本ID
@@ -320,7 +320,7 @@ async function confirmFinishOrder() {
 
   // 如果选择不加密，清空外壳号和授权ID字段
   if (confirmOrder.value.isEncrypted === '否') {
-    confirmOrder.value.finishShellNo = ''
+    confirmOrder.value.finishShellNo = []
     confirmOrder.value.finishAuthId = ''
   }
 
@@ -359,7 +359,7 @@ async function confirmFinishOrder() {
       finishTime: confirmOrder.value.finishTime,
       isEncrypted: confirmOrder.value.isEncrypted ?? '',
       finishAuthId: confirmOrder.value.finishAuthId ?? '',
-      finishShellNo: confirmOrder.value.finishShellNo ?? '',
+      finishShellNo: confirmOrder.value.finishShellNo ?? [],
       finishRemark: confirmOrder.value.finishRemark ?? '',
       executorID: confirmOrder.value.executorID ?? '',
     })
@@ -373,7 +373,7 @@ async function confirmFinishOrder() {
       finishModelVersion: confirmOrder.value.finishModelVersion ?? '',
       isEncrypted: confirmOrder.value.isEncrypted ?? '',
       finishAuthId: confirmOrder.value.finishAuthId ?? '',
-      finishShellNo: confirmOrder.value.finishShellNo ?? '',
+      finishShellNo: confirmOrder.value.finishShellNo ?? [],
       finishRemark: confirmOrder.value.finishRemark ?? '',
       executorID: confirmOrder.value.executorID ?? '',
     })
@@ -423,11 +423,11 @@ function isFinishOrderFilled(order: OrderItem): boolean {
     case '交付发送':
       // 修改逻辑：根据是否加密来判断验证条件
       if (order.isEncrypted === '是') {
-        // 选择加密：需要填写外壳号、授权ID和备注
-        return !!order.finishAuthId && !!order.finishShellNo && !!order.isEncrypted
+        // 选择加密：需要填写授权id
+        return !!order.finishAuthId && !!order.isEncrypted
       }
       else if (order.isEncrypted === '否') {
-        // 选择不加密：只需要填写备注
+        // 选择不加密
         return !!order.isEncrypted
       }
       else {
@@ -437,11 +437,11 @@ function isFinishOrderFilled(order: OrderItem): boolean {
     case '版本迭代+交付发送':
       // 同样修改版本迭代+交付发送的逻辑
       if (order.isEncrypted === '是') {
-        // 选择加密：需要填写模型版本、外壳号、授权ID和备注
-        return !!order.finishModelVersion && !!order.finishAuthId && !!order.finishShellNo && !!order.isEncrypted
+        // 选择加密：需要填写模型版本和授权ID
+        return !!order.finishModelVersion && !!order.finishAuthId && !!order.isEncrypted
       }
       else if (order.isEncrypted === '否') {
-        // 选择不加密：只需要填写模型版本和备注
+        // 选择不加密：只需要填写模型版本
         return !!order.finishModelVersion && !!order.isEncrypted
       }
       else {
@@ -518,7 +518,7 @@ async function fetchUserOrders() {
         finishModelVersion: order.finishModelVersion || '', // 升级后模型版本
         isEncrypted: order.isEncrypted || '', // 是否加密
         finishAuthId: order.finishAuthId || '', // 授权ID
-        finishShellNo: order.finishShellNo || '', // 外壳号
+        finishShellNo: order.finishShellNo || [], // 外壳号
         finishModelVersionId: order.finishModelVersionId || '', // 完成后模型版本ID
         finishFeatureDesc: order.finishFeatureDesc || '', // 完成后功能描述
         finishRemarkOther: order.finishRemarkOther || '', // 其他类工单完成时备注
@@ -556,6 +556,23 @@ async function fetchUserOrders() {
 function openBatchApproveDialog() {
   batchLeaderPriority.value = ''
   batchDistributorID.value = ''
+
+  // 如果选择的工单不全是待审批状态的工单 报错
+  if (selectedOrderIds.value.some((id) => {
+    const order = userOrders.value.find(o => o.orderID === id)
+    return !order || order.status !== '待审批'
+  })) {
+    ElMessage.warning('请选择待审批状态的工单')
+    return
+  }
+
+  // 如果没有选择任何工单，则自动选中所有待审批工单
+  if (selectedOrderIds.value.length === 0) {
+    selectedOrderIds.value = userOrders.value
+      .filter(order => order.status === '待审批')
+      .map(order => order.orderID)
+  }
+  console.warn(selectedOrderIds.value)
   batchApproveDialogVisible.value = true
 }
 
@@ -563,6 +580,23 @@ function openBatchApproveDialog() {
 function openBatchDistributeDialog() {
   batchTaskPriority.value = ''
   batchExecutorID.value = ''
+
+  // 如果选择的工单不全是待分发状态的工单，报错
+  if (selectedOrderIds.value.some((id) => {
+    const order = userOrders.value.find(o => o.orderID === id)
+    return !order || order.status !== '待分发'
+  })) {
+    ElMessage.warning('请选择待分发状态的工单')
+    return
+  }
+
+  // 如果没有选择任何工单，则自动选中所有待分发工单
+  if (selectedOrderIds.value.length === 0) {
+    selectedOrderIds.value = userOrders.value
+      .filter(order => order.status === '待分发')
+      .map(order => order.orderID)
+  }
+
   batchDistributeDialogVisible.value = true
 }
 
@@ -695,30 +729,50 @@ async function fetchExecutorList(modelId?: string) {
     executor.value = []
   }
 }
-const shellNumbers = ref<string[]>([]) // 外壳号列表
+// 授权ID列表和外壳号获取
+const customerAuthIds = ref<Array<{
+  authId: string
+  authId_shellNumber: string
+  remainingDays: string
+  remainingDaysColor: string
+  deviceType: string
+  authNote: string
+}>>([]) // 客户授权ID列表
 
-// 修改获取外壳号列表的方法，根据目标客户获取
-async function fetchShellNumbers(order?: OrderItem) {
+// 根据目标客户获取授权ID列表
+async function fetchCustomerAuthIds(order?: OrderItem) {
   try {
-    // 获取目标客户参数
     const targetCustomer = order?.targetCustomer
-
     if (!targetCustomer) {
-      console.warn('未找到目标客户信息，无法获取外壳号列表')
-      shellNumbers.value = []
+      console.warn('未找到目标客户信息，无法获取授权ID列表')
+      customerAuthIds.value = []
       return
     }
 
     // 调用后端接口，传入目标客户参数
-    const res = await orderApi.fetchShellNumbers(targetCustomer)
-    shellNumbers.value = res?.data?.list || []
+    const res = await orderApi.fetchCustomerAuthIds(targetCustomer)
+
+    if (res?.data?.list) {
+      // 展开每个authId下的shellNumberList
+      customerAuthIds.value = res.data.list.flatMap((auth: any) =>
+        (auth.shellNumberList || []).map((shell: any) => ({
+          authId: auth.authId,
+          authId_shellNumber: shell.shellNumber,
+          remainingDays: calculateRemainingDays(shell.endTime),
+          remainingDaysColor: getRemainingDaysColor(shell.endTime),
+          deviceType: shell.deviceType,
+          authNote: shell.description || '',
+        })),
+      )
+    }
+    else {
+      customerAuthIds.value = []
+    }
   }
   catch (error) {
-    console.error('获取外壳号列表失败:', error)
-    shellNumbers.value = []
-
-    // 显示错误提示
-    ElMessage.error('获取外壳号列表失败，请稍后重试')
+    console.error('获取授权ID列表失败:', error)
+    customerAuthIds.value = []
+    ElMessage.error('获取授权ID列表失败，请稍后重试')
   }
 }
 
@@ -842,35 +896,25 @@ const authDetailsForSelection = ref<Array<{
   remainingDays: string
   remainingDaysColor: string
   deviceType: string
+  authNote: string
 }>>([])
 
 // 处理授权ID下拉框点击事件
 async function handleAuthIdSelectClick(order: OrderItem) {
-  // 检查是否已选择外壳号
-  if (!order.finishShellNo) {
-    ElMessage.warning('请先选择外壳号')
-    return
-  }
-
   currentOrder.value = order
 
   try {
-    // 调用获取授权ID列表的API，传入客户名和外壳号
-    const res = await orderApi.fetchAuthIds(order.finishShellNo ?? '', order.targetCustomer ?? '')
+    // 获取目标客户的授权ID列表
+    await fetchCustomerAuthIds(order)
 
-    if (res?.data?.list) {
-      // 处理返回的授权详情列表
-      authDetailsForSelection.value = res.data.list.map((authDetail: any) => ({
-        authId: authDetail.authId,
-        remainingDays: calculateRemainingDays(authDetail.endDate),
-        remainingDaysColor: getRemainingDaysColor(authDetail.endDate),
-        deviceType: authDetail.deviceType,
-      }))
+    // 将获取到的授权ID列表设置到选择弹窗中
+    authDetailsForSelection.value = customerAuthIds.value
 
+    if (authDetailsForSelection.value.length > 0) {
       authSelectDialogVisible.value = true
     }
     else {
-      ElMessage.error('获取授权ID列表失败')
+      ElMessage.warning('该客户暂无可用的授权ID')
     }
   }
   catch (error) {
@@ -879,10 +923,48 @@ async function handleAuthIdSelectClick(order: OrderItem) {
   }
 }
 
-// 选择授权ID
-function selectAuthId(authId: string) {
+// 分组并合并授权ID
+function groupAuthShells(list: Array<{
+  authId: string
+  authId_shellNumber: string
+  remainingDays: string
+  remainingDaysColor: string
+  deviceType: string
+  authNote: string
+}>) {
+  interface Shell {
+    shellNumber: string
+    remainingDays: string
+    remainingDaysColor: string
+    deviceType: string
+    authNote: string
+  }
+  const map = new Map<string, { authId: string, shells: Shell[] }>()
+  list.forEach((item) => {
+    if (!map.has(item.authId)) {
+      map.set(item.authId, {
+        authId: item.authId,
+        shells: [],
+      })
+    }
+    map.get(item.authId)!.shells.push({
+      shellNumber: item.authId_shellNumber,
+      remainingDays: item.remainingDays,
+      remainingDaysColor: item.remainingDaysColor,
+      deviceType: item.deviceType,
+      authNote: item.authNote,
+    })
+  })
+  return Array.from(map.values())
+}
+// 选择授权ID和外壳号
+function selectAuthIdShell(authId: string) {
   if (currentOrder.value) {
+    // 找到当前分组下所有外壳号
+    const shells = groupAuthShells(customerAuthIds.value).find(g => g.authId === authId)?.shells || []
+    // 保存授权ID和所有外壳号到工单
     currentOrder.value.finishAuthId = authId
+    currentOrder.value.finishShellNo = shells.map(s => s.shellNumber)
   }
   authSelectDialogVisible.value = false
   currentOrder.value = null
@@ -1016,20 +1098,10 @@ onMounted(() => {
               <el-tooltip
                 content="请选择待审批工单"
                 placement="top"
-                :disabled="selectedOrderIds.length > 0 && selectedOrderIds.every(id => {
-                  const order = userOrders.find(o => o.orderID === id)
-                  return order && order.status === '待审批'
-                })"
+                :disabled="true"
               >
                 <el-button
                   type="primary"
-                  :disabled="
-                    selectedOrderIds.length === 0
-                      || selectedOrderIds.some(id => {
-                        const order = userOrders.find(o => o.orderID === id)
-                        return !order || order.status !== '待审批'
-                      })
-                  "
                   @click="openBatchApproveDialog"
                 >
                   一键审批
@@ -1038,20 +1110,10 @@ onMounted(() => {
               <el-tooltip
                 content="请选择待分发工单"
                 placement="top"
-                :disabled="selectedOrderIds.length > 0 && selectedOrderIds.every(id => {
-                  const order = userOrders.find(o => o.orderID === id)
-                  return order && order.status === '待分发'
-                })"
+                :disabled="true"
               >
                 <el-button
                   type="success"
-                  :disabled="
-                    selectedOrderIds.length === 0
-                      || selectedOrderIds.some(id => {
-                        const order = userOrders.find(o => o.orderID === id)
-                        return !order || order.status !== '待分发'
-                      })
-                  "
                   @click="openBatchDistributeDialog"
                 >
                   一键分发
@@ -1349,38 +1411,15 @@ onMounted(() => {
                       </el-select>
                     </div>
 
-                    <!-- 第二行：外壳号和授权ID（只有选择加密时才显示） -->
+                    <!-- 第二行：授权ID和外壳号（只有选择加密时才显示） -->
                     <template v-if="order.isEncrypted === '是'">
-                      <div class="col-span-1 w-full flex items-center gap-2">
+                      <!-- 授权ID选择 -->
+                      <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">
                           <span class="mr-1 text-red-500">*</span>
-                          外壳号：</span>
-                        <el-select
-                          v-model="order.finishShellNo"
-                          placeholder="请选择或输入外壳号"
-                          filterable
-                          allow-create
-                          default-first-option
-                          :reserve-keyword="false"
-                          class="flex-1"
-                          :disabled="order.status === '已完成'"
-                          @visible-change="val => val && fetchShellNumbers(order)"
-                        >
-                          <el-option
-                            v-for="item in shellNumbers"
-                            :key="item"
-                            :label="item"
-                            :value="item"
-                          />
-                        </el-select>
-                      </div>
-                      <!-- 修改授权ID下拉框部分 -->
-                      <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">
-                          <span class="mr-1 text-red-500">*</span>
-                          授权ID：</span>
+                          授权ID：
+                        </span>
                         <div class="flex flex-1 items-center gap-2">
-                          <!-- 显示选中的授权ID -->
                           <el-input
                             v-model="order.finishAuthId"
                             placeholder="请选择授权ID"
@@ -1388,7 +1427,6 @@ onMounted(() => {
                             class="flex-1"
                             :disabled="order.status === '已完成'"
                           />
-                          <!-- 选择按钮 -->
                           <el-button
                             type="primary"
                             size="small"
@@ -1548,33 +1586,10 @@ onMounted(() => {
                       </el-select>
                     </div>
 
-                    <!-- 第二行：外壳号和授权ID（只有选择加密时才显示） -->
+                    <!-- 第二行：授权ID和外壳号（只有选择加密时才显示） -->
                     <template v-if="order.isEncrypted === '是'">
-                      <div class="col-span-1 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">
-                          <span class="mr-1 text-red-500">*</span>
-                          外壳号：</span>
-                        <el-select
-                          v-model="order.finishShellNo"
-                          placeholder="请选择或输入外壳号"
-                          filterable
-                          allow-create
-                          default-first-option
-                          :reserve-keyword="false"
-                          class="flex-1"
-                          :disabled="order.status === '已完成'"
-                          @visible-change="val => val && fetchShellNumbers(order)"
-                        >
-                          <el-option
-                            v-for="item in shellNumbers"
-                            :key="item"
-                            :label="item"
-                            :value="item"
-                          />
-                        </el-select>
-                      </div>
-                      <!-- 修改授权ID部分 -->
-                      <div class="col-span-1 w-full flex items-center gap-2">
+                      <!-- 授权ID选择 -->
+                      <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">
                           <span class="mr-1 text-red-500">*</span>
                           授权ID：</span>
@@ -1591,7 +1606,7 @@ onMounted(() => {
                           <el-button
                             type="primary"
                             size="small"
-                            :disabled="order.status === '已完成' || !order.finishShellNo"
+                            :disabled="order.status === '已完成'"
                             @click="handleAuthIdSelectClick(order)"
                           >
                             选择
@@ -2182,8 +2197,14 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -2198,7 +2219,7 @@ onMounted(() => {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2230,15 +2251,21 @@ onMounted(() => {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -2327,7 +2354,7 @@ onMounted(() => {
           <el-dialog
             v-model="batchApproveDialogVisible"
             title="批量审批"
-            width="400px"
+            width="50vw"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2354,6 +2381,36 @@ onMounted(() => {
                   />
                 </el-select>
               </el-form-item>
+              <!-- 新增：批量审批工单信息预览 -->
+              <el-form-item label="已选工单" label-width="80px">
+                <div style="max-height: 120px; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align: left;">
+                          工单号
+                        </th>
+                        <th style="text-align: left;">
+                          模型
+                        </th>
+                        <th style="text-align: left;">
+                          基准版本
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="order in userOrders.filter(o => selectedOrderIds.includes(o.orderID))" :key="order.orderID">
+                        <td>{{ order.orderID }}</td>
+                        <td>{{ order.modelID }}</td>
+                        <td>{{ order.modelVersionID }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="selectedOrderIds.length === 0" class="mt-2 text-xs text-gray-400">
+                    暂无选中工单
+                  </div>
+                </div>
+              </el-form-item>
             </el-form>
             <template #footer>
               <el-button @click="batchApproveDialogVisible = false">
@@ -2368,11 +2425,12 @@ onMounted(() => {
               </el-button>
             </template>
           </el-dialog>
+
           <!-- 批量分发弹窗 -->
           <el-dialog
             v-model="batchDistributeDialogVisible"
             title="批量分发"
-            width="400px"
+            width="50vw"
             :close-on-click-modal="false"
           >
             <el-form>
@@ -2398,6 +2456,36 @@ onMounted(() => {
                     :value="item.id"
                   />
                 </el-select>
+              </el-form-item>
+              <!-- 新增：批量分发工单信息预览 -->
+              <el-form-item label="已选工单" label-width="80px">
+                <div style="max-height: 120px; overflow-y: auto;">
+                  <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align: left;">
+                          工单号
+                        </th>
+                        <th style="text-align: left;">
+                          模型
+                        </th>
+                        <th style="text-align: left;">
+                          基准版本
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="order in userOrders.filter(o => selectedOrderIds.includes(o.orderID))" :key="order.orderID">
+                        <td>{{ order.orderID }}</td>
+                        <td>{{ order.modelID }}</td>
+                        <td>{{ order.modelVersionID }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-if="selectedOrderIds.length === 0" class="mt-2 text-xs text-gray-400">
+                    暂无选中工单
+                  </div>
+                </div>
               </el-form-item>
             </el-form>
             <template #footer>
@@ -2613,80 +2701,85 @@ onMounted(() => {
             </template>
           </el-dialog>
 
-          <!-- 授权ID选择弹窗 -->
+          <!-- 授权ID+外壳号选择弹窗示例 -->
           <el-dialog
             v-model="authSelectDialogVisible"
-            title="选择授权ID"
-            width="600px"
+            title="选择授权ID和外壳号"
+            width="70vw"
             :close-on-click-modal="false"
             @close="handleCloseAuthSelect"
           >
-            <template #header>
-              <div class="w-full flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <el-icon class="text-xl text-blue-600">
-                    <Key />
-                  </el-icon>
-                  <span class="text-lg font-bold">选择授权ID</span>
-                </div>
-                <span v-if="currentOrder" class="text-base text-gray-600 font-bold">
-                  客户：{{ currentOrder.targetCustomer }}
-                </span>
-              </div>
-            </template>
-
-            <div v-if="authDetailsForSelection.length > 0" class="space-y-3">
-              <!-- 授权ID列表 -->
-              <div
-                v-for="authDetail in authDetailsForSelection"
-                :key="authDetail.authId"
-                class="cursor-pointer border border-gray-200 rounded-lg bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
-                @click="selectAuthId(authDetail.authId)"
-              >
-                <div class="p-4">
-                  <div class="grid grid-cols-3 items-center gap-4">
-                    <!-- 授权ID -->
-                    <div class="flex flex-col">
-                      <span class="text-sm text-gray-600 font-medium">授权ID</span>
-                      <span class="text-lg text-blue-700 font-bold">{{ authDetail.authId }}</span>
-                    </div>
-
-                    <!-- 剩余天数 -->
-                    <div class="flex flex-col">
-                      <span class="text-sm text-gray-600 font-medium">剩余天数</span>
-                      <span
-                        class="text-lg font-bold"
-                        :class="authDetail.remainingDaysColor"
+            <div v-if="customerAuthIds.length > 0" style="max-height: 400px; overflow-y: auto;">
+              <table class="w-full border border-gray-200" style="font-size: 15px;">
+                <thead>
+                  <tr class="bg-gray-50">
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      授权ID
+                    </th>
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      外壳号
+                    </th>
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      剩余天数
+                    </th>
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      设备类型
+                    </th>
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      备注
+                    </th>
+                    <th class="border-b border-gray-200 px-3 py-2 text-left">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="group in groupAuthShells(customerAuthIds)" :key="group.authId">
+                    <tr v-for="(shell, sIdx) in group.shells" :key="shell.shellNumber" class="cursor-pointer hover:bg-blue-50">
+                      <!-- 合并授权ID和操作单元格 -->
+                      <td
+                        v-if="sIdx === 0"
+                        :rowspan="group.shells.length"
+                        class="border-b border-gray-200 px-3 py-2 align-middle text-blue-700 font-bold"
                       >
-                        {{ authDetail.remainingDays }}
-                      </span>
-                    </div>
-
-                    <!-- 设备类型 -->
-                    <div class="flex flex-col">
-                      <span class="text-sm text-gray-600 font-medium">设备类型</span>
-                      <span class="text-lg text-blue-700 font-bold">{{ authDetail.deviceType }}</span>
-                    </div>
-                  </div>
-
-                  <!-- 选择指示器 -->
-                  <div class="mt-3 flex justify-end">
-                    <span class="text-sm text-blue-600 hover:text-blue-800">
-                      点击选择此授权ID
-                    </span>
-                  </div>
-                </div>
-              </div>
+                        {{ group.authId }}
+                      </td>
+                      <td class="border-b border-gray-200 px-3 py-2 text-green-700 font-bold">
+                        {{ shell.shellNumber }}
+                      </td>
+                      <td class="border-b border-gray-200 px-3 py-2">
+                        <span :class="shell.remainingDaysColor">{{ shell.remainingDays }}</span>
+                      </td>
+                      <td class="border-b border-gray-200 px-3 py-2">
+                        {{ shell.deviceType }}
+                      </td>
+                      <td class="border-b border-gray-200 px-3 py-2">
+                        {{ shell.authNote || '无' }}
+                      </td>
+                      <td
+                        v-if="sIdx === 0"
+                        :rowspan="group.shells.length"
+                        class="border-b border-gray-200 px-3 py-2 align-middle"
+                      >
+                        <el-button
+                          type="primary"
+                          size="small"
+                          @click="selectAuthIdShell(group.authId)"
+                        >
+                          选择
+                        </el-button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
             </div>
-
-            <!-- 空状态 -->
             <div v-else class="py-8 text-center text-gray-500">
               <el-icon class="mb-2 text-4xl">
                 <DocumentDelete />
               </el-icon>
-              <div>暂无可用的授权ID</div>
+              <div>暂无可用的授权ID和外壳号</div>
             </div>
-
             <template #footer>
               <div class="flex justify-end">
                 <el-button @click="handleCloseAuthSelect">

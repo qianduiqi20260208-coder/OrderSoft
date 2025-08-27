@@ -1412,7 +1412,7 @@ export default defineFakeRoute([
   },
 
   {
-    url: '/mock/order/auth-ids',
+    url: '/mock/order/customer-auth-ids',
     method: 'get',
     response: () => {
       return {
@@ -1420,18 +1420,101 @@ export default defineFakeRoute([
         status: 1,
         data: {
           list: [
-            'AUTH-123456',
-            'AUTH-234567',
-            'AUTH-345678',
-            'AUTH-456789',
-            'AUTH-567890',
-            'AUTH-678901',
-            'AUTH-789012',
-            'AUTH-890123',
-            'AUTH-901234',
-            'AUTH-20250701',
-            'AUTH-20250702',
-            'AUTH-20250703',
+            {
+              authId: '2024082872',
+              shellNumberList: [
+                {
+                  description: '限时授权',
+                  deviceType: '本地锁',
+                  endTime: '2024-11-08',
+                  shellNumber: 'A53000000004',
+                  startTime: '2024-08-28',
+                },
+                {
+                  description: 'FFS#10 限时授权',
+                  deviceType: '本地锁',
+                  endTime: '2024-11-08',
+                  shellNumber: 'A53000000005',
+                  startTime: '2024-08-28',
+                },
+              ],
+            },
+            {
+              authId: '2024120372',
+              shellNumberList: [
+                {
+                  description: 'FTD',
+                  deviceType: '本地锁',
+                  endTime: '2025-07-07',
+                  shellNumber: 'A53000000004',
+                  startTime: '2024-12-06',
+                },
+                {
+                  description: 'FFS#10',
+                  deviceType: '本地锁',
+                  endTime: '2025-03-13',
+                  shellNumber: 'A53000000005',
+                  startTime: '2024-12-06',
+                },
+              ],
+            },
+            {
+              authId: '2025011472',
+              shellNumberList: [
+                {
+                  description: '限时授权',
+                  deviceType: '本地锁',
+                  endTime: '2025-03-13',
+                  shellNumber: 'A53000000005',
+                  startTime: '2025-02-13',
+                },
+              ],
+            },
+            {
+              authId: '2025022672',
+              shellNumberList: [
+                {
+                  description: 'FFS 发动模型采用网络锁',
+                  deviceType: '网络锁',
+                  endTime: '2025-03-27',
+                  shellNumber: 'A53000000005',
+                  startTime: '2025-02-27',
+                },
+                {
+                  description: 'FFS10集成测试用',
+                  deviceType: '网络锁',
+                  endTime: '2025-03-27',
+                  shellNumber: 'A53000000006',
+                  startTime: '2025-03-13',
+                },
+              ],
+            },
+            {
+              authId: '2025032672',
+              shellNumberList: [
+                {
+                  description: 'FTD 使用',
+                  deviceType: '本地锁',
+                  endTime: '2025-10-26',
+                  shellNumber: 'A53000000004',
+                  startTime: '2025-03-26',
+                },
+                {
+                  description: 'FFS 发送机网络授权',
+                  deviceType: '网络锁',
+                  endTime: '2025-12-31',
+                  shellNumber: 'A53000000005',
+                  startTime: '2025-03-26',
+                },
+                {
+                  description: '本地测试',
+                  deviceType: '本地锁',
+                  endTime: '2025-08-31',
+                  shellNumber: 'A53000000006',
+                  startTime: '2025-03-26',
+                },
+              ],
+            },
           ],
         },
       }

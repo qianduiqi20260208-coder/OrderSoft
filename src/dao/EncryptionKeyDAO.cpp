@@ -518,9 +518,10 @@ bool EncryptionKey::createAuthorization(const std::string& clientName,
                                        const std::string& endDate,
                                        const std::string& authNote)
 {
-    // 检查数据库连接状态
-    if(!DBConnectionManager::ensureConnected(mysql))
-    {
+    // 获取连接
+    MYSQL* mysql = getConnection();
+    if (!mysql) {
+        LOG_ERROR("function:createAuthorization 获取数据库连接失败！");
         return false;
     }
 

@@ -46,11 +46,5 @@ private:
 
     Ticket ticket; // 工单主结构体，包含所有工单类型的字段
 	TicketReproduce ticketreproduce; // 问题复现工单结构体
-    TicketVersion ticketversion; // 版本迭代工单结构体
-	TicketPackage ticketpackage; // 直接封装+发送工单结构体
-	TicketDelivery ticketdelivery; // 交付发送工单结构体
-	TicketFeature ticketfeature; // 功能开发工单结构体
-	TicketOther ticketother; // 其他工单结构体
 
-	TicketExecutor ticketexecutor; // 工单执行人结构体，用于记录流转信息
 };

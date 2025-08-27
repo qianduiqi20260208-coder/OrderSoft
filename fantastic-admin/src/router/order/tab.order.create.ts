@@ -11,7 +11,7 @@ const routes: RouteRecordRaw = {
   meta: {
     title: '工单创建',
     icon: 'i-ic:round-tab',
-    auth: ['SuperUser', 'ModelEngineer'],
+    // auth: ['SuperUser', 'ModelEngineer'], // 所有人可见
   },
   children: [
     {

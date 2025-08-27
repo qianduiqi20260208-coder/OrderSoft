@@ -145,8 +145,15 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         const TicketPackage& tmp = dynamic_cast<const TicketPackage&>(ticket);
         if(tmp.encrypted)
         {
+            std::string dongleStr = "";
+            if (!tmp.dongle.empty()) {
+                for (size_t i = 0; i < tmp.dongle.size(); ++i) {
+                    if (i > 0) dongleStr += ",";
+                    dongleStr += tmp.dongle[i];
+                }
+            }
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,tmp.dongle.c_str(),tmp.license.c_str(),tmp.dongle.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.license.c_str(),dongleStr.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         }
@@ -371,7 +378,7 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
 
     return true;
 }
-bool TicketDAO::dispatchTicket(const Ticket& ticket)
+bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
 {
 
         // 使用BaseDAO的优化连接管理
@@ -392,7 +399,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
     //看任务优先级变量里是否有数据，没有数据表示拒绝，拒绝的话需要填写拒绝原因
     if(ticket.priorityTask == "")
     {
-        snprintf(local_sql, SQL_MAX, "update work_order set status = '已退回',reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
+        snprintf(local_sql, SQL_MAX, "update work_order set status = '已退回',dispatcher_reject_reason = '%s' where id = %d;", ticket.rejectReason.c_str(),ticket.id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:dispatchTicket 修改work_order表失败！失败原因：%s", mysql_store_result(conn));
@@ -409,8 +416,9 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket)
             return false;
         }
 
-        //记录工单执行人
-        snprintf(local_sql, SQL_MAX, "insert into work_order_executor(work_order_id,executor_id,transferred_at) values(%d,'%s',NOW());", ticket.id,ticket.executorId.c_str());
+        //记录工单执行人 ---
+        // 分发-- 只是封装
+        snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '封装', '%s');", ticket.id,ticket.executorId.c_str(),account.c_str());
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:dispatchTicket 修改work_order_executor表失败!失败原因：%s", mysql_store_result(conn));
@@ -698,7 +706,10 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
 
             tmp->newModelVersion = row[9]?row[9]:"";
             tmp->encrypted = atoi((row[10]?row[10]:"-1"));
-            tmp->dongle =  row[11]?row[11]:"";
+            tmp->dongle.clear();
+            if (row[11] && strlen(row[11]) > 0) {
+                tmp->dongle.push_back(row[11]);
+            }
             tmp->license =  row[12]?row[12]:"";
             tmp->remark = (row[13]?row[13]:"");
         }
@@ -1083,16 +1094,16 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "mv.id as mv_id, "
        << "mv.version, "
        << "mv.update_time, "
-       << "wo.creator_id as creatorId, "
+       << "u1.real_name AS creatorId, "
        << "wo.created_at as createTime, "
        << "wo.type as ticketType, "
        << "wo.model, "
        << "(SELECT version FROM model_version WHERE id = wo.model_version_id) as modelVersion, "
        << "wo.status, "
-       << "wo.approver_id as approverId, "
+       << "u2.real_name  AS approverId, "
        << "wo.priority as priorityHint, "
-       << "wo.dispatcher_id as distributorId, "
-       << "woe.executor_id as executor_id, "
+       << "u3.real_name AS distributorId, "
+       << "u4.real_name AS executorID, "
        << "wo.approved_at as approvedTime, "
        << "wo.task_priority as priorityTask, "
        << "wo.dispatched_at as distributedTime, "
@@ -1196,6 +1207,10 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "LEFT JOIN delivery_send ds ON ds.work_order_id = wo.id "
        << "LEFT JOIN function_development fd ON fd.work_order_id = wo.id "
        << "LEFT JOIN other_work_order owo ON owo.work_order_id = wo.id "
+       << "LEFT JOIN user u1 ON u1.username = wo.creator_id "
+       << "LEFT JOIN user u2 ON u2.username = wo.approver_id "
+       << "LEFT JOIN user u3 ON u3.username = wo.dispatcher_id "
+       << "LEFT JOIN user u4 ON u4.username = woe.executor_id "
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "
@@ -1206,16 +1221,16 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "mv.id as mv_id, "
        << "mv.version, "
        << "mv.update_time, "
-       << "wo.creator_id as creatorId, "
+       << "u1.real_name AS creatorId, "
        << "wo.created_at as createTime, "
        << "wo.type as ticketType, "
        << "wo.model, "
        << "(SELECT version FROM model_version WHERE id = wo.model_version_id) as modelVersion, "
        << "wo.status, "
-       << "wo.approver_id as approverId, "
+       << "u2.real_name  AS approverId, "
        << "wo.priority as priorityHint, "
-       << "wo.dispatcher_id as distributorId, "
-       << "woe.executor_id as executor_id, "
+       << "u3.real_name AS distributorId, "
+       << "u4.real_name AS executorID, "
        << "wo.approved_at as approvedTime, "
        << "wo.task_priority as priorityTask, "
        << "wo.dispatched_at as distributedTime, "
@@ -1308,6 +1323,10 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "LEFT JOIN function_development fd ON fd.work_order_id = wo.id AND wo.type = '功能开发' "
        << "LEFT JOIN package_send ps ON ps.work_order_id = wo.id AND wo.type = '直接封装+发送' "
        << "LEFT JOIN work_order_executor woe ON woe.work_order_id = wo.id "
+       << "LEFT JOIN user u1 ON u1.username = wo.creator_id "
+       << "LEFT JOIN user u2 ON u2.username = wo.approver_id "
+       << "LEFT JOIN user u3 ON u3.username = wo.dispatcher_id "
+       << "LEFT JOIN user u4 ON u4.username = woe.executor_id "
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "

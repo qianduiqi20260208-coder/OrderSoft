@@ -52,6 +52,8 @@ interface OrderItem {
   rejectReason?: string // 拒绝原因
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
+  matlabVersion?: string // matlab版本号
+  expectedSendTime?: string // 预计发送时间
 
   // ----------问题复现工单（创建）----------
   coordinationID?: string // 协调单号
@@ -732,40 +734,35 @@ function handleCopyOrder(order: OrderItem) {
                     </span>
                   </span>
                   <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
-                    <!-- 通用展开/收起图标放在发起人ID左边，直接点击图标触发展开/收起 -->
                     <FaIcon
                       name="expand"
                       class="mr-0 cursor-pointer text-xl"
                       @click="expandOrder(order.orderID, !expandedMap[order.orderID])"
                     />
-                    <span>
-                      <i class="i-mdi-cube mr-1 text-blue-400" />
-                      <span class="text-gray-600">模型：</span>
-                      <span class="text-black font-bold">{{ order.modelID }}</span>
-                    </span>
-                    <span>
-                      <i class="i-mdi-account mr-1 text-blue-400" />
-                      <span class="text-gray-600">发起人：</span>
-                      <span class="text-black font-bold">{{ order.promoterID }}</span>
-                    </span>
-                    <span>
-                      <i class="i-mdi-calendar-clock mr-1 text-blue-400" />
-                      <span class="text-gray-600">发起时间：</span>
-                      <span class="text-black font-bold">{{ order.startTime }}</span>
-                    </span>
-                    <span>
-                      <i class="i-mdi-flag mr-1 text-blue-400" />
-                      <span class="text-gray-600">参考优先级：</span>
-                      <span class="text-black font-bold">{{ order.referencePriority }}</span>
-                    </span>
-                    <span>
-                      <i class="i-mdi-alert mr-1 text-blue-400" />
-                      <span class="text-gray-600">任务优先级：</span>
-                      <span class="text-black font-bold">{{ order.taskPriority }}</span>
-                    </span>
-                    <span>
+                    <!-- 版本迭代+交付发送类工单 -->
+                    <template v-if="order.type === '版本迭代+交付发送'">
                       <span>
-                        <i class="i-mdi-progress-clock mr-1 text-blue-400" />
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.matlabVersion || 'NA' }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">当前状态：</span>
                         <span
                           class="ml-2 rounded-full px-3 py-1 font-bold"
@@ -781,7 +778,112 @@ function handleCopyOrder(order: OrderItem) {
                           {{ order.status }}
                         </span>
                       </span>
-                    </span>
+                    </template>
+                    <!-- 交付发送类工单 -->
+                    <template v-else-if="order.type === '交付发送'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">当前状态：</span>
+                        <span
+                          class="ml-2 rounded-full px-3 py-1 font-bold"
+                          :class="{
+                            'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                            'bg-orange-100 text-orange-700': order.status === '待审批',
+                            'bg-purple-100 text-purple-700': order.status === '待分发',
+                            'bg-blue-100 text-blue-700': order.status === '进行中',
+                            'bg-green-100 text-green-700': order.status === '已完成',
+                            'bg-red-100 text-red-700': order.status === '已退回',
+                          }"
+                        >
+                          {{ order.status }}
+                        </span>
+                      </span>
+                    </template>
+                    <!-- 版本迭代类工单 -->
+                    <template v-else-if="order.type === '版本迭代'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.matlabVersion || 'NA' }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">当前状态：</span>
+                        <span
+                          class="ml-2 rounded-full px-3 py-1 font-bold"
+                          :class="{
+                            'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                            'bg-orange-100 text-orange-700': order.status === '待审批',
+                            'bg-purple-100 text-purple-700': order.status === '待分发',
+                            'bg-blue-100 text-blue-700': order.status === '进行中',
+                            'bg-green-100 text-green-700': order.status === '已完成',
+                            'bg-red-100 text-red-700': order.status === '已退回',
+                          }"
+                        >
+                          {{ order.status }}
+                        </span>
+                      </span>
+                    </template>
+                    <!-- 其他类型工单 -->
+                    <template v-else>
+                      <!-- 保持原有显示逻辑 -->
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">当前状态：</span>
+                        <span
+                          class="ml-2 rounded-full px-3 py-1 font-bold"
+                          :class="{
+                            'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                            'bg-orange-100 text-orange-700': order.status === '待审批',
+                            'bg-purple-100 text-purple-700': order.status === '待分发',
+                            'bg-blue-100 text-blue-700': order.status === '进行中',
+                            'bg-green-100 text-green-700': order.status === '已完成',
+                            'bg-red-100 text-red-700': order.status === '已退回',
+                          }"
+                        >
+                          {{ order.status }}
+                        </span>
+                      </span>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -1277,8 +1379,14 @@ function handleCopyOrder(order: OrderItem) {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -1293,7 +1401,7 @@ function handleCopyOrder(order: OrderItem) {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -1321,15 +1429,21 @@ function handleCopyOrder(order: OrderItem) {
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.apiChanged" readonly>
+                      <span class="w-32 text-black font-semibold">
+                        接口与{{ order.modelVersionID || '基准版本' }}是否变化：
+                      </span>
+                      <input
+                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        :value="order.apiChanged"
+                        readonly
+                      >
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">目标客户：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
                     </div>
                     <div class="flex items-center gap-2">
@@ -1464,8 +1578,14 @@ function handleCopyOrder(order: OrderItem) {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.apiChanged" readonly>
+                  <span class="w-32 text-black font-semibold">
+                    接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
+                  </span>
+                  <input
+                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    :value="currentOrder.apiChanged"
+                    readonly
+                  >
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
@@ -1488,7 +1608,7 @@ function handleCopyOrder(order: OrderItem) {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1524,15 +1644,21 @@ function handleCopyOrder(order: OrderItem) {
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">接口是否变化：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.apiChanged" readonly>
+                  <span class="w-32 text-black font-semibold">
+                    接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
+                  </span>
+                  <input
+                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    :value="currentOrder.apiChanged"
+                    readonly
+                  >
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">目标客户：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE平台验证：</span>
+                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
                 </div>
                 <div class="flex items-center gap-2">
