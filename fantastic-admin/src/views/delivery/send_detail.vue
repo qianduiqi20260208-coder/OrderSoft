@@ -233,7 +233,7 @@ function handleBack() {
                 class="border border-blue-500 rounded bg-blue-300 px-5 py-2 text-black font-semibold transition-colors duration-150 hover:bg-blue-400"
                 @click="handleSendOverview"
               >
-                发送总览
+                最后发送版本
               </FaButton>
               <FaButton
                 class="border border-gray-500 rounded bg-gray-300 px-5 py-2 text-black font-semibold transition-colors duration-150 hover:bg-gray-400"
