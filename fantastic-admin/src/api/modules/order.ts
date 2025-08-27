@@ -312,7 +312,25 @@ export default {
       params: { targetCustomer },
     }),
 
-  // 获取授权ID列表
+  // 获取客户的所有授权ID列表
+  fetchCustomerAuthIds: (targetCustomer: string) =>
+    api.get('order/customer-auth-ids', {
+      params: { targetCustomer },
+    }),
+
+  // 根据授权ID获取对应的外壳号
+  fetchShellByAuthId: (authId: string, targetCustomer: string) =>
+    api.get('order/shell-by-auth', {
+      params: { authId, targetCustomer },
+    }),
+
+  // 根据授权ID获取外壳号列表
+  fetchShellsByAuthId: (authId: string, targetCustomer: string) =>
+    api.get('order/shells-by-auth', {
+      params: { authId, targetCustomer },
+    }),
+
+  // 获取授权ID列表（保留原有方法以兼容其他功能）
   fetchAuthIds: (shellNumber: string, targetCustomer: string) =>
     api.get('order/auth-ids', {
       // baseURL: '/mock/',
