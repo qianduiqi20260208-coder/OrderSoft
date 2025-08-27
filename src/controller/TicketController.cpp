@@ -836,7 +836,21 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.completedTime = body.value("finishTime", ""); // 完成时间
         ticketdelivery.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketdelivery.licenseId = body.value("finishAuthId", ""); // 授权ID
-        ticketdelivery.dongleId = body.value("finishShellNo", ""); // 外壳号
+        // 处理外壳号，支持多个外壳号以英文逗号分割
+        if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
+            std::string dongleIds;
+            for (const auto& shellNo : body["finishShellNo"]) {
+                if (shellNo.is_string()) {
+                    if (!dongleIds.empty()) {
+                        dongleIds += ",";
+                    }
+                    dongleIds += shellNo.get<std::string>();
+                }
+            }
+            ticketdelivery.dongleId = dongleIds;
+        } else {
+            ticketdelivery.dongleId = body.value("finishShellNo", ""); // 外壳号
+        }
         ticketdelivery.remark = body.value("finishRemark", ""); // 备注
         ticketdelivery.executorId = (body.value("executorID", "")); // 执行人ID
 
