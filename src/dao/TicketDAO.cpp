@@ -19,77 +19,6 @@ TicketDAO::TicketDAO(MYSQL *ms):mysql(ms)
     DBConnectionManager::getConnection(mysql);
 }
 
-bool TicketDAO::createConcreteTicket(Ticket &ticket)
-{
-        // 使用BaseDAO的优化连接管理
-    if (!ensureConnection()) {
-        return false;
-    }
-    
-    MYSQL* conn = getConnection();
-    char local_sql[SQL_MAX];
-    int local_ret;
-
-    //往具体工单表中插入数据
-    //判断是什么类型的工单
-    if(ticket.ticketType == "问题复现")
-    {
-        TicketReproduce& tp = dynamic_cast<TicketReproduce&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction(work_order_id,coordination_id,description) "
-        "VALUES(%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.content.c_str());
-        
-        //这里需要先执行一次 避免sql被覆盖掉
-        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-        LOG_DEBUG("SQL执行: %s", local_sql);
-        if (local_ret) {
-            LOG_ERROR("function:createConcreteTicket 插入issue_reproduction失败！失败原因：%s", mysql_error(conn));
-            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
-            return false;
-        }
-        if(!saveUploadFile(tp))
-            return false;
-    }else if(ticket.ticketType == "版本迭代")
-    {
-        //借用一个具体工单表里的remark字段 暂时保存前三位的版本号
-        TicketVersion& tv = dynamic_cast<TicketVersion&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,matlab_version) "
-        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.matlab_version.c_str());
-    }else if(ticket.ticketType == "交付发送")
-    {
-        TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO delivery_send(work_order_id,target_customer,validated_by_cae,sensitive_info) "
-        "VALUES(%d,'%s',%d, '%s');", ticket.Ticket::id,td.targetClient.c_str(), td.validatedByCAE,td.sensitiveInfo.c_str());
-    }else if(ticket.ticketType == "直接封装+发送")
-    {
-        TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,matlab_version) "
-        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.matlab_version.c_str());        
-    }else if(ticket.ticketType == "功能开发")
-    {
-        TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create) "
-        "VALUES(%d,'%s');", ticket.Ticket::id,tf.featureInit.c_str());
-    }else if(ticket.ticketType == "其他")
-    {
-        TicketOther& to = dynamic_cast<TicketOther&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO other_work_order(work_order_id,description) "
-        "VALUES(%d,'%s');", ticket.Ticket::id,to.description.c_str());
-    }
-	local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-
-	if (local_ret) {
-		LOG_ERROR("function:createConcreteTicket 插入具体的工单表失败！失败原因：%s", mysql_error(conn));
-        mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
-		return false;
-	}
-    //事务提交
-    if (mysql_real_query(conn, "COMMIT",strlen("COMMIT"))) {
-        LOG_ERROR("function:createConcreteTicket 事务提交失败！失败原因：%s", mysql_error(conn));
-        return false;
-    }
-    return true;
-}
-
 bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
 {
     
@@ -152,8 +81,8 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
                     dongleStr += tmp.dongle[i];
                 }
             }
-            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = '%s',remarks = '%s',auth_id = '%s' where work_order_id = %d;", 
-                tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.authorizationIdList.c_str(),tmp.remark.c_str(),tmp.license.c_str(),tmp.Ticket::id);
+            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,remarks = '%s',auth_id = '%s' where work_order_id = %d;", 
+                tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.remark.c_str(),tmp.license.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         }
@@ -310,8 +239,64 @@ bool TicketDAO::createTicket(Ticket &ticket)
 		return false;
 	}
 
-    //创建具体的工单
-    return createConcreteTicket(ticket);;
+    //往具体工单表中插入数据
+    //判断是什么类型的工单
+    if(ticket.ticketType == "问题复现")
+    {
+        TicketReproduce& tp = dynamic_cast<TicketReproduce&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction(work_order_id,coordination_id,description) "
+        "VALUES(%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.content.c_str());
+        
+        //这里需要先执行一次 避免sql被覆盖掉
+        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        LOG_DEBUG("SQL执行: %s", local_sql);
+        if (local_ret) {
+            LOG_ERROR("function:createConcreteTicket 插入issue_reproduction失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+        if(!saveUploadFile(tp))
+            return false;
+    }else if(ticket.ticketType == "版本迭代")
+    {
+        //借用一个具体工单表里的remark字段 暂时保存前三位的版本号
+        TicketVersion& tv = dynamic_cast<TicketVersion&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,matlab_version) "
+        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.matlab_version.c_str());
+    }else if(ticket.ticketType == "交付发送")
+    {
+        TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO delivery_send(work_order_id,target_customer,validated_by_cae,sensitive_info) "
+        "VALUES(%d,'%s',%d, '%s');", ticket.Ticket::id,td.targetClient.c_str(), td.validatedByCAE,td.sensitiveInfo.c_str());
+    }else if(ticket.ticketType == "直接封装+发送")
+    {
+        TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,matlab_version) "
+        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.matlab_version.c_str());        
+    }else if(ticket.ticketType == "功能开发")
+    {
+        TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create) "
+        "VALUES(%d,'%s');", ticket.Ticket::id,tf.featureInit.c_str());
+    }else if(ticket.ticketType == "其他")
+    {
+        TicketOther& to = dynamic_cast<TicketOther&>(ticket);
+        snprintf(local_sql, SQL_MAX, "INSERT INTO other_work_order(work_order_id,description) "
+        "VALUES(%d,'%s');", ticket.Ticket::id,to.description.c_str());
+    }
+	local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+
+	if (local_ret) {
+		LOG_ERROR("function:createConcreteTicket 插入具体的工单表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+		return false;
+	}
+    //事务提交
+    if (mysql_real_query(conn, "COMMIT",strlen("COMMIT"))) {
+        LOG_ERROR("function:createConcreteTicket 事务提交失败！失败原因：%s", mysql_error(conn));
+        return false;
+    }
+    return true;
 }
 bool TicketDAO::approveTicket(const Ticket &ticket)
 {
@@ -1554,7 +1539,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
     
     // 构建SQL查询语句
     snprintf(sql, SQL_MAX, 
-        "SELECT "
+        "SELECT DISTINCT "
         "    wo.id AS work_order_id, "// 0
         "    wo.type AS work_order_type, "//1
         "    wo.status AS work_order_status, "//2
@@ -1577,6 +1562,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    ir.coordination_id AS issue_coordination_id, "
         "    ir.description AS issue_description, "
         "    ir.reference_file AS issue_reference_file, "
+        "    ira.file_name AS issue_file_name, "
         "    ir.phenomenon AS issue_phenomenon, "
         "    ir.remarks AS issue_remarks, "
         "    vi.coordination_id AS version_coordination_id, "
@@ -1585,12 +1571,13 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    vi.interface_changed AS version_interface_changed, "
         "    vi.new_model_version_id AS version_new_model_version_id, "
         "    vi.remarks AS version_remarks, "
+        "    vi.matlab_version AS version_matlab_version, "
         "    ds.target_customer AS delivery_target_customer, "
         "    ds.validated_by_cae AS delivery_validated_by_cae, "
         "    ds.sensitive_info AS delivery_sensitive_info, "
         "    ds.is_encrypted AS delivery_is_encrypted, "
         "    ds.shell_code AS delivery_shell_code, "
-        "    ds.authorization_id AS delivery_authorization_id, "
+        "    ds.auth_id AS delivery_authorization_id, "
         "    ds.remarks AS delivery_remarks, "
         "    ds.target_delivery_time, "
         "    ps.coordination_id AS package_coordination_id, "
@@ -1603,8 +1590,9 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    ps.new_model_version_id AS package_new_model_version_id, "
         "    ps.is_encrypted AS package_is_encrypted, "
         "    ps.encryption_key AS package_encryption_key, "
-        "    ps.product_authorization_id AS package_product_authorization_id, "
+        "    ps.auth_id AS package_product_authorization_id, "
         "    ps.remarks AS package_remarks, "
+        "    ps.matlab_version AS package_matlab_version, "
         "    fd.description_create AS function_description_create, "
         "    fd.description_completed AS function_description_completed, "
         "    fd.model_id AS function_model_id, "
@@ -1628,6 +1616,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "LEFT JOIN user u_executor ON woe_latest.executor_id = u_executor.username "
         "LEFT JOIN user_multi_role umr ON wo.id = umr.work_order_id "
         "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND wo.type = '问题复现' "
+        "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND wo.type = '问题复现' "
         "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
         "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
         "LEFT JOIN package_send ps ON wo.id = ps.work_order_id AND wo.type = '直接封装+发送' "
@@ -1692,61 +1681,73 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
             nlohmann::json issueInfo;
             issueInfo["coordinationId"] = row[19] ? row[19] : "";
             issueInfo["description"] = row[20] ? row[20] : "";
-            issueInfo["referenceFile"] = row[21] ? row[21] : "";
-            issueInfo["phenomenon"] = row[22] ? row[22] : "";
-            issueInfo["remarks"] = row[23] ? row[23] : "";
+            
+            // 处理附件文件路径
+            std::string fileName = row[22] ? row[22] : "";
+            if (!fileName.empty()) {
+                issueInfo["referenceFile"] = "/files/ticket/" + workOrderId + "/" + fileName;
+                issueInfo["hasAttachment"] = true;
+            } else {
+                issueInfo["referenceFile"] = "";
+                issueInfo["hasAttachment"] = false;
+            }
+            issueInfo["fileName"] = row[22] ? row[22] : "";
+            issueInfo["phenomenon"] = row[23] ? row[23] : "";
+            issueInfo["remarks"] = row[24] ? row[24] : "";
             workOrder["issueReproduction"] = issueInfo;
         }
         else if (workOrderType == "版本迭代") {
             nlohmann::json versionInfo;
-            versionInfo["coordinationId"] = row[24] ? row[24] : "";
-            versionInfo["updateContent"] = row[25] ? row[25] : "";
-            versionInfo["packagingRequirements"] = row[26] ? row[26] : "";
-            versionInfo["interfaceChanged"] = row[27] ? (std::string(row[27]) == "1" ? true : false) : false;
-            versionInfo["newModelVersionId"] = row[28] ? row[28] : "";
-            versionInfo["remarks"] = row[29] ? row[29] : "";
+            versionInfo["coordinationId"] = row[25] ? row[25] : "";
+            versionInfo["updateContent"] = row[26] ? row[26] : "";
+            versionInfo["packagingRequirements"] = row[27] ? row[27] : "";
+            versionInfo["interfaceChanged"] = row[28] ? (std::string(row[28]) == "1" ? true : false) : false;
+            versionInfo["newModelVersionId"] = row[29] ? row[29] : "";
+            versionInfo["remarks"] = row[30] ? row[30] : "";
+            versionInfo["matlabVersion"] = row[31] ? row[31] : "";
             workOrder["versionIteration"] = versionInfo;
         }
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
-            deliveryInfo["targetCustomer"] = row[30] ? row[30] : "";
-            deliveryInfo["validatedByCae"] = row[31] ? (std::string(row[31]) == "1" ? true : false) : false;
-            deliveryInfo["sensitiveInfo"] = row[32] ? row[32] : "";
-            deliveryInfo["isEncrypted"] = row[33] ? (std::string(row[33]) == "1" ? true : false) : false;
-            deliveryInfo["shellCode"] = row[34] ? row[34] : "";
-            deliveryInfo["authorizationId"] = row[35] ? row[35] : "";
-            deliveryInfo["remarks"] = row[36] ? row[36] : "";
-            deliveryInfo["targetDeliveryTime"] = row[37] ? row[37] : "";
+            deliveryInfo["targetCustomer"] = row[32] ? row[32] : "";
+            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? true : false) : false;
+            deliveryInfo["sensitiveInfo"] = row[34] ? row[34] : "";
+            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? true : false) : false;
+            deliveryInfo["shellCode"] = row[36] ? row[36] : "";
+            deliveryInfo["authorizationId"] = row[37] ? row[37] : "";
+            deliveryInfo["remarks"] = row[38] ? row[38] : "";
+            deliveryInfo["targetDeliveryTime"] = row[39] ? row[39] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
             nlohmann::json packageInfo;
-            packageInfo["coordinationId"] = row[38] ? row[38] : "";
-            packageInfo["updateContent"] = row[39] ? row[39] : "";
-            packageInfo["packagingRequirements"] = row[40] ? row[40] : "";
-            packageInfo["interfaceChanged"] = row[41] ? (std::string(row[41]) == "1" ? true : false) : false;
-            packageInfo["targetCustomer"] = row[42] ? row[42] : "";
-            packageInfo["validatedByCae"] = row[43] ? (std::string(row[43]) == "1" ? true : false) : false;
-            packageInfo["sensitiveInfo"] = row[44] ? row[44] : "";
-            packageInfo["newModelVersionId"] = row[45] ? row[45] : "";
-            packageInfo["isEncrypted"] = row[46] ? (std::string(row[46]) == "1" ? true : false) : false;
-            packageInfo["encryptionKey"] = row[47] ? row[47] : "";
-            packageInfo["productAuthorizationId"] = row[48] ? row[48] : "";
-            packageInfo["remarks"] = row[49] ? row[49] : "";
+            packageInfo["coordinationId"] = row[40] ? row[40] : "";
+            packageInfo["updateContent"] = row[41] ? row[41] : "";
+            packageInfo["packagingRequirements"] = row[42] ? row[42] : "";
+            packageInfo["interfaceChanged"] = row[43] ? (std::string(row[43]) == "1" ? true : false) : false;
+            packageInfo["targetCustomer"] = row[44] ? row[44] : "";
+            packageInfo["validatedByCae"] = row[45] ? (std::string(row[45]) == "1" ? true : false) : false;
+            packageInfo["sensitiveInfo"] = row[46] ? row[46] : "";
+            packageInfo["newModelVersionId"] = row[47] ? row[47] : "";
+            packageInfo["isEncrypted"] = row[48] ? (std::string(row[48]) == "1" ? true : false) : false;
+            packageInfo["encryptionKey"] = row[49] ? row[49] : "";
+            packageInfo["productAuthorizationId"] = row[50] ? row[50] : "";
+            packageInfo["remarks"] = row[51] ? row[51] : "";
+            packageInfo["matlabVersion"] = row[52] ? row[52] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[50] ? row[50] : "";
-            functionInfo["descriptionCompleted"] = row[51] ? row[51] : "";
-            functionInfo["modelId"] = row[52] ? row[52] : "";
-            functionInfo["newModelVersionId"] = row[53] ? row[53] : "";
+            functionInfo["descriptionCreate"] = row[53] ? row[53] : "";
+            functionInfo["descriptionCompleted"] = row[54] ? row[54] : "";
+            functionInfo["modelId"] = row[55] ? row[55] : "";
+            functionInfo["newModelVersionId"] = row[56] ? row[56] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[54] ? row[54] : "";
-            otherInfo["remarks"] = row[55] ? row[55] : "";
+            otherInfo["description"] = row[57] ? row[57] : "";
+            otherInfo["remarks"] = row[58] ? row[58] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         

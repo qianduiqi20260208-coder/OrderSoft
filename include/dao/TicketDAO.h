@@ -54,7 +54,6 @@ private:
     int ret;
 
     //工具函数
-    bool createConcreteTicket(Ticket& ticket);
     bool completeConcreteTicket(const Ticket& ticket);
     bool saveUploadFile(const TicketReproduce& ticket);
     void concreteTicketList(int work_order_id,std::shared_ptr<Ticket> vecElement,std::vector<std::shared_ptr<Ticket>>&);
