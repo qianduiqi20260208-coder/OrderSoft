@@ -778,7 +778,6 @@ function handleCopyOrder(order: OrderItem) {
                         </el-button>
                         <!-- 复制工单按钮 -->
                         <el-button
-                          v-auth="['SuperUser', 'ModelEngineer']"
                           type="success"
                           size="small"
                           class="ml-2"

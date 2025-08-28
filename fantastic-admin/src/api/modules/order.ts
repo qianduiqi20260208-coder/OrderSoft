@@ -25,7 +25,7 @@ export default {
     userID?: string // 用户ID（当前登录用户）
     role?: string // 用户角色（如管理员、普通用户等）
   }) =>
-    api.get('order/list', {
+    api.get('/order/pending', {
       // baseURL: '/mock/', // mock数据接口地址
       params, // 请求参数（用于筛选工单）
     }),
@@ -201,6 +201,7 @@ export default {
     isEncrypted: string // 是否加密（是/否）
     finishAuthId: string // 授权ID
     finishShellNo: string[] // 外壳号
+    authorizationId_list: string[] // 授权ID主键数组
     finishRemark: string // 备注
     executorID: string // 完成人ID
   }) => api.post('order/finish-deliver', data, {
@@ -217,6 +218,7 @@ export default {
     isEncrypted: string // 是否加密（是/否）
     finishAuthId: string // 授权ID
     finishShellNo: string[] // 外壳号
+    authorizationId_list: string[] // 授权ID主键数组
     finishRemark: string // 备注
     executorID: string // 完成人ID
   }) => api.post('order/finish-iter-deliver', data, {
@@ -248,7 +250,46 @@ export default {
     // baseURL: '/mock/',
   }),
 
-  // 工单流转接口
+  // 待封装工单完成接口
+  finishpackageOrder: (data: {
+    orderID: string // 工单ID
+    modelID: string // 模型ID
+    status: string // 工单状态
+    finishTime: string // 完成时间
+    finishModelVersion: string // 升级后模型版本
+    packageRemark: string // 备注
+    executorID: string // 完成人ID
+  }) => api.post('order/finish-package', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 待加密工单完成接口
+  finishEncryptOrder: (data: {
+    orderID: string // 工单ID
+    status: string // 工单状态（进行中）
+    finishTime: string // 完成时间
+    isEncrypted: string // 是否加密（是/否）
+    finishAuthId: string // 授权ID
+    finishShellNo: string[] // 外壳号
+    authorizationId_list: string[] // 授权ID主键数组
+    encryptedRemark: string // 加密备注
+    executorID: string // 完成人ID
+  }) => api.post('order/finish-encrypt', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 待发送工单完成接口
+  finishSendOrder: (data: {
+    orderID: string // 工单ID
+    status: string // 工单状态（进行中）
+    finishTime: string // 完成时间
+    sendRemark: string // 发送备注
+    executorID: string // 完成人ID
+  }) => api.post('order/finish-send', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 工单流转接口 区分不同工单
   transferOrder: (data: {
     orderID: string // 工单ID
     executorID: string // 执行人ID（当前用户）
@@ -256,6 +297,39 @@ export default {
     transferReason: string // 流转原因
     transferTime: string // 流转时间
   }) => api.post('order/transfer', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 工单封装流转
+  transferOrder_package: (data: {
+    orderID: string // 工单ID
+    executorID: string // 执行人ID（当前用户）
+    transferExecutorID: string // 流转执行人ID
+    transferReason: string // 流转原因
+    transferTime: string // 流转时间
+  }) => api.post('order/transfer_package', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 工单加密流转
+  transferOrder_encrypted: (data: {
+    orderID: string // 工单ID
+    executorID: string // 执行人ID（当前用户）
+    transferExecutorID: string // 流转执行人ID
+    transferReason: string // 流转原因
+    transferTime: string // 流转时间
+  }) => api.post('order/transfer_encrypted', data, {
+    // baseURL: '/mock/',
+  }),
+
+  // 工单发送流转
+  transferOrder_send: (data: {
+    orderID: string // 工单ID
+    executorID: string // 执行人ID（当前用户）
+    transferExecutorID: string // 流转执行人ID
+    transferReason: string // 流转原因
+    transferTime: string // 流转时间
+  }) => api.post('order/transfer_send', data, {
     // baseURL: '/mock/',
   }),
 
