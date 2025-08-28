@@ -108,8 +108,6 @@ std::vector<std::pair<ICustomerInfoService::SendOverview, std::vector<ICustomerI
         groups.back().second.push_back({sendRecord[0],sendRecord[1],sendRecord[2],sendRecord[3]});
     }
 
-
-
     return groups;
 }
 

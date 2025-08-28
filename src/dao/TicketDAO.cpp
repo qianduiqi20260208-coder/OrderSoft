@@ -52,8 +52,8 @@ bool TicketDAO::createConcreteTicket(Ticket &ticket)
     {
         //借用一个具体工单表里的remark字段 暂时保存前三位的版本号
         TicketVersion& tv = dynamic_cast<TicketVersion&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,remarks) "
-        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.remark.c_str());
+        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,matlab_version) "
+        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.matlab_version.c_str());
     }else if(ticket.ticketType == "交付发送")
     {
         TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
@@ -62,13 +62,13 @@ bool TicketDAO::createConcreteTicket(Ticket &ticket)
     }else if(ticket.ticketType == "直接封装+发送")
     {
         TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,remarks) "
-        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.remark.c_str());        
+        snprintf(local_sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,matlab_version) "
+        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.matlab_version.c_str());        
     }else if(ticket.ticketType == "功能开发")
     {
         TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create,description_completed) "
-        "VALUES(%d,'%s','%s');", ticket.Ticket::id,tf.featureInit.c_str(),tf.featureFinal.c_str());
+        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create) "
+        "VALUES(%d,'%s');", ticket.Ticket::id,tf.featureInit.c_str());
     }else if(ticket.ticketType == "其他")
     {
         TicketOther& to = dynamic_cast<TicketOther&>(ticket);
@@ -501,7 +501,6 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
     int count)
 {
     
-        // 使用BaseDAO的优化连接管理
     if (!ensureConnection()) {
          return {std::shared_ptr<Ticket>()};
     }
@@ -511,10 +510,12 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
     std::vector<std::shared_ptr<Ticket>> retVec;
 
     std::stringstream ss;
-    ss<<"select * from work_order ";
+    ss<<"select distinct wo.* from work_order wo left join delivery_send ds on ds.work_order_id = wo.id"
+    " left join package_send ps on ps.work_order_id = wo.id"
+    " join work_order_executor woe on woe.work_order_id = wo.id";
     bool first = true;
     //根据类型的不同进行不同的处理
-    std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id"};
+    std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id","executor_id"};
 
     if(!filter.empty())
     {
@@ -524,29 +525,23 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
     for(auto ele: filter)
     {
         if(!first) ss<<" and ";
+
+        //首先判断字段是否是int类型
         if(intSet.find(ele.first) !=intSet.end())
         {
-            //对传入的模型数组进行处理
-            if(ele.first == "model" && ele.second.find(' ')!= std::string::npos)
+            if(ele.first == "executor_id")
             {
-                //使用iss来分割字符串
-                std::istringstream iss(ele.second);
-                std::string token;
-                std::vector<std::string> values;
-                while (iss >> token) {
-                    values.push_back(token);
-                }
-                ss << ele.first << " IN (";
-                for (size_t i = 0; i < values.size(); ++i) {
-                    ss << values[i];
-                    if (i != values.size() - 1) ss << ",";
-                }
-                ss << ")";
-            }else{
-                ss<<ele.first<<" = "<<ele.second;
+                ss<<"woe."<<ele.first<<" = "<<ele.second;
+            }else if(ele.first == "id")
+            {
+                ss<<"wo."<<ele.first<<" = "<<ele.second;
+            }
+            else{
+                ss << ele.first << " = " << ele.second;
             }
 
         }else{
+            //不是int类型的情况下判断传入的是否是模型数组
             if(ele.first == "model" && ele.second.find(' ')!= std::string::npos)
             {
                 //使用iss来分割字符串
@@ -562,44 +557,32 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
                     if (i != values.size() - 1) ss << ",";
                 }
                 ss << ")";
-            }else{
-                // 处理逗号分隔的值
-                if (ele.second.find(',') != std::string::npos) {
-                    std::istringstream iss(ele.second);
-                    std::string token;
-                    std::vector<std::string> values;
-                    while (std::getline(iss, token, ',')) {
-                        // 去除前后空格
-                        token.erase(0, token.find_first_not_of(" \t"));
-                        token.erase(token.find_last_not_of(" \t") + 1);
-                        if (!token.empty()) {
-                            values.push_back(token);
-                        }
-                    }
-                    ss << ele.first << " IN (";
-                    for (size_t i = 0; i < values.size(); ++i) {
-                        ss << "'" << values[i] << "'";
-                        if (i != values.size() - 1) ss << ",";
-                    }
-                    ss << ")";
-                } else {
-                    ss << ele.first << " = '" << ele.second << "'";
-                }
+            }else if(ele.first == "target_delivery_time"){
+                //预计发送时间单独处理 因为涉及到别的表了
+                ss<<"(DATE(ds."<<ele.first<<") = '"<<ele.second<<"' or ";
+                ss<<"DATE(ps."<<ele.first<<") = '"<<ele.second<<"')";
+            }else if(ele.first == "status")
+            {
+                ss<<"wo."<<ele.first<<" = '"<<ele.second<<"'";
             }
-
+            else{
+                ss<<ele.first<<" = '"<<ele.second<<"'";
+            }
         }
 
         first = false;
     }
 
-    ss<<" order by id desc limit "<<offset<<","<<count<<";";
+    ss<<" order by wo.id desc limit "<<offset<<","<<count<<";";
 
 
-    printf("sql:%s\n", ss.str().c_str());
     int local_ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     
+
+    LOG_ERROR("function:selectOrderByCondition() sql：%s", ss.str().c_str());
     if (local_ret) {
         LOG_ERROR("function:selectOrderByCondition() 查询work_order表失败！失败原因：%s", mysql_error(conn));
+
         return {std::shared_ptr<Ticket>()};
     }
     MYSQL_RES* local_res = mysql_store_result(conn);
@@ -645,6 +628,8 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
         tmp->distributedTime = local_row[12]?local_row[12]:"";
         tmp->completedTime = local_row[13]?local_row[13]:"";
         tmp->rejectReason = local_row[14]?local_row[14]:"";
+        tmp->rejectReason = local_row[14]?local_row[14]:"";
+        tmp->dispatchRejectReason = local_row[15]?local_row[15]:"";
 
         //查询模型版本
         if(tmp->modelVersion !="")

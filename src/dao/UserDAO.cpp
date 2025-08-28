@@ -164,7 +164,7 @@ std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
 }
 
 
-std::vector<std::shared_ptr<Ticket>> UserDAO::getUserOrder(int jobNumber)
+std::vector<std::shared_ptr<Ticket>> UserDAO::getUserTodo(int jobNumber)
 {
     //检查数据库连接状态
     if(!ensureConnection())
@@ -497,6 +497,7 @@ bool UserDAO::updatePassword(const std::string& userId, const std::string& oldPa
     return true;
 }
 
+
 std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, int workOrderId)
 {
     
@@ -552,7 +553,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
             tmp->updateNote = local_row[3];
             tmp->packRequirement = local_row[4];
             tmp->interfaceChanged = atoi(local_row[5]);
-            tmp->remark = (local_row[7]?local_row[7]:"");
+            tmp->matlab_version = (local_row[8]?local_row[8]:"");
         }
         mysql_free_result(local_res);
 
@@ -562,7 +563,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
     {
         std::shared_ptr<TicketPackage> tmp = std::make_shared<TicketPackage>();
 
-        snprintf(local_sql, SQL_MAX, "select * from package_send where work_order_id = %d;",workOrderId);
+        snprintf(local_sql, SQL_MAX, "select coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,matlab_version,target_delivery_time from package_send where work_order_id = %d;",workOrderId);
         local_ret = mysql_real_query(mysql, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:getUserOrder() 查询package_send表失败！失败原因：%s", mysql_error(mysql));
@@ -571,15 +572,15 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         local_res = mysql_store_result(mysql);
         while(local_row = mysql_fetch_row(local_res))
         {
-            tmp->coordinationId = local_row[2];
-            tmp->updateNote = local_row[3];
-            tmp->packRequirement = local_row[4];
-            tmp->interfaceChanged = atoi(local_row[5]);
-            tmp->targetClient = local_row[6];
-            tmp->validatedByCAE =atoi(local_row[7]);
-            tmp->sensitiveInfo = local_row[8];
-            tmp->remark = (local_row[13]?local_row[13]:"");
-
+            tmp->coordinationId = local_row[0];
+            tmp->updateNote = local_row[1];
+            tmp->packRequirement = local_row[2];
+            tmp->interfaceChanged = atoi(local_row[3]);
+            tmp->targetClient = local_row[4];
+            tmp->validatedByCAE =atoi(local_row[5]);
+            tmp->sensitiveInfo = local_row[6];
+            tmp->matlab_version = (local_row[7]?local_row[7]:"");
+            tmp->targetDeliveryTime = (local_row[8]?local_row[8]:"");
         }
         mysql_free_result(local_res);
 
@@ -588,7 +589,7 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
     {
         std::shared_ptr<TicketDelivery> tmp = std::make_shared<TicketDelivery>();
 
-        snprintf(local_sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",workOrderId);
+        snprintf(local_sql, SQL_MAX, "select target_customer,validated_by_cae,sensitive_info,target_delivery_time from delivery_send where work_order_id = %d;",workOrderId);
         local_ret = mysql_real_query(mysql, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:getUserOrder() 查询delivery_send表失败！失败原因：%s", mysql_error(mysql));
@@ -597,10 +598,10 @@ std::shared_ptr<Ticket> UserDAO::getUserConcreteOrder(std::string ticketType, in
         local_res = mysql_store_result(mysql);
         while(local_row = mysql_fetch_row(local_res))
         {
-            tmp->targetClient = local_row[2];
-            tmp->validatedByCAE = atoi(local_row[3]);
-            tmp->sensitiveInfo = (local_row[4]?local_row[4]:"");
-
+            tmp->targetClient = local_row[0];
+            tmp->validatedByCAE = atoi(local_row[1]);
+            tmp->sensitiveInfo = (local_row[2]?local_row[2]:"");
+            tmp->targetDeliveryTime = (local_row[3]?local_row[3]:"");
         }
         mysql_free_result(local_res);
 

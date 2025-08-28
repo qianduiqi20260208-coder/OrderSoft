@@ -12,7 +12,7 @@ public:
     UserDAO(MYSQL* ms); // 兼容旧接口（已废弃）
     std::vector<User> getUser()override;
     //返回一个空指针放在vector里代表查询失败
-    std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)override;
+    std::vector<std::shared_ptr<Ticket>> getUserTodo(int jobNumber)override;
     // 查询指定用户负责的模型
     std::vector<std::string> getUserResponsibleModels(int userId) override;
 
