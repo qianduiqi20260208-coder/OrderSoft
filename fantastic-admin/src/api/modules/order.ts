@@ -415,7 +415,11 @@ export default {
 
   // 下载工单附件文件
   downloadTicketFile: (ticketId: number, filename: string) =>
-    api.get(`files/ticket/${ticketId}/${filename}`, {
+    api.get('files/ticket', {
+      params: {
+        ticketId,
+        filename,
+      },
       // baseURL: '/mock/',
     }),
 
