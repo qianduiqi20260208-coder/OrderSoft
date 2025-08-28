@@ -1570,12 +1570,14 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
     // 构建SQL查询语句
     snprintf(sql, SQL_MAX, 
         "SELECT "
-        "    wo.id AS work_order_id, "
-        "    wo.type AS work_order_type, "
-        "    wo.status AS work_order_status, "
+        "    wo.id AS work_order_id, "// 0
+        "    wo.type AS work_order_type, "//1
+        "    wo.status AS work_order_status, "//2
         "    wo.created_at, "
         "    wo.priority, "
         "    wo.task_priority, "
+        "    wo.approved_at, "
+        "    wo.dispatched_at, "
         "    wo.model, "
         "    wo.status_todo, "
         "    mv.version AS model_version, "
@@ -1630,7 +1632,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "LEFT JOIN user u_approver ON wo.approver_id = u_approver.username "
         "LEFT JOIN user u_dispatcher ON wo.dispatcher_id = u_dispatcher.username "
         "LEFT JOIN ( "
-        "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status "
+        "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status, woe1.transfer_type "
         "    FROM work_order_executor woe1 "
         "    INNER JOIN ( "
         "        SELECT work_order_id, MAX(id) as max_id "
@@ -1683,17 +1685,19 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         workOrder["createdAt"] = row[3] ? row[3] : "";
         workOrder["priority"] = row[4] ? row[4] : "";
         workOrder["taskPriority"] = row[5] ? row[5] : "";
-        workOrder["model"] = row[6] ? row[6] : "";
-        workOrder["statusTodo"] = row[7] ? row[7] : "";
-        workOrder["modelVersion"] = row[8] ? row[8] : "";
-        workOrder["creatorName"] = row[9] ? row[9] : "";
-        workOrder["approverName"] = row[10] ? row[10] : "";
-        workOrder["dispatcherName"] = row[11] ? row[11] : "";
-        workOrder["executorId"] = row[12] ? row[12] : "";
-        workOrder["executorName"] = row[13] ? row[13] : "";
-        workOrder["executorStatus"] = row[14] ? row[14] : "";
-        workOrder["encryptionStatus"] = row[15] ? row[15] : "";
-        workOrder["flowRole"] = row[16] ? row[16] : "";
+        workOrder["approvedAt"] = row[6] ? row[6] : "";
+        workOrder["dispatchedAt"] = row[7] ? row[7] : "";
+        workOrder["model"] = row[8] ? row[8] : "";
+        workOrder["statusTodo"] = row[9] ? row[9] : "";
+        workOrder["modelVersion"] = row[10] ? row[10] : "";
+        workOrder["creatorName"] = row[11] ? row[11] : "";
+        workOrder["approverName"] = row[12] ? row[12] : "";
+        workOrder["dispatcherName"] = row[13] ? row[13] : "";
+        workOrder["executorId"] = row[14] ? row[14] : "";
+        workOrder["executorName"] = row[15] ? row[15] : "";
+        workOrder["executorStatus"] = row[16] ? row[16] : "";
+        workOrder["encryptionStatus"] = row[17] ? row[17] : "";
+        workOrder["flowRole"] = row[18] ? row[18] : "";
         
         // 根据工单类型封装详细信息
         std::string workOrderType = row[1] ? row[1] : "";
@@ -1701,63 +1705,63 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         
         if (workOrderType == "问题复现") {
             nlohmann::json issueInfo;
-            issueInfo["coordinationId"] = row[17] ? row[17] : "";
-            issueInfo["description"] = row[18] ? row[18] : "";
-            issueInfo["referenceFile"] = row[19] ? row[19] : "";
-            issueInfo["phenomenon"] = row[20] ? row[20] : "";
-            issueInfo["remarks"] = row[21] ? row[21] : "";
+            issueInfo["coordinationId"] = row[19] ? row[19] : "";
+            issueInfo["description"] = row[20] ? row[20] : "";
+            issueInfo["referenceFile"] = row[21] ? row[21] : "";
+            issueInfo["phenomenon"] = row[22] ? row[22] : "";
+            issueInfo["remarks"] = row[23] ? row[23] : "";
             workOrder["issueReproduction"] = issueInfo;
         }
         else if (workOrderType == "版本迭代") {
             nlohmann::json versionInfo;
-            versionInfo["coordinationId"] = row[22] ? row[22] : "";
-            versionInfo["updateContent"] = row[23] ? row[23] : "";
-            versionInfo["packagingRequirements"] = row[24] ? row[24] : "";
-            versionInfo["interfaceChanged"] = row[25] ? (std::string(row[25]) == "1" ? true : false) : false;
-            versionInfo["newModelVersionId"] = row[26] ? row[26] : "";
-            versionInfo["remarks"] = row[27] ? row[27] : "";
+            versionInfo["coordinationId"] = row[24] ? row[24] : "";
+            versionInfo["updateContent"] = row[25] ? row[25] : "";
+            versionInfo["packagingRequirements"] = row[26] ? row[26] : "";
+            versionInfo["interfaceChanged"] = row[27] ? (std::string(row[27]) == "1" ? true : false) : false;
+            versionInfo["newModelVersionId"] = row[28] ? row[28] : "";
+            versionInfo["remarks"] = row[29] ? row[29] : "";
             workOrder["versionIteration"] = versionInfo;
         }
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
-            deliveryInfo["targetCustomer"] = row[28] ? row[28] : "";
-            deliveryInfo["validatedByCae"] = row[29] ? (std::string(row[29]) == "1" ? true : false) : false;
-            deliveryInfo["sensitiveInfo"] = row[30] ? row[30] : "";
-            deliveryInfo["isEncrypted"] = row[31] ? (std::string(row[31]) == "1" ? true : false) : false;
-            deliveryInfo["shellCode"] = row[32] ? row[32] : "";
-            deliveryInfo["authorizationId"] = row[33] ? row[33] : "";
-            deliveryInfo["remarks"] = row[34] ? row[34] : "";
-            deliveryInfo["targetDeliveryTime"] = row[35] ? row[35] : "";
+            deliveryInfo["targetCustomer"] = row[30] ? row[30] : "";
+            deliveryInfo["validatedByCae"] = row[31] ? (std::string(row[31]) == "1" ? true : false) : false;
+            deliveryInfo["sensitiveInfo"] = row[32] ? row[32] : "";
+            deliveryInfo["isEncrypted"] = row[33] ? (std::string(row[33]) == "1" ? true : false) : false;
+            deliveryInfo["shellCode"] = row[34] ? row[34] : "";
+            deliveryInfo["authorizationId"] = row[35] ? row[35] : "";
+            deliveryInfo["remarks"] = row[36] ? row[36] : "";
+            deliveryInfo["targetDeliveryTime"] = row[37] ? row[37] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
             nlohmann::json packageInfo;
-            packageInfo["coordinationId"] = row[36] ? row[36] : "";
-            packageInfo["updateContent"] = row[37] ? row[37] : "";
-            packageInfo["packagingRequirements"] = row[38] ? row[38] : "";
-            packageInfo["interfaceChanged"] = row[39] ? (std::string(row[39]) == "1" ? true : false) : false;
-            packageInfo["targetCustomer"] = row[40] ? row[40] : "";
-            packageInfo["validatedByCae"] = row[41] ? (std::string(row[41]) == "1" ? true : false) : false;
-            packageInfo["sensitiveInfo"] = row[42] ? row[42] : "";
-            packageInfo["newModelVersionId"] = row[43] ? row[43] : "";
-            packageInfo["isEncrypted"] = row[44] ? (std::string(row[44]) == "1" ? true : false) : false;
-            packageInfo["encryptionKey"] = row[45] ? row[45] : "";
-            packageInfo["productAuthorizationId"] = row[46] ? row[46] : "";
-            packageInfo["remarks"] = row[47] ? row[47] : "";
+            packageInfo["coordinationId"] = row[38] ? row[38] : "";
+            packageInfo["updateContent"] = row[39] ? row[39] : "";
+            packageInfo["packagingRequirements"] = row[40] ? row[40] : "";
+            packageInfo["interfaceChanged"] = row[41] ? (std::string(row[41]) == "1" ? true : false) : false;
+            packageInfo["targetCustomer"] = row[42] ? row[42] : "";
+            packageInfo["validatedByCae"] = row[43] ? (std::string(row[43]) == "1" ? true : false) : false;
+            packageInfo["sensitiveInfo"] = row[44] ? row[44] : "";
+            packageInfo["newModelVersionId"] = row[45] ? row[45] : "";
+            packageInfo["isEncrypted"] = row[46] ? (std::string(row[46]) == "1" ? true : false) : false;
+            packageInfo["encryptionKey"] = row[47] ? row[47] : "";
+            packageInfo["productAuthorizationId"] = row[48] ? row[48] : "";
+            packageInfo["remarks"] = row[49] ? row[49] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[48] ? row[48] : "";
-            functionInfo["descriptionCompleted"] = row[49] ? row[49] : "";
-            functionInfo["modelId"] = row[50] ? row[50] : "";
-            functionInfo["newModelVersionId"] = row[51] ? row[51] : "";
+            functionInfo["descriptionCreate"] = row[50] ? row[50] : "";
+            functionInfo["descriptionCompleted"] = row[51] ? row[51] : "";
+            functionInfo["modelId"] = row[52] ? row[52] : "";
+            functionInfo["newModelVersionId"] = row[53] ? row[53] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[52] ? row[52] : "";
-            otherInfo["remarks"] = row[53] ? row[53] : "";
+            otherInfo["description"] = row[54] ? row[54] : "";
+            otherInfo["remarks"] = row[55] ? row[55] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
