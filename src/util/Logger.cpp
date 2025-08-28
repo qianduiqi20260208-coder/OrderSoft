@@ -4,10 +4,6 @@
 #include <cstring>
 #include <algorithm>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#endif
 
 // 获取单例实例
 Logger& Logger::getInstance() {
@@ -22,11 +18,6 @@ bool Logger::initialize(const std::string& baseLogPath, LogLevel minLevel) {
     m_baseLogPath = baseLogPath;
     m_minLogLevel = minLevel;
     
-#ifdef _WIN32
-    // 设置控制台输出为UTF-8编码
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-#endif
     
     // 确保基础日志目录存在
     try {

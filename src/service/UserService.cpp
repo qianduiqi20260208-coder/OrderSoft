@@ -19,9 +19,9 @@ User UserService::getUserByJobNumber(int jobNumber)
     return user;
 }
 
-std::vector<std::shared_ptr<Ticket>> UserService::getUserOrder(int jobNumber)
+std::vector<std::shared_ptr<Ticket>> UserService::getUserTodo(int jobNumber)
 {
-    auto ret = userDAO_->getUserOrder(jobNumber);
+    auto ret = userDAO_->getUserTodo(jobNumber);
     return ret;
 }
 

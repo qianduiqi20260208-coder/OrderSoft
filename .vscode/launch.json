@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug TicketTest",
+            "name": "Debug ModelLifeManager",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/bin/ModelLifeManager.exe",
@@ -13,6 +13,7 @@
             "externalConsole": true,
             "MIMode": "gdb",
             "miDebuggerPath": "D:/software/mingw64/bin/gdb.exe",
+            "logging": { "engineLogging": true },
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

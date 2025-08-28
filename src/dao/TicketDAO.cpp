@@ -498,11 +498,12 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
     std::vector<std::shared_ptr<Ticket>> retVec;
 
     std::stringstream ss;
-    ss<<"select * from work_order wo left join delivery_send ds on ds.work_order_id = wo.id left join package_send ps on ps.work_order_id = wo.id"
+    ss<<"select distinct wo.* from work_order wo left join delivery_send ds on ds.work_order_id = wo.id"
+    " left join package_send ps on ps.work_order_id = wo.id"
     " join work_order_executor woe on woe.work_order_id = wo.id";
     bool first = true;
     //根据类型的不同进行不同的处理
-    std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id"};
+    std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id","executor_id"};
 
     if(!filter.empty())
     {
@@ -512,9 +513,23 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
     for(auto ele: filter)
     {
         if(!first) ss<<" and ";
+
+        //首先判断字段是否是int类型
         if(intSet.find(ele.first) !=intSet.end())
         {
-            //对传入的多个模型进行处理
+            if(ele.first == "executor_id")
+            {
+                ss<<"woe."<<ele.first<<" = "<<ele.second;
+            }else if(ele.first == "id")
+            {
+                ss<<"wo."<<ele.first<<" = "<<ele.second;
+            }
+            else{
+                ss << ele.first << " = " << ele.second;
+            }
+
+        }else{
+            //不是int类型的情况下判断传入的是否是模型数组
             if(ele.first == "model" && ele.second.find(' ')!= std::string::npos)
             {
                 //使用iss来分割字符串
@@ -532,28 +547,30 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
                 ss << ")";
             }else if(ele.first == "target_delivery_time"){
                 //预计发送时间单独处理 因为涉及到别的表了
-                ss<<"ds."<<ele.first<<" = "<<ele.second<<" or ";
-                ss<<"ps."<<ele.first<<" = "<<ele.second;
-            }else if(ele.first == "executor_id"){
-                ss<<"woe."<<ele.first<<" = "<<ele.second;
+                ss<<"(DATE(ds."<<ele.first<<") = '"<<ele.second<<"' or ";
+                ss<<"DATE(ps."<<ele.first<<") = '"<<ele.second<<"')";
+            }else if(ele.first == "status")
+            {
+                ss<<"wo."<<ele.first<<" = '"<<ele.second<<"'";
             }
             else{
-                ss<<ele.first<<" = "<<ele.second;
+                ss<<ele.first<<" = '"<<ele.second<<"'";
             }
-
         }
 
         first = false;
     }
 
-    ss<<" order by id desc limit "<<offset<<","<<count<<";";
+    ss<<" order by wo.id desc limit "<<offset<<","<<count<<";";
 
 
-    printf("sql:%s\n", ss.str().c_str());
     int local_ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     
+
+    LOG_ERROR("function:selectOrderByCondition() sql：%s", ss.str().c_str());
     if (local_ret) {
-        LOG_ERROR("function:selectOrderByCondition() 查询work_order表失败！失败原因：%s", mysql_store_result(conn));
+        LOG_ERROR("function:selectOrderByCondition() 查询work_order表失败！失败原因：%s", mysql_error(conn));
+
         return {std::shared_ptr<Ticket>()};
     }
     MYSQL_RES* local_res = mysql_store_result(conn);
@@ -599,6 +616,8 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
         tmp->distributedTime = local_row[12]?local_row[12]:"";
         tmp->completedTime = local_row[13]?local_row[13]:"";
         tmp->rejectReason = local_row[14]?local_row[14]:"";
+        tmp->rejectReason = local_row[14]?local_row[14]:"";
+        tmp->dispatchRejectReason = local_row[15]?local_row[15]:"";
 
         //查询模型版本
         if(tmp->modelVersion !="")
@@ -631,7 +650,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from issue_reproduction where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询issue_reproduction表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询issue_reproduction表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }
@@ -655,7 +674,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from version_iteration where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询version_iteration表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询version_iteration表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }
@@ -688,7 +707,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from package_send where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询package_send表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询package_send表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }
@@ -731,7 +750,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from delivery_send where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询delivery_send表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询delivery_send表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }
@@ -759,7 +778,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from function_development where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询function_development表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询function_development表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }
@@ -787,7 +806,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
         snprintf(local_sql, SQL_MAX, "select * from other_work_order where work_order_id = %d;",tmp->Ticket::id);
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
-            LOG_ERROR("function:concreteTicketList() 查询other_work_order表失败！失败原因：%s", mysql_store_result(conn));
+            LOG_ERROR("function:concreteTicketList() 查询other_work_order表失败！失败原因：%s", mysql_error(conn));
             retVec.push_back(std::shared_ptr<Ticket>());
             return;
         }

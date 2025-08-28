@@ -18,10 +18,6 @@ set(MY_INCLUDES
     "include/dao"
     "include/service"
     "include/controller"
-
-    "include/dao/interface"
-    "include/service/interface"
-
     "${PROJECT_SOURCE_DIR}/extern/Crow-master/include"
     "${PROJECT_SOURCE_DIR}/extern/asio/asio-1.34.2/include"
     "${PROJECT_SOURCE_DIR}/extern/json/json-develop/include"
@@ -43,10 +39,10 @@ target_include_directories(ModelLifeCore PRIVATE ${MY_INCLUDES})
 add_subdirectory(extern/Catch2-3.5.3)
 
 # 测试程序1
-# add_executable(TicketTest test/ticketTest.cpp)
-# target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
-# set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-# target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
+add_executable(TicketTest test/ticketTest.cpp)
+target_link_libraries(TicketTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
+set_target_properties(TicketTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
 
 # 测试程序2
 # add_executable(UserTest test/userTest.cpp)
@@ -54,6 +50,7 @@ add_subdirectory(extern/Catch2-3.5.3)
 # set_target_properties(UserTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 # target_include_directories(UserTest PRIVATE ${MY_INCLUDES})
 
+# 测试程序3
 # add_executable(ModelTest test/modelTest.cpp)
 # target_link_libraries(ModelTest PRIVATE ModelLifeCore Catch2::Catch2WithMain)
 # set_target_properties(ModelTest PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
@@ -68,21 +65,14 @@ add_subdirectory(extern/Catch2-3.5.3)
 
 #catch_discover_tests(TicketTest)
 
-add_executable(ModelLifeManager src/main.cpp)
+#主程序链接这个库
+# add_executable(ModelLifeManager src/main.cpp)
 # #主程序链接的核心库
-target_link_libraries(ModelLifeManager PRIVATE ModelLifeCore)
-#指定需要链接的具体的库 (web,加密相关的库)
-target_link_libraries(ModelLifeManager PRIVATE  ws2_32 mswsock "${CMAKE_SOURCE_DIR}/extern/openssl/lib/libcrypto.lib")
-set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-target_include_directories(ModelLifeManager PRIVATE ${MY_INCLUDES})
-
-add_custom_target(copy_config ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            # 使用 CMAKE_SOURCE_DIR 保证路径正确
-            ${CMAKE_SOURCE_DIR}/config/config.ini
-            ${CMAKE_BINARY_DIR}/bin
-    COMMENT "正在拷贝 config.ini 到 bin 目录..."
-)
+# target_link_libraries(ModelLifeManager PRIVATE ModelLifeCore)
+# #指定需要链接的具体的库 (web,加密相关的库)
+# target_link_libraries(ModelLifeManager PRIVATE  ws2_32 mswsock "${CMAKE_SOURCE_DIR}/extern/openssl/lib/libcrypto.lib")
+# set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+# target_include_directories(ModelLifeManager PRIVATE ${MY_INCLUDES})
 
 # #设置可执行文件输出的位置
 # set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )

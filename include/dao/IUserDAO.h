@@ -7,7 +7,7 @@ class IUserDAO
 {
 public:
     virtual std::vector<User> getUser() =0;
-    virtual std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)=0;
+    virtual std::vector<std::shared_ptr<Ticket>> getUserTodo(int jobNumber)=0;
 
     virtual std::vector<int> getOrderApprover() = 0;
     virtual std::vector<std::pair<int, std::string>> getOrderApprover_() = 0;

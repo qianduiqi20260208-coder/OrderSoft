@@ -9,6 +9,11 @@
 // #include "../service/user_service.h"
 #include "../service/UserService.h"
 #include "entity/Entity.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include <crow.h>
 #include "crow/middlewares/cors.h"
 #include <nlohmann/json.hpp>

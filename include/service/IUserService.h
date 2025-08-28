@@ -10,7 +10,7 @@ class IUserService
 {
 public:
     virtual User getUserByJobNumber(int jobNumber){return {};}
-    virtual std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber){return {};}
+    virtual std::vector<std::shared_ptr<Ticket>> getUserTodo(int jobNumber){return {};}
     
     virtual std::map<std::string,std::vector<int>> getOrderRole()= 0;
     virtual std::map<std::string, std::vector<std::pair<int, std::string>>> getOrderRole_(const std::string& modelName) = 0;  // 新方法

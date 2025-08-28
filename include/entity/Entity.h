@@ -66,6 +66,9 @@ struct Ticket {
     std::string rejectReason; // 拒绝原因
     TicketExecutor executor;//流转工单时对应的执行人们
 
+    std::string dispatchRejectReason; // 分发拒绝原因
+
+
     // 多态序列化接口,与前端定义的变量对应
     virtual nlohmann::json to_json() const {
         nlohmann::json j;
@@ -300,6 +303,7 @@ struct TicketPackage :public Ticket{
     std::string remark; // 备注
 
     std::string matlab_version; // 备注 
+    std::string targetDeliveryTime; // 备注 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
@@ -320,6 +324,7 @@ struct TicketPackage :public Ticket{
 		j["finishAuthId"] = license; // 授权ID
 		j["finishRemark"] = remark; // 备注
         j["matlabVersion"] = matlab_version; // MATLAB版本
+        j["targetDeliveryTime"] = targetDeliveryTime; // 预计发送时间
 		return j;
 	}
 
@@ -343,6 +348,7 @@ struct TicketPackage :public Ticket{
 		j["finishAuthId"] = license; // 授权ID
 		j["completeModelVersion"] = remark; // 备注
         j["matlabVersion"] = matlab_version; // MATLAB版本
+        j["targetDeliveryTime"] = targetDeliveryTime; // 预计发送时间
 		return j;
 	}
 };
@@ -359,6 +365,7 @@ struct TicketDelivery :public Ticket{
     std::string dongleId; // 外壳号
     std::string licenseId; // 授权ID
     std::string remark; // 备注
+    std::string targetDeliveryTime; // 备注
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
@@ -372,6 +379,7 @@ struct TicketDelivery :public Ticket{
 		j["finishShellNo"] = dongleId; // 外壳号
 		j["finishAuthId"] = licenseId; // 授权ID
 		j["finishRemark"] = remark; // 备注
+        j["targetDeliveryTime"] = targetDeliveryTime; // 预计发送时间
 		return j;
 	}
 
@@ -387,6 +395,7 @@ struct TicketDelivery :public Ticket{
 		j["finishShellNo"] = dongleId; // 外壳号
 		j["finishAuthId"] = licenseId; // 授权ID
 		j["finishRemark"] = remark; // 备注
+        j["targetDeliveryTime"] = targetDeliveryTime; // 预计发送时间
 		return j;
 	}
 };

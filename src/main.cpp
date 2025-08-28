@@ -1,6 +1,6 @@
-// #ifdef _WIN32
-// #include <winsock2.h>
-// #endif
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 
 #include <memory>
 #include <mysql.h>
@@ -63,7 +63,7 @@ int main() {
     auto encryptionKeyDAO = std::make_shared<EncryptionKey>();
 
     // 创建 Service 对象
-    auto userService = std::make_shared<UserService>(userDAO);
+    auto userService = std::make_shared<UserService>(userDAO,ticketDAO);
     auto ticketService = std::make_shared<TicketService>(ticketDAO, modelDAO);  // 传递两个参数
     auto modelService = std::make_shared<ModelService>(modelDAO, ticketDAO);
     auto customerInfoService = std::make_shared<CustomerInfoService>(customerInfoDAO);

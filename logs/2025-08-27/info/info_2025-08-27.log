@@ -1,0 +1,3 @@
+[17:57:24.272] [INFO] [Logger.cpp:28] Logger initialized with base path: logs, min level: INFO
+[17:57:24.275] [INFO] [main.cpp:43] ModelLifeManager 服务启动中..
+[17:57:24.283] [INFO] [Logger.cpp:122] Logger shutting down

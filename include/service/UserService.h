@@ -21,11 +21,11 @@ public:
     User getUserByJobNumber(int jobNumber)override;
 
     /**
-     * @brief 获取用户的工单列表
+     * @brief 获取用户的待办工单
      * @param jobNumber 工号
-     * @return 用户负责工单列表
+     * @return 用户的待办工单列表
      */
-    std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)override;
+    std::vector<std::shared_ptr<Ticket>> getUserTodo(int jobNumber)override;
 
     /**
      * @brief 获取工单中的角色（审批人、分发人、执行人）
