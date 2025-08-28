@@ -562,6 +562,7 @@ async function fetchUserOrders() {
     }
     // 调用后端接口，获取数据
     const res = await orderApi.fetchUserOrderList(params)
+    console.warn(res)
 
     // 处理返回的数据，将单个文件转换为文件数组
     const orders = res.data.list || []
@@ -572,56 +573,55 @@ async function fetchUserOrders() {
         orderID: order.workOrderId || '', // 工单ID ===================
         type: order.workOrderType || '其他', // 工单类型 ======================
         status: order.workOrderStatus || '草稿', // 工单状态 ========================
-        referencePriority: order.referencePriority || '', // 参考优先级 -------------
-        taskPriority: order.taskPriority || '', // 任务优先级 ----------------------
+        referencePriority: order.priority || '', // 参考优先级 =======================
+        taskPriority: order.taskPriority || '', // 任务优先级 =====================
         modelID: order.model || '', // 模型ID =====================
         modelVersionID: order.modelVersion || '', // 模型版本ID ======================
         promoterID: order.creatorName || '', // 创建人ID ======================
         startTime: order.createdAt || '', // 创建时间 =======================
-        completeModelVersion: order.completeModelVersion || '', // matlab版本号 -------------
+        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || '', // matlab版本号 ====================
 
         // 审批分发相关
         approverID: order.approverName || '', // 审批人 ========================
         distributorID: order.dispatcherName || '', // 分发人 =====================
         executorID: order.executorName || '', // 执行人 ========================
-        approveTime: order.approveTime || '', // 审批时间 -------------------
-        distributeTime: order.distributeTime || '', // 分发时间 --------------------
-        finishTime: order.finishTime || '', // 完成时间 ------------------
-        rejectReason: order.rejectReason || '', // 拒绝原因 -----------------------
+        approveTime: order.approvedAt || '', // 审批时间 ========================
+        distributeTime: order.dispatchedAt || '', // 分发时间 =================
 
         // 工单类型特定字段 - 创建阶段
-        // 问题复现工单-创建
-        coordinationID: order.coordinationId || '', // 协调单号 ======================
-        description: order.description || '', // 问题描述 ======================
+
+        coordinationID: order.issueReproduction?.coordinationId || order.versionIteration?.coordinationId || order.packageSend?.coordinationId || '', // 协调单号 ======================
+        description: order.issueReproduction?.description || '', // 问题描述 ======================
         // 先初始化为空数组，后面会处理文件
         files: [],
-        fileName: order.fileName || '', // 后端返回的文件名
-        fileUrl: order.fileUrl || '', // 后端返回的文件URL
-        hasAttachment: order.hasAttachment || false, // 是否有附件
+        fileName: order.issueReproduction?.fileName || '', // 后端返回的文件名
+        fileUrl: order.issueReproduction?.referenceFile || '', // 后端返回的文件URL
+        hasAttachment: order.issueReproduction?.hasAttachment || false, // 是否有附件-------------------
 
-        updateNotes: order.updateContent || '', // 版本更新内容说明 =========================
-        packageRequirement: order.packagingRequirements || '', // 封装要求 =======================
-        apiChanged: order.interfaceChanged || '', // 接口是否变化 =====================
+        updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '', // 版本更新内容说明 =========================
+        packageRequirement: order.versionIteration?.packagingRequirements || order.packageSend?.packagingRequirements || '', // 封装要求 =======================
+        apiChanged: order.versionIteration?.interfaceChanged || order.packageSend?.interfaceChanged || '', // 接口是否变化 =====================
 
-        targetCustomer: order.targetCustomer || '', // 目标客户名称 ======================
-        isCAEChecked: order.validatedByCae || '', // 是否通过CAE ====================
-        hasSensitiveInfo: order.sensitiveInfo || '', // 是否包含敏感信息 ========================
-        targetDeliveryTime: order.targetDeliveryTime || '', // 预计发送时间 =================
+        targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称 ======================
+        isCAEChecked: order.deliverySend?.validatedByCae || order.packageSend?.validatedByCae || '', // 是否通过CAE ====================
+        hasSensitiveInfo: order.deliverySend?.sensitiveInfo || order.packageSend?.sensitiveInfo || '', // 是否包含敏感信息 ========================
+        targetDeliveryTime: order.deliverySend?.targetDeliveryTime || '', // 预计发送时间 =================
 
-        featureDesc: order.descriptionCreate || '', // 功能描述 =====================
+        featureDesc: order.functionDevelopment?.descriptionCreate || '', // 功能描述 =====================
 
-        contentDesc: order.contentDesc || '', // 内容描述
+        contentDesc: order.otherWorkOrder?.description || '', // 内容描述====================
 
         // 工单类型特定字段 - 完成阶段
-        finishRemark: order.remarks || '', // 完成时备注 ======================
-        finishPhenomenon: order.description || '', // 复现现象描述 ==================
-        finishModelVersion: order.newModelVersionId || '', // 升级后模型版本 ====================
-        isEncrypted: order.isEncrypted || '', // 是否加密 =========================
-        finishAuthId: order.authorizationId || '', // 授权ID ======================
-        finishShellNo: order.shellCode || [], // 外壳号 =======================
-        finishFeatureDesc: order.descriptionCompleted || '', // 完成后功能描述 =========================
+        finishRemark: order.issueReproduction?.remarks || order.versionIteration?.remarks || order.deliverySend?.remarks || order.packageSend?.remarks || '', // 完成时备注 ======================
+        finishPhenomenon: order.issueReproduction?.phenomenon || '', // 复现现象描述 ==================
+        finishModelVersion: order.versionIteration?.newModelVersionId || order.packageSend?.newModelVersionId || order.functionDevelopment?.newModelVersionId || '', // 升级后模型版本 ====================
+        isEncrypted: order.deliverySend?.isEncrypted || order.packageSend?.isEncrypted || order.packageSend?.isEncrypted || '', // 是否加密 =========================
+        finishAuthId: order.deliverySend?.authorizationId || order.packageSend?.productAuthorizationId || '', // 授权ID ======================
+        // shellCode 是以逗号分割的字符串 需要转成数组
+        finishShellNo: order.deliverySend?.shellCode?.split(',') || [], // 外壳号 =======================
+        finishFeatureDesc: order.functionDevelopment?.descriptionCompleted || '', // 完成后功能描述 =========================
 
-        finishRemarkOther: order.finishRemarkOther || '', // 其他类工单完成时备注
+        finishRemarkOther: order.otherWorkOrder?.remarks || '', // 其他类工单完成时备注===================
 
         // 流转记录
         transfers: order.transferInfo || [], // 流转记录 ====================
@@ -655,6 +655,7 @@ async function fetchUserOrders() {
       }
       return order
     })
+    console.warn(userOrders.value)
   }
   finally {
     loading.value = false // 加载结束，隐藏骨架屏
