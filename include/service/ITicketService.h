@@ -27,6 +27,9 @@ public:
     // 新增：基于版本列表的工单查询方法
     virtual std::vector<nlohmann::json> getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions) = 0;
 
+    // 新增：获取用户待办工单（包含详细信息和流转信息）
+    virtual std::vector<nlohmann::json> getUserPendingWorkOrders(const std::string& userId) = 0;
+
     virtual bool orderTransfer(const TicketExecutor& executor) = 0;
     virtual unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) = 0;
 

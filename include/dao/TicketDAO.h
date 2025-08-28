@@ -41,6 +41,9 @@ public:
     // 新增：基于版本列表的工单查询方法
     std::vector<nlohmann::json> getWorkOrdersWithDetailsByVersions(const std::string& modelName, const std::vector<std::string>& versions) override;
 
+    // 新增：获取用户待办工单（包含详细信息和流转信息）
+    std::vector<nlohmann::json> getUserPendingWorkOrders(const std::string& userId);
+
     ~TicketDAO();
 private:
     //mysql套件

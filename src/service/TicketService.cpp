@@ -97,6 +97,11 @@ std::vector<nlohmann::json> TicketService::getWorkOrdersWithDetailsByVersions(co
     return ticketDAO->getWorkOrdersWithDetailsByVersions(modelName, versions);
 }
 
+std::vector<nlohmann::json> TicketService::getUserPendingWorkOrders(const std::string& userId)
+{
+    return ticketDAO->getUserPendingWorkOrders(userId);
+}
+
 std::vector<std::vector<std::pair<std::string,int>>> TicketService::getOrderStatisticsByCondition(int time_range, std::string ticketType, std::vector<std::string> clientName)
 {
     

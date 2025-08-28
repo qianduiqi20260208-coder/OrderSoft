@@ -1556,7 +1556,295 @@ std::vector<std::vector<std::pair<std::string,int>>> TicketDAO::selectOrderStati
     return retVec;
 }
 
-
+std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::string& userId)
+{
+    std::vector<nlohmann::json> result;
+    
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getUserPendingWorkOrders 数据库连接失败");
+        return result;
+    }
+    
+    MYSQL* conn = getConnection();
+    
+    // 构建SQL查询语句
+    snprintf(sql, SQL_MAX, 
+        "SELECT "
+        "    wo.id AS work_order_id, "
+        "    wo.type AS work_order_type, "
+        "    wo.status AS work_order_status, "
+        "    wo.created_at, "
+        "    wo.priority, "
+        "    wo.task_priority, "
+        "    wo.model, "
+        "    wo.status_todo, "
+        "    mv.version AS model_version, "
+        "    u_creator.real_name AS creator_name, "
+        "    u_approver.real_name AS approver_name, "
+        "    u_dispatcher.real_name AS dispatcher_name, "
+        "    woe_latest.executor_id, "
+        "    u_executor.real_name AS executor_name, "
+        "    woe_latest.transfer_type AS executor_status, "
+        "    woe_latest.encryption_status, "
+        "    umr.flow_role, "
+        "    ir.coordination_id AS issue_coordination_id, "
+        "    ir.description AS issue_description, "
+        "    ir.reference_file AS issue_reference_file, "
+        "    ir.phenomenon AS issue_phenomenon, "
+        "    ir.remarks AS issue_remarks, "
+        "    vi.coordination_id AS version_coordination_id, "
+        "    vi.update_content AS version_update_content, "
+        "    vi.packaging_requirements AS version_packaging_requirements, "
+        "    vi.interface_changed AS version_interface_changed, "
+        "    vi.new_model_version_id AS version_new_model_version_id, "
+        "    vi.remarks AS version_remarks, "
+        "    ds.target_customer AS delivery_target_customer, "
+        "    ds.validated_by_cae AS delivery_validated_by_cae, "
+        "    ds.sensitive_info AS delivery_sensitive_info, "
+        "    ds.is_encrypted AS delivery_is_encrypted, "
+        "    ds.shell_code AS delivery_shell_code, "
+        "    ds.authorization_id AS delivery_authorization_id, "
+        "    ds.remarks AS delivery_remarks, "
+        "    ds.target_delivery_time, "
+        "    ps.coordination_id AS package_coordination_id, "
+        "    ps.update_content AS package_update_content, "
+        "    ps.packaging_requirements AS package_packaging_requirements, "
+        "    ps.interface_changed AS package_interface_changed, "
+        "    ps.target_customer AS package_target_customer, "
+        "    ps.validated_by_cae AS package_validated_by_cae, "
+        "    ps.sensitive_info AS package_sensitive_info, "
+        "    ps.new_model_version_id AS package_new_model_version_id, "
+        "    ps.is_encrypted AS package_is_encrypted, "
+        "    ps.encryption_key AS package_encryption_key, "
+        "    ps.product_authorization_id AS package_product_authorization_id, "
+        "    ps.remarks AS package_remarks, "
+        "    fd.description_create AS function_description_create, "
+        "    fd.description_completed AS function_description_completed, "
+        "    fd.model_id AS function_model_id, "
+        "    fd.new_model_version_id AS function_new_model_version_id, "
+        "    owo.description AS other_description, "
+        "    owo.remarks AS other_remarks "
+        "FROM work_order wo "
+        "LEFT JOIN model_version mv ON wo.model_version_id = mv.id "
+        "LEFT JOIN user u_creator ON wo.creator_id = u_creator.username "
+        "LEFT JOIN user u_approver ON wo.approver_id = u_approver.username "
+        "LEFT JOIN user u_dispatcher ON wo.dispatcher_id = u_dispatcher.username "
+        "LEFT JOIN ( "
+        "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status "
+        "    FROM work_order_executor woe1 "
+        "    INNER JOIN ( "
+        "        SELECT work_order_id, MAX(id) as max_id "
+        "        FROM work_order_executor "
+        "        GROUP BY work_order_id "
+        "    ) woe2 ON woe1.work_order_id = woe2.work_order_id AND woe1.id = woe2.max_id "
+        ") woe_latest ON wo.id = woe_latest.work_order_id "
+        "LEFT JOIN user u_executor ON woe_latest.executor_id = u_executor.username "
+        "LEFT JOIN user_multi_role umr ON wo.id = umr.work_order_id "
+        "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND wo.type = '问题复现' "
+        "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
+        "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
+        "LEFT JOIN package_send ps ON wo.id = ps.work_order_id AND wo.type = '直接封装+发送' "
+        "LEFT JOIN function_development fd ON wo.id = fd.work_order_id AND wo.type = '功能开发' "
+        "LEFT JOIN other_work_order owo ON wo.id = owo.work_order_id AND wo.type = '其他' "
+        "WHERE "
+        "    ( "
+        "        (wo.status = '待审批' AND wo.approver_id = '%s') "
+        "        OR "
+        "        (wo.status = '待分发' AND wo.dispatcher_id = '%s') "
+        "        OR "
+        "        (wo.status = '进行中' AND woe_latest.executor_id = '%s') "
+        "    ) "
+        "ORDER BY "
+        "    CASE wo.priority WHEN '紧急' THEN 1 ELSE 2 END, "
+        "    wo.created_at DESC",
+        userId.c_str(), userId.c_str(), userId.c_str());
+    
+    LOG_DEBUG("SQL执行: %s", sql);
+    
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        LOG_ERROR("function:getUserPendingWorkOrders SQL查询失败！失败原因：%s", mysql_error(conn));
+        return result;
+    }
+    
+    res = mysql_store_result(conn);
+    if (!res) {
+        LOG_ERROR("function:getUserPendingWorkOrders 获取结果集失败！失败原因：%s", mysql_error(conn));
+        return result;
+    }
+    
+    while ((row = mysql_fetch_row(res))) {
+        nlohmann::json workOrder;
+        
+        // 基本工单信息
+        workOrder["workOrderId"] = row[0] ? row[0] : "";
+        workOrder["workOrderType"] = row[1] ? row[1] : "";
+        workOrder["workOrderStatus"] = row[2] ? row[2] : "";
+        workOrder["createdAt"] = row[3] ? row[3] : "";
+        workOrder["priority"] = row[4] ? row[4] : "";
+        workOrder["taskPriority"] = row[5] ? row[5] : "";
+        workOrder["model"] = row[6] ? row[6] : "";
+        workOrder["statusTodo"] = row[7] ? row[7] : "";
+        workOrder["modelVersion"] = row[8] ? row[8] : "";
+        workOrder["creatorName"] = row[9] ? row[9] : "";
+        workOrder["approverName"] = row[10] ? row[10] : "";
+        workOrder["dispatcherName"] = row[11] ? row[11] : "";
+        workOrder["executorId"] = row[12] ? row[12] : "";
+        workOrder["executorName"] = row[13] ? row[13] : "";
+        workOrder["executorStatus"] = row[14] ? row[14] : "";
+        workOrder["encryptionStatus"] = row[15] ? row[15] : "";
+        workOrder["flowRole"] = row[16] ? row[16] : "";
+        
+        // 根据工单类型封装详细信息
+        std::string workOrderType = row[1] ? row[1] : "";
+        std::string workOrderId = row[0] ? row[0] : "";
+        
+        if (workOrderType == "问题复现") {
+            nlohmann::json issueInfo;
+            issueInfo["coordinationId"] = row[17] ? row[17] : "";
+            issueInfo["description"] = row[18] ? row[18] : "";
+            issueInfo["referenceFile"] = row[19] ? row[19] : "";
+            issueInfo["phenomenon"] = row[20] ? row[20] : "";
+            issueInfo["remarks"] = row[21] ? row[21] : "";
+            workOrder["issueReproduction"] = issueInfo;
+        }
+        else if (workOrderType == "版本迭代") {
+            nlohmann::json versionInfo;
+            versionInfo["coordinationId"] = row[22] ? row[22] : "";
+            versionInfo["updateContent"] = row[23] ? row[23] : "";
+            versionInfo["packagingRequirements"] = row[24] ? row[24] : "";
+            versionInfo["interfaceChanged"] = row[25] ? (std::string(row[25]) == "1" ? true : false) : false;
+            versionInfo["newModelVersionId"] = row[26] ? row[26] : "";
+            versionInfo["remarks"] = row[27] ? row[27] : "";
+            workOrder["versionIteration"] = versionInfo;
+        }
+        else if (workOrderType == "交付发送") {
+            nlohmann::json deliveryInfo;
+            deliveryInfo["targetCustomer"] = row[28] ? row[28] : "";
+            deliveryInfo["validatedByCae"] = row[29] ? (std::string(row[29]) == "1" ? true : false) : false;
+            deliveryInfo["sensitiveInfo"] = row[30] ? row[30] : "";
+            deliveryInfo["isEncrypted"] = row[31] ? (std::string(row[31]) == "1" ? true : false) : false;
+            deliveryInfo["shellCode"] = row[32] ? row[32] : "";
+            deliveryInfo["authorizationId"] = row[33] ? row[33] : "";
+            deliveryInfo["remarks"] = row[34] ? row[34] : "";
+            deliveryInfo["targetDeliveryTime"] = row[35] ? row[35] : "";
+            workOrder["deliverySend"] = deliveryInfo;
+        }
+        else if (workOrderType == "直接封装+发送") {
+            nlohmann::json packageInfo;
+            packageInfo["coordinationId"] = row[36] ? row[36] : "";
+            packageInfo["updateContent"] = row[37] ? row[37] : "";
+            packageInfo["packagingRequirements"] = row[38] ? row[38] : "";
+            packageInfo["interfaceChanged"] = row[39] ? (std::string(row[39]) == "1" ? true : false) : false;
+            packageInfo["targetCustomer"] = row[40] ? row[40] : "";
+            packageInfo["validatedByCae"] = row[41] ? (std::string(row[41]) == "1" ? true : false) : false;
+            packageInfo["sensitiveInfo"] = row[42] ? row[42] : "";
+            packageInfo["newModelVersionId"] = row[43] ? row[43] : "";
+            packageInfo["isEncrypted"] = row[44] ? (std::string(row[44]) == "1" ? true : false) : false;
+            packageInfo["encryptionKey"] = row[45] ? row[45] : "";
+            packageInfo["productAuthorizationId"] = row[46] ? row[46] : "";
+            packageInfo["remarks"] = row[47] ? row[47] : "";
+            workOrder["packageSend"] = packageInfo;
+        }
+        else if (workOrderType == "功能开发") {
+            nlohmann::json functionInfo;
+            functionInfo["descriptionCreate"] = row[48] ? row[48] : "";
+            functionInfo["descriptionCompleted"] = row[49] ? row[49] : "";
+            functionInfo["modelId"] = row[50] ? row[50] : "";
+            functionInfo["newModelVersionId"] = row[51] ? row[51] : "";
+            workOrder["functionDevelopment"] = functionInfo;
+        }
+        else if (workOrderType == "其他") {
+            nlohmann::json otherInfo;
+            otherInfo["description"] = row[52] ? row[52] : "";
+            otherInfo["remarks"] = row[53] ? row[53] : "";
+            workOrder["otherWorkOrder"] = otherInfo;
+        }
+        
+        // 查询流转信息
+        nlohmann::json transferInfo = nlohmann::json::array();
+        nlohmann::json versionInfo = nlohmann::json::array();
+        nlohmann::json encryptedInfo = nlohmann::json::array();
+        nlohmann::json transferInfoDelivery = nlohmann::json::array();
+        
+        // 根据工单类型查询相应的流转信息
+        char transferSql[2048];
+        memset(transferSql, 0, sizeof(transferSql));
+        
+        if (workOrderType == "问题复现" || workOrderType == "功能开发" || workOrderType == "其他") {
+            // 只查询完成工单流转
+            snprintf(transferSql, sizeof(transferSql),
+                "SELECT woe.executor_id, woe.create_id, woe.transfer_reason, woe.create_at "
+                "FROM work_order_executor woe "
+                "WHERE woe.work_order_id = %s AND woe.transfer_type = '完成工单流转' "
+                "ORDER BY woe.create_at DESC",
+                workOrderId.c_str());
+        } else if (workOrderType == "版本迭代") {
+            // 只查询封装流转
+            snprintf(transferSql, sizeof(transferSql),
+                "SELECT woe.executor_id, woe.create_id, woe.transfer_reason, woe.create_at "
+                "FROM work_order_executor woe "
+                "WHERE woe.work_order_id = %s AND woe.transfer_type = '封装流转' "
+                "ORDER BY woe.create_at DESC",
+                workOrderId.c_str());
+        } else if (workOrderType == "交付发送" || workOrderType == "直接封装+发送") {
+             // 查询加密流转、发送流转
+             snprintf(transferSql, sizeof(transferSql),
+                 "SELECT woe.executor_id, woe.create_id, woe.transfer_reason, woe.create_at, woe.transfer_type "
+                 "FROM work_order_executor woe "
+                 "WHERE woe.work_order_id = %s AND woe.transfer_type IN ('封装流转','加密流转', '发送流转') "
+                 "ORDER BY woe.create_at DESC",
+                 workOrderId.c_str());
+         }
+        
+        // 执行流转信息查询
+        if (strlen(transferSql) > 0) {
+            MYSQL_RES* transferRes;
+            MYSQL_ROW transferRow;
+            
+            int transferRet = mysql_real_query(conn, transferSql, (unsigned long)strlen(transferSql));
+            if (!transferRet) {
+                transferRes = mysql_store_result(conn);
+                if (transferRes) {
+                    while ((transferRow = mysql_fetch_row(transferRes))) {
+                        nlohmann::json transfer;
+                        transfer["transferExecutorID"] = transferRow[0] ? transferRow[0] : "";
+                        transfer["transferCreatorID"] = transferRow[1] ? transferRow[1] : "";
+                        transfer["transferReason"] = transferRow[2] ? transferRow[2] : "";
+                        transfer["transferTime"] = transferRow[3] ? transferRow[3] : "";
+                        
+                        if (workOrderType == "问题复现" || workOrderType == "功能开发" || workOrderType == "其他") {
+                             transferInfo.push_back(transfer);
+                         } else if (workOrderType == "版本迭代") {
+                             versionInfo.push_back(transfer);
+                         } else if (workOrderType == "交付发送" || workOrderType == "直接封装+发送") {
+                             // 交付发送工单需要添加特定的交付信息字段
+                             std::string transferType = transferRow[4] ? transferRow[4] : "";
+                             if (transferType == "封装流转") {
+                                 versionInfo.push_back(transfer);
+                             } else if (transferType == "加密流转") {
+                                 encryptedInfo.push_back(transfer);
+                             } else if (transferType == "发送流转") {
+                                 transferInfoDelivery.push_back(transfer);
+                             }
+                         }
+                    }
+                    mysql_free_result(transferRes);
+                }
+            }
+        }
+        
+        workOrder["transferInfo"] = transferInfo;// 完成工单流转信息
+        workOrder["transferInfoVersion"] = versionInfo;// 封装环节流转信息
+        workOrder["transferInfoEncrypted"] = encryptedInfo;// 加密环节流转信息
+        workOrder["transferInfoDelivery"] = transferInfoDelivery;// 发送环节流转信息
+        
+        result.push_back(workOrder);
+    }
+    
+    mysql_free_result(res);
+    return result;
+}
 
 TicketDAO::~TicketDAO()
 {

@@ -1350,4 +1350,39 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 return crow::response(500, error.dump());
             }
         });
+
+    // 获取用户待办工单（包含详细信息和流转信息）
+    CROW_ROUTE(app, "/order/pending").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        // if (!checkToken(req)) {
+        //     return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        // }
+        
+        try {
+            // 从JWT中获取用户ID
+            std::string userId = "410473";//getAccountFromToken(req);
+            // 调用服务层获取用户待办工单
+            auto pendingOrders = ticketService->getUserPendingWorkOrders(userId);
+            
+            // 构建响应
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {
+                    {"list", pendingOrders},
+                    {"total", pendingOrders.size()}
+                }}
+            };
+            
+            return crow::response(200, resp.dump());
+        }
+        catch (const std::exception& e) {
+            nlohmann::json error = {
+                {"status", 1},
+                {"error", "获取用户待办工单失败"}
+            };
+            return crow::response(500, error.dump());
+        }
+    }));
 }
