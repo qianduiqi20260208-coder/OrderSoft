@@ -299,6 +299,7 @@ struct TicketPackage :public Ticket{
     bool encrypted; // 是否加密
     std::vector<std::string> dongle; // 外壳号列表
     std::string license; // 授权ID
+    std::string authorizationIdList; // 授权ID列表
     std::string remark; // 备注
 
     // 多态序列化接口
@@ -358,6 +359,8 @@ struct TicketDelivery :public Ticket{
     std::string dongleId; // 外壳号
     std::string licenseId; // 授权ID
     std::string remark; // 备注
+    // 添加字段authorizationId_list
+    std::string authorizationIdList;
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {

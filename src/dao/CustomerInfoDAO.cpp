@@ -734,7 +734,7 @@ std::vector<std::vector<std::string>> CustomerInfoDAO::getCustomerAuthorizations
         "    pai.remark, "
         "    ekh.status, "
         "    ek.shell_number, "
-        "    pa.id "
+        "    pa.id authorization_id "
         "FROM "
         "    customer_info ci "
         "JOIN "

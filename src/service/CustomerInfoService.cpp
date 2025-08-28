@@ -243,23 +243,14 @@ nlohmann::json CustomerInfoService::getCustomerAuthorizationsByGroup(const std::
             
             for (const auto& row : group.second) {
                 nlohmann::json shellItem;
-                shellItem["shellNumber"] = row[6]; // shell_number
                 
-                // 根据encryption_type确定deviceType
-                std::string encryptionType = row[3]; // encryption_type
-                if (encryptionType == "网络锁") {
-                    shellItem["deviceType"] = "网络锁";
-                } else if (encryptionType == "本地锁") {
-                    shellItem["deviceType"] = "本地锁";
-                } else if (encryptionType == "软锁授权") {
-                    shellItem["deviceType"] = "软锁授权";
-                } else {
-                    shellItem["deviceType"] = "本地锁"; // 默认值
-                }
                 
-                shellItem["description"] = row[4]; // remark
                 shellItem["startTime"] = row[1]; // authorization_start_date
                 shellItem["endTime"] = row[2]; // authorization_end_date
+                shellItem["deviceType"] = row[3]; // encryption_type
+                shellItem["description"] = row[4]; // remark
+                shellItem["shellNumber"] = row[6]; // shell_number
+                shellItem["authorizationId"] = row[7]; // authorization_id
                 
                 authItem["shellNumberList"].push_back(shellItem);
             }

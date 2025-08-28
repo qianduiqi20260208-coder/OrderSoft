@@ -127,8 +127,8 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         //判断是否加密，然后分开处理
         if(tmp.encrypted)
         {
-            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-                " = '%s'),remarks = '%s' where work_order_id = %d;", tmp.encrypted,tmp.dongleId.c_str(),tmp.licenseId.c_str(),tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
+                tmp.encrypted,tmp.dongleId.c_str(),tmp.authorizationIdList.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
         }
@@ -152,8 +152,8 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
                     dongleStr += tmp.dongle[i];
                 }
             }
-            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = (select id from product_authorization where authorization_code = '%s' and encryption_key"
-            " ='%s'),remarks = '%s' where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.license.c_str(),dongleStr.c_str(),tmp.remark.c_str(),tmp.Ticket::id);
+            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = '%s',remarks = '%s',auth_id = '%s' where work_order_id = %d;", 
+                tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.authorizationIdList.c_str(),tmp.remark.c_str(),tmp.license.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         }
@@ -1229,11 +1229,11 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "  ELSE NULL "
        << "END AS dongleId, "
        << "CASE "
-       << "  WHEN wo.type = '直接封装+发送' THEN ps.product_authorization_id "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.auth_id "
        << "  ELSE NULL "
        << "END AS license, "
        << "CASE "
-       << "  WHEN wo.type = '交付发送' THEN ds.authorization_id "
+       << "  WHEN wo.type = '交付发送' THEN ds.auth_id"
        << "  ELSE NULL "
        << "END AS licenseId, "
        << "CASE "
@@ -1344,7 +1344,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "END AS dongle, "
        << "NULL AS dongleId, "
        << "CASE "
-       << "  WHEN wo.type = '直接封装+发送' THEN ps.product_authorization_id "
+       << "  WHEN wo.type = '直接封装+发送' THEN ps.auth_id "
        << "  ELSE NULL "
        << "END AS license, "
        << "NULL AS licenseId, "

@@ -840,6 +840,20 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.completedTime = body.value("finishTime", ""); // 完成时间
         ticketdelivery.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketdelivery.licenseId = body.value("finishAuthId", ""); // 授权ID
+        // 处理authorizationId_list
+        if (body.contains("authorizationId_list") && body["authorizationId_list"].is_array()) {
+            std::string authIds;
+            for (const auto& authId : body["authorizationId_list"]) {
+                if (authId.is_string()) {
+                    if (!authIds.empty()) {
+                        authIds += ",";
+                    }
+                    authIds += authId.get<std::string>();
+                }
+            }
+            ticketdelivery.authorizationIdList = authIds;
+        }
+
         // 处理外壳号，支持多个外壳号以英文逗号分割
         if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
             std::string dongleIds;
@@ -901,6 +915,19 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本ID
         ticketpackage.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketpackage.license = body.value("finishAuthId", ""); // 授权ID
+        // 处理authorizationIdList
+        if (body.contains("authorizationId_list") && body["authorizationId_list"].is_array()) {
+            std::string authIds;
+            for (const auto& authId : body["authorizationId_list"]) {
+                if (authId.is_string()) {
+                    if (!authIds.empty()) {
+                        authIds += ",";
+                    }
+                    authIds += authId.get<std::string>();
+                }
+            }
+            ticketpackage.authorizationIdList = authIds;
+        }
         // 处理外壳号列表
         if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
             ticketpackage.dongle.clear();
