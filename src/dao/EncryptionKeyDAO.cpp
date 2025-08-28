@@ -191,8 +191,7 @@ std::vector<std::vector<std::string>> EncryptionKey::selectAllEncryptionHistoryB
     res = mysql_store_result(conn);
     while(row = mysql_fetch_row(res))
     {
-        std::string in_storage_time = (row[1]?row[1]:"");
-        retVec.push_back({row[0],in_storage_time,row[2]});
+        retVec.push_back({(row[0]?row[0]:""),(row[1]?row[1]:""),(row[2]?row[2]:"")});
     }
     mysql_free_result(res);
 

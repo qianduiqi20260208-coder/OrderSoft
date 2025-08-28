@@ -236,7 +236,7 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, errorResp.dump());
         }
 
-        auto tickets = userService->getUserOrder(userIdInt);
+        auto tickets = userService->getUserTodo(userIdInt);
 
         printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 

@@ -7,7 +7,7 @@ class IUserDAO
 {
 public:
     virtual std::vector<User> getUser() =0;
-    virtual std::vector<std::shared_ptr<Ticket>> getUserOrder(int jobNumber)=0;
+    virtual std::vector<std::shared_ptr<Ticket>> getUserTodo(int jobNumber)=0;
 
     virtual std::vector<int> getOrderApprover() = 0;
     virtual std::vector<std::pair<int, std::string>> getOrderApprover_() = 0;
@@ -21,6 +21,7 @@ public:
     virtual std::vector<std::string> getUserResponsibleModels(int userId) = 0;
 
     virtual bool updatePassword(const std::string& userId, const std::string& oldPassword, const std::string& newPassword) = 0;
+
 
     virtual ~IUserDAO() = 0; 
 };
