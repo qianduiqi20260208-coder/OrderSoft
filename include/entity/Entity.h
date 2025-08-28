@@ -45,6 +45,7 @@ struct TicketExecutor {
     std::vector<std::string> executor;
     std::vector<std::string> timestamp;
     std::vector<std::string> reason;
+    std::vector<std::string> createId;
 };
 
 struct Ticket {
@@ -63,6 +64,7 @@ struct Ticket {
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间
     std::string completedTime; // 完成时间
+    std::string targetDeliveryTime; //预计发送时间
     std::string rejectReason; // 拒绝原因
     TicketExecutor executor;//流转工单时对应的执行人们
 
@@ -107,8 +109,10 @@ struct Ticket {
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
                 // 倒序遍历：从最新的流转记录开始，跳过第一条记录
-                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                for (int i = 0; i < transferCount; ++i) {
                     nlohmann::json transfer;
+                     // TODO 流转记录中的创建人ID
+                    // transfer["transferCreatorID"] = executor.createId[i];
                     transfer["transferExecutorID"] = executor.executor[i];
                     transfer["transferReason"] = executor.reason[i];
                     transfer["transferTime"] = executor.timestamp[i];
@@ -145,12 +149,14 @@ struct Ticket {
         // 安全检查：确保数组不为空且大小一致
         if (!executor.executor.empty() && 
             !executor.timestamp.empty() && 
-            !executor.reason.empty()) {
+            !executor.reason.empty() &&
+            !executor.createId.empty()) {
             
             size_t transferCount = std::min({
                 executor.executor.size(),
                 executor.timestamp.size(), 
-                executor.reason.size()
+                executor.reason.size(),
+                executor.createId.size()
             });
 
             j["executorID"] = executor.executor[0];  // 执行人ID从流转结构体中获取，流转结构体中的第一条数据默认存储分发时选择的执行人ID
@@ -158,8 +164,9 @@ struct Ticket {
             // 只有在记录数大于1时才返回流转信息（排除第一条分发记录）
             if (transferCount > 1) {
                 // 倒序遍历：从最新的流转记录开始，跳过第一条记录
-                for (int i = static_cast<int>(transferCount) - 2; i >= 0; --i) {
+                for (int i = transferCount - 1; i >= 0; --i) {
                     nlohmann::json transfer;
+                    transfer["transferCreatorID"] = executor.createId[i];
                     transfer["transferExecutorID"] = executor.executor[i];
                     transfer["transferReason"] = executor.reason[i];
                     transfer["transferTime"] = executor.timestamp[i];
@@ -212,7 +219,7 @@ struct TicketReproduce :public Ticket{
 
     // 多态序列化接口order_manage专用
     nlohmann::json to_json_order_manage() const override {
-        nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+        nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
         //j["id"] = id; // 如果子类id和基类id不同步，可保留
         //j["ticketId"] = ticketId;
 		j["coordinationID"] = coordinationId; // 协调单ID
@@ -264,7 +271,7 @@ struct TicketVersion :public Ticket{
 
         // 多态序列化接口 order_manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["coordinationID"] = coordinationId; // 协调单ID
@@ -300,6 +307,7 @@ struct TicketPackage :public Ticket{
     bool encrypted; // 是否加密
     std::vector<std::string> dongle; // 外壳号列表
     std::string license; // 授权ID
+    std::string authorizationIdList; // 授权ID列表
     std::string remark; // 备注
 
     std::string matlab_version; // 备注 
@@ -330,7 +338,7 @@ struct TicketPackage :public Ticket{
 
     // 多态序列化接口 order_manage专用
     nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
         j["type"] = "版本迭代+交付发送"; // 工单类型，子类重写
@@ -366,6 +374,8 @@ struct TicketDelivery :public Ticket{
     std::string licenseId; // 授权ID
     std::string remark; // 备注
     std::string targetDeliveryTime; // 备注
+    // 添加字段authorizationId_list
+    std::string authorizationIdList;
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
@@ -385,7 +395,7 @@ struct TicketDelivery :public Ticket{
 
         // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["targetCustomer"] = targetClient;  // 目标客户
@@ -424,7 +434,7 @@ struct TicketFeature :public Ticket{
 
     // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["featureDesc"] = featureInit; // 功能描述
@@ -455,7 +465,7 @@ struct TicketOther :public Ticket{
 
     // 多态序列化接口order manage专用
 	nlohmann::json to_json_order_manage() const override {
-		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
+		nlohmann::json j = Ticket::to_json_order_manage(); // 先序列化基类字段
 		//j["id"] = id; // 如果子类id和基类id不同步，可保留
 		//j["ticketId"] = ticketId;
 		j["contentDesc"] = description; // 内容描述

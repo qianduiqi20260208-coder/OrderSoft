@@ -49,11 +49,12 @@ interface OrderItem {
   distributorID?: string // 分发人ID
   approveTime?: string // 审批时间
   distributeTime?: string // 分发时间
-  rejectReason?: string // 拒绝原因
+  rejectReason?: string // 审批环节拒绝原因
+  rejectReason_dispatch?: string // 分发环节拒绝原因
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
   matlabVersion?: string // matlab版本号
-  expectedSendTime?: string // 预计发送时间
+  targetDeliveryTime?: string // 预计发送时间
 
   // ----------问题复现工单（创建）----------
   coordinationID?: string // 协调单号
@@ -266,6 +267,58 @@ function handleSearch() {
   // 重置展开状态
   expandedMap.value = {}
   fetchUserOrders(1)
+}
+
+async function handleFilterMine() {
+  const myId = userStore.account
+  if (!myId) {
+    ElMessage.warning('无法获取当前用户ID')
+    return
+  }
+  loading.value = true
+  try {
+    // 构造筛选条件，四个角色都传当前用户ID
+    const params: {
+      page: number
+      pageSize: number
+      promoterID?: string
+      approverID?: string
+      distributorID?: string
+      executorID?: string
+      // 其它筛选条件可按需补充
+    } = {
+      page: 1,
+      pageSize,
+      promoterID: myId,
+      approverID: myId,
+      distributorID: myId,
+      executorID: myId,
+    }
+    const res = await orderApi.fetchOrderPage(params)
+    userOrders.value = (res.data.list || []).map((order: any) => {
+      // 文件数组处理
+      if (order.hasAttachment && order.fileName && order.fileUrl) {
+        order.files = [{
+          fileName: order.fileName,
+          fileUrl: order.fileUrl,
+        }]
+      }
+      else {
+        order.files = []
+      }
+      return order
+    })
+    total.value = res.data.total || 0
+    currentPage.value = res.data.page || 1
+    ElMessage.success('已筛选与当前用户相关的工单')
+  }
+  catch (error) {
+    ElMessage.error('筛选失败')
+    console.error(error)
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 // 修改分页组件页码变化事件
@@ -647,6 +700,10 @@ function handleCopyOrder(order: OrderItem) {
             <i class="i-mdi-magnify mr-2" />
             搜索
           </el-button>
+          <el-button type="success" size="large" @click="handleFilterMine">
+            <i class="i-mdi-account-search mr-2" />
+            与我相关
+          </el-button>
         </div>
       </div>
     </FaPageMain>
@@ -760,7 +817,7 @@ function handleCopyOrder(order: OrderItem) {
                       </span>
                       <span>
                         <span class="text-gray-600">预计发送时间：</span>
-                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">当前状态：</span>
@@ -796,7 +853,7 @@ function handleCopyOrder(order: OrderItem) {
                       </span>
                       <span>
                         <span class="text-gray-600">预计发送时间：</span>
-                        <span class="text-black font-bold">{{ order.expectedSendTime || 'NA' }}</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">任务优先级：</span>
@@ -1160,9 +1217,15 @@ function handleCopyOrder(order: OrderItem) {
                         title="已完成"
                       />
                       <span
-                        v-else-if="order.status === '已退回'"
+                        v-else-if="order.status === '已退回' && order.rejectReason_dispatch"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #ef4444;border-radius: 50%;"
+                        title="已退回"
+                      />
+                      <span
+                        v-else-if="order.status === '已退回' && order.rejectReason_dispatch === ''"
+                        class="ml-2 inline-block align-middle"
+                        style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
                     </div>
@@ -1197,10 +1260,10 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
                   </div>
                   <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
-                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                  <div v-if="order.status === '已退回' && order.rejectReason_dispatch" class="mt-2 w-full flex items-start">
                     <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
                     <textarea
-                      :value="order.rejectReason"
+                      :value="order.rejectReason_dispatch"
                       class="flex-1 border border-red-300 rounded bg-red-50 px-3 py-2 text-sm text-red-700"
                       style="min-width: 220px;max-width: 100%;max-height: 80px;overflow-y: auto;word-break: break-all;white-space: pre-line;"
                       rows="2"
@@ -1235,9 +1298,15 @@ function handleCopyOrder(order: OrderItem) {
                         title="已完成"
                       />
                       <span
-                        v-else-if="order.status === '已退回'"
+                        v-else-if="order.status === '已退回' && order.rejectReason"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #ef4444;border-radius: 50%;"
+                        title="已退回"
+                      />
+                      <span
+                        v-else-if="order.status === '已退回' && order.rejectReason === ''"
+                        class="ml-2 inline-block align-middle"
+                        style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
                     </div>
@@ -1272,7 +1341,7 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
                   </div>
                   <!-- 第二行：拒绝原因（仅退回时显示，内容占满整行，支持长文本自动换行和滚动） -->
-                  <div v-if="order.status === '已退回'" class="mt-2 w-full flex items-start">
+                  <div v-if="order.status === '已退回' && order.rejectReason" class="mt-2 w-full flex items-start">
                     <span class="w-32 text-red-600 font-semibold">拒绝原因：</span>
                     <textarea
                       :value="order.rejectReason"

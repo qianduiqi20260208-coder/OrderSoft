@@ -94,6 +94,7 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
             }
         }
 
+	    TicketReproduce ticketreproduce; // 问题复现工单结构体
         // 如果是文件，则保存到磁盘，并记录路径
         if (!filename.empty()) {
             std::string saved_path;
@@ -126,7 +127,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         IniReader config;
         if (!config.load("config.ini")) {
             LOG_ERROR("function:downloadTicketFile 无法读取 config.ini 文件\n");
-            return crow::response(500, R"({"status":0,"error":"配置文件读取失败","data":{}})");
+            return crow::response(500, R"({"status":1,"error":"配置文件读取失败","data":{}})");
         }
         
         // 构建文件路径，与保存时的路径格式保持一致
@@ -137,7 +138,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         std::ifstream file(filePath, std::ios::binary);
         if (!file.is_open()) {
             LOG_ERROR("function:downloadTicketFile 文件打开失败!filePath:%s\n", filePath.c_str());
-            return crow::response(404, R"({"status":0,"error":"文件不存在","data":{}})");
+            return crow::response(404, R"({"status":1,"error":"文件不存在","data":{}})");
         }
         
         // 获取文件大小
@@ -153,7 +154,7 @@ crow::response TicketController::downloadTicketFile(int ticketId, const std::str
         if (!file || file.gcount() != fileSize) {
             LOG_ERROR("function:downloadTicketFile 文件读取不完整! 期望:%ld, 实际:%ld\n", 
                 fileSize, file.gcount());
-            return crow::response(500, R"({"status":0,"error":"文件读取失败","data":{}})");
+            return crow::response(500, R"({"status":1,"error":"文件读取失败","data":{}})");
         }
 
         file.close();
@@ -216,7 +217,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         
         // 解析查询参数
@@ -296,12 +297,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
 		// 解析请求体中的多部分表单数据
         const std::string content_type = req.get_header_value("Content-Type");
         MultipartResult result = parseMultipartForm(content_type, req.body);
 
+	    TicketReproduce ticketreproduce; // 问题复现工单结构体
         // 检查字段
         ticketreproduce.ticketType = "问题复现"; // 工单类型
         ticketreproduce.status = "待审批"; // 工单状态
@@ -338,12 +340,12 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
 		// 解析请求体
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketVersion ticketversion; // 定义本地ticketversion变量
@@ -387,11 +389,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketDelivery ticketdelivery; // 定义本地ticketdelivery变量
@@ -431,11 +433,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         // 定义本地ticketpackage变量
@@ -482,11 +484,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketFeature ticketfeature; // 定义本地ticketfeature变量
@@ -525,11 +527,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketOther ticketother;
@@ -568,13 +570,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
-
+        Ticket ticket;
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "待分发"; // 更新工单状态为待分发
@@ -582,6 +584,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.priorityHint = body.value("referencePriority", ""); // 参考优先级
         ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
+        ticket.targetDeliveryTime = (body.value("targetDeliveryTime", "")); // 预计发送时间
 
         bool ok = ticketService->approveTicket(ticket);
         nlohmann::json resp;
@@ -607,13 +610,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
-
+        Ticket ticket;
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
@@ -646,13 +649,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
-
+        Ticket ticket;
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "进行中";  // 更新工单状态为进行中
@@ -664,7 +667,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 获取当前登录用户的account
         std::string account = getAccountFromToken(req);
         if (account.empty()) {
-            return crow::response(401, R"({"status":0,"error":"无法获取用户信息","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无法获取用户信息","data":{}})");
         }
         
         bool ok = ticketService->dispatchTicket(ticket, account);
@@ -691,13 +694,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
-
+        Ticket ticket;
         // 检查字段
         ticket.id = std::stoi(body.value("orderID", "")); // 工单ID
         ticket.status = "已退回"; // 更新工单状态为已退回
@@ -709,7 +712,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 获取当前登录用户的account
         std::string account = getAccountFromToken(req);
         if (account.empty()) {
-            return crow::response(401, R"({"status":0,"error":"无法获取用户信息","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无法获取用户信息","data":{}})");
         }
         
         bool ok = ticketService->dispatchTicket(ticket, account);
@@ -736,13 +739,14 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
+	    TicketReproduce ticketreproduce; // 问题复现工单结构体
         // 检查字段
         ticketreproduce.Ticket::id = std::stoi(body.value("orderID", "")); // 工单ID
         ticketreproduce.status = "已完成"; // 更新工单状态为已完成
@@ -776,11 +780,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketVersion ticketversion;
@@ -819,11 +823,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         // 定义本地ticketdelivery变量
@@ -836,6 +840,20 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.completedTime = body.value("finishTime", ""); // 完成时间
         ticketdelivery.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketdelivery.licenseId = body.value("finishAuthId", ""); // 授权ID
+        // 处理authorizationId_list
+        if (body.contains("authorizationId_list") && body["authorizationId_list"].is_array()) {
+            std::string authIds;
+            for (const auto& authId : body["authorizationId_list"]) {
+                if (authId.is_string()) {
+                    if (!authIds.empty()) {
+                        authIds += ",";
+                    }
+                    authIds += authId.get<std::string>();
+                }
+            }
+            ticketdelivery.authorizationIdList = authIds;
+        }
+
         // 处理外壳号，支持多个外壳号以英文逗号分割
         if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
             std::string dongleIds;
@@ -878,11 +896,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         // 定义本地ticketpackage变量
@@ -897,6 +915,19 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.newModelVersion = body.value("finishModelVersion", ""); // 升级后模型版本ID
         ticketpackage.encrypted = (body.value("isEncrypted", "") == "是"); // 是否加密
         ticketpackage.license = body.value("finishAuthId", ""); // 授权ID
+        // 处理authorizationIdList
+        if (body.contains("authorizationId_list") && body["authorizationId_list"].is_array()) {
+            std::string authIds;
+            for (const auto& authId : body["authorizationId_list"]) {
+                if (authId.is_string()) {
+                    if (!authIds.empty()) {
+                        authIds += ",";
+                    }
+                    authIds += authId.get<std::string>();
+                }
+            }
+            ticketpackage.authorizationIdList = authIds;
+        }
         // 处理外壳号列表
         if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
             ticketpackage.dongle.clear();
@@ -935,11 +966,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketFeature ticketfeature; // 定义本地ticketfeature变量
@@ -978,11 +1009,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketOther ticketother; // 定义本地ticketother变量
@@ -1019,11 +1050,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         auto body = nlohmann::json::parse(req.body, nullptr, false);
         if (body.is_discarded()) {
-            return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
         TicketExecutor ticketexecutor;
@@ -1066,7 +1097,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
 
         std::vector<std::string> clientList = ticketService->getClient();
@@ -1087,11 +1118,11 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     //     (withAspect([this](const crow::request& req) {
     //     // // JWT校验
     //     // if (!checkToken(req)) {
-    //     //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+    //     //     return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
     //     // }
     //     auto body = nlohmann::json::parse(req.body, nullptr, false);
     //     if (body.is_discarded() || !body.contains("name")) {
-    //         return crow::response(400, R"({"status":0,"error":"Invalid JSON","data":{}})");
+    //         return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
     //     }
     //     bool ok = service_.addCustomer(body["name"].get<std::string>());
     //     nlohmann::json resp;
@@ -1118,7 +1149,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         (withAspectTicketDownload([this](const crow::request& req, int ticketId, const std::string& filename) {
         // JWT校验
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
         std::string decodedFilename = url_decode(filename);
         LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, decodedFilename.c_str());
@@ -1129,7 +1160,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     CROW_ROUTE(app, "/order/statisticsAll").methods("GET"_method)
     ([this](const crow::request& req) {
         if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
 
         auto params = crow::query_string(req.url_params);
