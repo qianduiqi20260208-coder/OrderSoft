@@ -552,7 +552,7 @@ async function submitDevOrder() {
     promoterID: String(currentUserId), // 当前用户ID
     modelID: devOrderForm.value.modelId, // 模型ID
     modelVersionID: devOrderForm.value.modelVersionID, // 模型版本ID
-    completeModelVersion: getCompleteModelVersion(devOrderForm.value.modelVersionID), // 只取前三位
+    matlab_version: getCompleteModelVersion(devOrderForm.value.modelVersionID), // 只取前三位
     featureDesc: devOrderForm.value.featureDesc, // 功能描述
     approverID: String(devOrderForm.value.approverID), // 审批人ID
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)

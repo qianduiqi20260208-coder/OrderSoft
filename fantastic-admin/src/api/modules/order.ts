@@ -1,3 +1,4 @@
+import type { S } from 'node_modules/@faker-js/faker/dist/airline-BUL6NtOJ'
 import api from '../index'
 
 export default {
@@ -99,7 +100,7 @@ export default {
     promoterID: string // 发起人工号（当前用户ID）
     modelID: string // 模型ID
     modelVersionID: string // 模型版本ID
-    completeModelVersion: string // 期望完成模型版本（如1.0.0）
+    matlab_version: string // 期望完成模型版本（如1.0.0）
     featureDesc: string // 功能描述
     approverID: string // 审批人ID
     startTime: string // 工单开始时间（提交时自动生成）
@@ -148,6 +149,7 @@ export default {
   // 工单分发同意接口
   distributeOrder: (data: {
     orderID: string // 工单ID
+    orderType: string // 工单类型
     status: string // 工单状态（分发后变为进行中）
     distributorID: string // 分发人ID
     distributeTime: string // 分发时间（系统自动获取）
@@ -254,6 +256,7 @@ export default {
   finishpackageOrder: (data: {
     orderID: string // 工单ID
     modelID: string // 模型ID
+    orderType: string // 工单类型
     status: string // 工单状态
     finishTime: string // 完成时间
     finishModelVersion: string // 升级后模型版本
@@ -266,7 +269,8 @@ export default {
   // 待加密工单完成接口
   finishEncryptOrder: (data: {
     orderID: string // 工单ID
-    status: string // 工单状态（进行中）
+    status: string // 工单状态
+    orderType: string // 工单类型
     finishTime: string // 完成时间
     isEncrypted: string // 是否加密（是/否）
     finishAuthId: string // 授权ID
@@ -282,6 +286,7 @@ export default {
   finishSendOrder: (data: {
     orderID: string // 工单ID
     status: string // 工单状态（进行中）
+    orderType: string // 工单类型
     finishTime: string // 完成时间
     sendRemark: string // 发送备注
     executorID: string // 完成人ID
@@ -292,6 +297,8 @@ export default {
   // 工单流转接口 区分不同工单
   transferOrder: (data: {
     orderID: string // 工单ID
+    orderType: string // 工单类型
+    transferType: string // 流转类型
     executorID: string // 执行人ID（当前用户）
     transferExecutorID: string // 流转执行人ID
     transferReason: string // 流转原因

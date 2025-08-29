@@ -72,6 +72,7 @@ interface OrderItem {
   status: '草稿' | '待审批' | '待分发' | '进行中' | '已完成' | '已退回'
 
   statusTodo?: string // 待封装 0 待加密 1 待发送 2
+  // statusTodo?: '待封装' | '待加密' | '待发送' // 待封装 0 待加密 1 待发送 2
   // 参考优先级
   referencePriority?: '紧急' | '一般' | ''
   // 任务优先级
@@ -143,7 +144,6 @@ interface OrderItem {
 
   // 流转相关内容
   transfers?: TransferInfo[] // 多次流转记录
-
   transfers_Encrypted?: TransferInfo_Encrypted[] // 加密环节流转记录
   transfers_Delivery?: TransferInfo_Delivery[] // 发送环节流转记录
   transfers_Version?: TransferInfo_Version[] // 封装环节流转记录
@@ -312,6 +312,7 @@ async function handleDistribute(order: OrderItem) {
   // 调用后端接口保存分发结果
   const res = await orderApi.distributeOrder({
     orderID: order.orderID, // 工单ID
+    orderType: order.type, // 工单类型
     status: order.status, // 工单状态（分发后变为进行中）
     distributorID: String(order.distributorID ?? ''), // 分发人ID
     distributeTime: order.distributeTime, // 分发时间（系统自动获取）
@@ -380,10 +381,11 @@ async function confirmFinishOrder() {
     })
   }
   else if (confirmOrder.value.type === '版本迭代') {
-    if (confirmOrder.value.statusTodo === '0') {
+    if (confirmOrder.value.statusTodo === '待封装') {
       confirmOrder.value.status = '已完成'
       res = await orderApi.finishpackageOrder({
         orderID: confirmOrder.value.orderID,
+        orderType: confirmOrder.value.type,
         modelID: confirmOrder.value.modelID,
         status: confirmOrder.value.status,
         finishTime: confirmOrder.value.finishTime,
@@ -395,11 +397,12 @@ async function confirmFinishOrder() {
   }
   else if (confirmOrder.value.type === '交付发送') {
     // 当前工单处于待加密状态
-    if (confirmOrder.value.statusTodo === '1') {
+    if (confirmOrder.value.statusTodo === '待加密') {
       confirmOrder.value.status = '进行中'
       res = await orderApi.finishEncryptOrder({
         orderID: confirmOrder.value.orderID, // 工单id
         status: confirmOrder.value.status, // 工单状态
+        orderType: confirmOrder.value.type,
         finishTime: confirmOrder.value.finishTime, // 此步骤完成时间
         isEncrypted: confirmOrder.value.isEncrypted ?? '', // 是否加密
         finishAuthId: confirmOrder.value.finishAuthId ?? '', // 授权id
@@ -410,11 +413,12 @@ async function confirmFinishOrder() {
       })
     }
     // 当前工单处于待发送状态
-    else if (confirmOrder.value.statusTodo === '2') {
+    else if (confirmOrder.value.statusTodo === '待发送') {
       confirmOrder.value.status = '已完成'
       res = await orderApi.finishSendOrder({
         orderID: confirmOrder.value.orderID, // 工单id
         status: confirmOrder.value.status, // 工单状态
+        orderType: confirmOrder.value.type,
         finishTime: confirmOrder.value.finishTime, // 此步骤完成时间
         sendRemark: confirmOrder.value.sendRemark ?? '', // 发送备注
         executorID: confirmOrder.value.executorID ?? '', // 执行人id
@@ -422,10 +426,11 @@ async function confirmFinishOrder() {
     }
   }
   else if (confirmOrder.value.type === '版本迭代+交付发送') {
-    if (confirmOrder.value.statusTodo === '0') {
+    if (confirmOrder.value.statusTodo === '待封装') {
       confirmOrder.value.status = '进行中'
       res = await orderApi.finishpackageOrder({
         orderID: confirmOrder.value.orderID,
+        orderType: confirmOrder.value.type,
         modelID: confirmOrder.value.modelID,
         status: confirmOrder.value.status,
         finishTime: confirmOrder.value.finishTime,
@@ -434,11 +439,12 @@ async function confirmFinishOrder() {
         executorID: confirmOrder.value.executorID ?? '',
       })
     }
-    else if (confirmOrder.value.statusTodo === '1') {
+    else if (confirmOrder.value.statusTodo === '待加密') {
       confirmOrder.value.status = '进行中'
       res = await orderApi.finishEncryptOrder({
         orderID: confirmOrder.value.orderID, // 工单id
         status: confirmOrder.value.status, // 工单状态
+        orderType: confirmOrder.value.type,
         finishTime: confirmOrder.value.finishTime, // 此步骤完成时间
         isEncrypted: confirmOrder.value.isEncrypted ?? '', // 是否加密
         finishAuthId: confirmOrder.value.finishAuthId ?? '', // 授权id
@@ -448,11 +454,12 @@ async function confirmFinishOrder() {
         executorID: confirmOrder.value.executorID ?? '', // 执行人id
       })
     }
-    else if (confirmOrder.value.statusTodo === '2') {
+    else if (confirmOrder.value.statusTodo === '待发送') {
       confirmOrder.value.status = '已完成'
       res = await orderApi.finishSendOrder({
         orderID: confirmOrder.value.orderID, // 工单id
         status: confirmOrder.value.status, // 工单状态
+        orderType: confirmOrder.value.type,
         finishTime: confirmOrder.value.finishTime, // 此步骤完成时间
         sendRemark: confirmOrder.value.sendRemark ?? '', // 发送备注
         executorID: confirmOrder.value.executorID ?? '', // 执行人id
@@ -573,13 +580,14 @@ async function fetchUserOrders() {
         orderID: order.workOrderId || '', // 工单ID ===================
         type: order.workOrderType || '其他', // 工单类型 ======================
         status: order.workOrderStatus || '草稿', // 工单状态 ========================
+        statusTodo: order.statusTodo, // 流程状态====================
         referencePriority: order.priority || '', // 参考优先级 =======================
         taskPriority: order.taskPriority || '', // 任务优先级 =====================
         modelID: order.model || '', // 模型ID =====================
         modelVersionID: order.modelVersion || '', // 模型版本ID ======================
         promoterID: order.creatorName || '', // 创建人ID ======================
         startTime: order.createdAt || '', // 创建时间 =======================
-        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || '', // matlab版本号 ====================
+        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '', // matlab版本号 ====================
 
         // 审批分发相关
         approverID: order.approverName || '', // 审批人 ========================
@@ -780,6 +788,7 @@ async function confirmBatchDistribute() {
         distributeTime: order.distributeTime,
         taskPriority: order.taskPriority,
         executorID: String(order.executorID ?? ''),
+        orderType: order.type, // 工单类型
       })
       if (res?.status === 1) {
         successCount++
@@ -983,7 +992,7 @@ async function handleTransferOrder(order: OrderItem) {
   order.transferTimeEdit = new Date().toISOString().slice(0, 19).replace('T', ' ')
 
   // 工单处于待封装状态，调用封装流转接口
-  if (order.statusTodo === '0') {
+  if (order.statusTodo === '待封装') {
     const res = await orderApi.transferOrder_package({
       orderID: order.orderID, // 工单号
       executorID: String(currentUserId), // 当前用户ID
@@ -1002,7 +1011,7 @@ async function handleTransferOrder(order: OrderItem) {
     order.transferTimeEdit = ''
   }
   // 工单处于待加密状态，调用加密流转接口
-  else if (order.statusTodo === '1') {
+  else if (order.statusTodo === '待加密') {
     const res = await orderApi.transferOrder_encrypted({
       orderID: order.orderID, // 工单号
       executorID: String(currentUserId), // 当前用户ID
@@ -1021,7 +1030,7 @@ async function handleTransferOrder(order: OrderItem) {
     order.transferTimeEdit = ''
   }
   // 工单处于待发送状态，调用发送流转接口
-  else if (order.statusTodo === '2') {
+  else if (order.statusTodo === '待发送') {
     const res = await orderApi.transferOrder_send({
       orderID: order.orderID, // 工单号
       executorID: String(currentUserId), // 当前用户ID
@@ -1043,6 +1052,8 @@ async function handleTransferOrder(order: OrderItem) {
   else {
     const res = await orderApi.transferOrder({
       orderID: order.orderID, // 工单号
+      orderType: order.type, // 工单类型
+      transferType: '完成工单流转', // 流转类型
       transferReason: order.transferReasonEdit, // 流转原因
       transferTime: order.transferTimeEdit, // 流转时间
       transferExecutorID: String(order.transferExecutorIDEdit), // 流转负责人ID
@@ -1870,7 +1881,7 @@ onMounted(() => {
 
               <!-- 发送环节流转内容块 -->
               <template v-if="order.transfers_Delivery && order.transfers_Delivery.length">
-                <template v-for="(transfer, idx) in [...order.transfers_Delivery].reverse()" :key="idx">
+                <template v-for="(transfer, idx) in order.transfers_Delivery" :key="idx">
                   <FaPageMain
                     title=""
                     :collaspe="!expandedMap[order.orderID]"
@@ -2064,7 +2075,7 @@ onMounted(() => {
 
               <!-- 版本迭代+交付发送类工单-加密 -->
               <FaPageMain
-                v-if="['进行中'].includes(order.status) && order.type === '版本迭代+交付发送'"
+                v-if="['进行中'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
                 title=""
                 :collaspe="!expandedMap[order.orderID]"
                 height="auto"
@@ -2097,6 +2108,7 @@ onMounted(() => {
                   class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
+                  <!-- 是否加密 -->
                   <div class="col-span-2 w-full flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">
                       <span class="mr-1 text-red-500">*</span>
@@ -2105,55 +2117,52 @@ onMounted(() => {
                       v-model="order.isEncrypted"
                       placeholder="请选择"
                       class="flex-1"
-                      :disabled="order.status === '已完成'"
+                      :disabled="order.statusTodo !== '待加密'"
                     >
                       <el-option label="是" value="是" />
                       <el-option label="否" value="否" />
                     </el-select>
                   </div>
 
-                  <!-- 第二行：授权ID和外壳号（只有选择加密时才显示） -->
+                  <!-- 授权ID和外壳号（加密时显示） -->
                   <template v-if="order.isEncrypted === '是'">
-                    <!-- 授权ID选择 -->
                     <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
                         授权ID：</span>
                       <div class="flex flex-1 items-center gap-2">
-                        <!-- 显示选中的授权ID -->
                         <el-input
                           v-model="order.finishAuthId"
                           placeholder="请选择授权ID"
                           readonly
                           class="flex-1"
-                          :disabled="order.status === '已完成'"
+                          :disabled="order.statusTodo !== '待加密'"
                         />
-                        <!-- 选择按钮 -->
                         <el-button
                           type="primary"
                           size="small"
-                          :disabled="order.status === '已完成'"
+                          :disabled="order.statusTodo !== '待加密'"
                           @click="handleAuthIdSelectClick(order)"
                         >
                           选择
                         </el-button>
                       </div>
                     </div>
-
-                    <!-- 第三行：备注 -->
-                    <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">加密备注：</span>
-                      <textarea
-                        v-model="order.encryptedRemark"
-                        class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
-                        rows="2"
-                        :readonly="order.status === '已完成'"
-                      />
-                    </div>
                   </template>
-                  <!-- 修改完成工单内容块，按钮与流转信息分三行（流转按钮单独一行） -->
-                  <div class="col-span-2 mt-4 flex flex-col items-center gap-4">
-                    <!-- 第一行：提交完成工单按钮 -->
+
+                  <!-- 加密备注 -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">加密备注：</span>
+                    <textarea
+                      v-model="order.encryptedRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      :readonly="order.statusTodo !== '待加密'"
+                    />
+                  </div>
+
+                  <!-- 只有待加密时显示提交按钮和流转区 -->
+                  <div v-if="order.statusTodo === '待加密'" class="col-span-2 mt-4 flex flex-col items-center gap-4">
                     <el-button
                       type="primary"
                       size="large"
@@ -2162,10 +2171,7 @@ onMounted(() => {
                     >
                       提交加密工单
                     </el-button>
-
-                    <!-- 第二行：分割线 -->
                     <hr class="my-4 w-full border-t-2 border-gray-300">
-                    <!-- 第三行：流转内容区（直接绑定到 order） -->
                     <div class="w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">流转负责人：</span>
                       <el-select
@@ -2208,12 +2214,27 @@ onMounted(() => {
                       </el-button>
                     </div>
                   </div>
+                  <!-- 非待加密流程只读展示已填写信息，无编辑和提交按钮 -->
+                  <div v-else-if="['待发送', '已完成'].includes(order.statusTodo ?? '')" class="col-span-2 mt-4 flex flex-col gap-4">
+                    <div class="flex flex-wrap gap-4">
+                      <span class="w-32 text-black font-semibold">是否加密：</span>
+                      <span class="font-bold text-blue-700">{{ order.isEncrypted || '未填写' }}</span>
+                      <template v-if="order.isEncrypted === '是'">
+                        <span class="w-32 text-black font-semibold">授权ID：</span>
+                        <span class="font-bold text-blue-700">{{ order.finishAuthId || '未填写' }}</span>
+                      </template>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                      <span class="w-32 text-black font-semibold">加密备注：</span>
+                      <span class="font-bold text-gray-700">{{ order.encryptedRemark || '未填写' }}</span>
+                    </div>
+                  </div>
                 </div>
               </FaPageMain>
 
               <!-- 加密环节流转内容块 -->
               <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length">
-                <template v-for="(transfer, idx) in [...order.transfers_Encrypted].reverse()" :key="idx">
+                <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
                   <FaPageMain
                     title=""
                     :collaspe="!expandedMap[order.orderID]"
@@ -2257,7 +2278,7 @@ onMounted(() => {
 
               <!-- 版本迭代+交付发送类工单-封装 -->
               <FaPageMain
-                v-if="['进行中'].includes(order.status) && order.type === '版本迭代+交付发送'"
+                v-if="['进行中'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待封装', '待加密', '待发送'].includes(order.statusTodo ?? '')"
                 title=""
                 :collaspe="!expandedMap[order.orderID]"
                 height="auto"
@@ -2296,37 +2317,23 @@ onMounted(() => {
                       <span class="mr-1 text-red-500">*</span>
                       升级后版本：</span>
                     <div class="flex flex-1 flex-col gap-2">
-                      <!-- 验证码样式的版本输入 -->
-                      <div v-if="order.status !== '已完成'" class="version-input-container">
-                        <!-- 显示创建时的完成版本作为基础 -->
+                      <!-- 编辑输入逻辑（仅待封装时可编辑） -->
+                      <div v-if="order.statusTodo === '待封装'" class="version-input-container">
                         <template v-if="order.completeModelVersion">
                           <template v-if="parseCompleteModelVersion(order.completeModelVersion || '').first && parseCompleteModelVersion(order.completeModelVersion || '').second && parseCompleteModelVersion(order.completeModelVersion || '').third">
-                            <!-- 第一个数字 -->
                             <div class="version-part readonly">
                               {{ parseCompleteModelVersion(order.completeModelVersion || '').first }}
                             </div>
-                            <div class="version-part static">
-                              .
-                            </div>
-
-                            <!-- 第二个数字 -->
+                            <div class="version-part static">.</div>
                             <div class="version-part readonly">
                               {{ parseCompleteModelVersion(order.completeModelVersion || '').second }}
                             </div>
-                            <div class="version-part static">
-                              .
-                            </div>
-
-                            <!-- 第三个数字 -->
+                            <div class="version-part static">.</div>
                             <div class="version-part readonly">
                               {{ parseCompleteModelVersion(order.completeModelVersion || '').third }}
                             </div>
-                            <div class="version-part static">
-                              .
-                            </div>
+                            <div class="version-part static">.</div>
                           </template>
-
-                          <!-- 数字输入框 -->
                           <el-input
                             v-model="order.finishModelVersionNumber"
                             placeholder="0"
@@ -2334,7 +2341,6 @@ onMounted(() => {
                             class="version-input"
                             @input="value => handleFinishVersionInput(order, 'number', value)"
                           />
-                          <!-- 字母输入框 -->
                           <el-input
                             v-model="order.finishModelVersionLetter"
                             placeholder="A"
@@ -2343,8 +2349,6 @@ onMounted(() => {
                             @input="value => handleFinishVersionInput(order, 'letter', value)"
                           />
                         </template>
-
-                        <!-- 如果没有completeModelVersion，显示传统输入框 -->
                         <template v-else>
                           <input
                             v-model="order.finishModelVersion"
@@ -2353,48 +2357,32 @@ onMounted(() => {
                           >
                         </template>
                       </div>
-
-                      <!-- 已完成状态：只读显示 -->
+                      <!-- 只读显示（待加密、待发送、已完成） -->
                       <div v-else class="version-input-container">
                         <template v-if="order.finishModelVersion">
                           <template v-for="(char, index) in order.finishModelVersion.split('')" :key="index">
-                            <!-- 点号显示为静态样式 -->
-                            <div v-if="char === '.'" class="version-part static">
-                              .
-                            </div>
-                            <!-- 数字和字母显示为只读样式 -->
-                            <div v-else class="version-part readonly">
-                              {{ char }}
-                            </div>
+                            <div v-if="char === '.'" class="version-part static">.</div>
+                            <div v-else class="version-part readonly">{{ char }}</div>
                           </template>
                         </template>
-                        <!-- 如果没有完成版本，显示提示 -->
                         <template v-else>
-                          <div class="text-gray-500 italic">
-                            未填写升级后版本
-                          </div>
+                          <div class="text-gray-500 italic">未填写升级后版本</div>
                         </template>
                       </div>
-
                       <!-- 完整版本预览 -->
-                      <div v-if="order.finishModelVersion && order.status !== '已完成'" class="text-xs text-gray-600">
+                      <div v-if="order.finishModelVersion && order.statusTodo === '待封装'" class="text-xs text-gray-600">
                         <span class="font-semibold">完整版本:</span>
                         <span class="ml-2 rounded bg-blue-50 px-2 py-1 text-blue-700 font-bold font-mono">
                           {{ order.finishModelVersion }}
                         </span>
                       </div>
-
                       <!-- 说明文字 -->
-                      <div v-if="order.status !== '已完成'" class="text-xs text-gray-500">
+                      <div v-if="order.statusTodo === '待封装'" class="text-xs text-gray-500">
                         <span v-if="order.completeModelVersion">
                           基于创建工单时选择的版本 <strong>{{ order.completeModelVersion }}</strong>，
                           请输入第4位数字和第5位字母
                         </span>
-                        <!-- 展开后显示已使用版本或无已使用版本提示 -->
-                        <div
-                          v-if="expandedMap[order.orderID]"
-                          class="mt-1 text-blue-600"
-                        >
+                        <div v-if="expandedMap[order.orderID]" class="mt-1 text-blue-600">
                           <template v-if="order.usedModelVersions && order.usedModelVersions.length">
                             已使用版本：{{ order.usedModelVersions.join('，') }}
                           </template>
@@ -2415,12 +2403,11 @@ onMounted(() => {
                       v-model="order.packageRemark"
                       class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
                       rows="2"
-                      :readonly="order.status === '已完成'"
+                      :readonly="order.statusTodo !== '待封装'"
                     />
                   </div>
-                  <!-- 修改完成工单内容块，按钮与流转信息分三行（流转按钮单独一行） -->
-                  <div class="col-span-2 mt-4 flex flex-col items-center gap-4">
-                    <!-- 第一行：提交完成工单按钮 -->
+                  <!-- 只有待封装时显示提交按钮和流转区 -->
+                  <div v-if="order.statusTodo === '待封装'" class="col-span-2 mt-4 flex flex-col items-center gap-4">
                     <el-button
                       type="primary"
                       size="large"
@@ -2429,10 +2416,7 @@ onMounted(() => {
                     >
                       提交封装工单
                     </el-button>
-
-                    <!-- 第二行：分割线 -->
                     <hr class="my-4 w-full border-t-2 border-gray-300">
-                    <!-- 第三行：流转内容区（直接绑定到 order） -->
                     <div class="w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">流转负责人：</span>
                       <el-select
@@ -2692,7 +2676,7 @@ onMounted(() => {
 
               <!-- 封装环节流转内容块 -->
               <template v-if="order.transfers_Version && order.transfers_Version.length">
-                <template v-for="(transfer, idx) in [...order.transfers_Version].reverse()" :key="idx">
+                <template v-for="(transfer, idx) in order.transfers_Version" :key="idx">
                   <FaPageMain
                     title=""
                     :collaspe="!expandedMap[order.orderID]"
@@ -2734,9 +2718,9 @@ onMounted(() => {
                 </template>
               </template>
 
-              <!-- 多次流转内容块，循环显示每一次流转（紧跟在任务分发后面），倒序显示 -->
+              <!-- 多次流转内容块，循环显示每一次流转（紧跟在任务分发后面） -->
               <template v-if="order.status === '进行中'">
-                <template v-for="(transfer, idx) in (order.transfers ? [...order.transfers].reverse() : [])" :key="idx">
+                <template v-for="(transfer, idx) in (order.transfers || [])" :key="idx">
                   <FaPageMain
                     title=""
                     :collaspe="!expandedMap[order.orderID]"
@@ -3504,7 +3488,7 @@ onMounted(() => {
 
                 <!-- 版本迭代类工单 -->
                 <template v-else-if="confirmOrder.type === '版本迭代'">
-                  <template v-if="confirmOrder.statusTodo === '0'">
+                  <template v-if="confirmOrder.statusTodo === '待封装'">
                     <div class="text-sm space-y-3">
                       <div>
                         <span class="text-gray-600 font-medium">升级后版本：</span>
@@ -3524,7 +3508,7 @@ onMounted(() => {
 
                 <!-- 交付发送类工单 -->
                 <template v-else-if="confirmOrder.type === '交付发送'">
-                  <template v-if="confirmOrder.statusTodo === '2'">
+                  <template v-if="confirmOrder.statusTodo === '待发送'">
                     <div>
                       <span class="text-gray-600 font-medium">发送备注：</span>
                       <div class="mt-1 border rounded bg-white p-2">
@@ -3532,7 +3516,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </template>
-                  <template v-else-if="confirmOrder.statusTodo === '1'">
+                  <template v-else-if="confirmOrder.statusTodo === '待加密'">
                     <div class="text-sm space-y-3">
                       <div>
                         <span class="text-gray-600 font-medium">是否加密：</span>
@@ -3566,7 +3550,7 @@ onMounted(() => {
 
                 <!-- 版本迭代+交付发送类工单 -->
                 <template v-else-if="confirmOrder.type === '版本迭代+交付发送'">
-                  <template v-if="confirmOrder.statusTodo === '0'">
+                  <template v-if="confirmOrder.statusTodo === '待封装'">
                     <div class="text-sm space-y-3">
                       <div>
                         <span class="text-gray-600 font-medium">升级后版本：</span>
@@ -3582,7 +3566,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </template>
-                  <template v-else-if="confirmOrder.statusTodo === '1'">
+                  <template v-else-if="confirmOrder.statusTodo === '待加密'">
                     <div class="text-sm space-y-3">
                       <div>
                         <span class="text-gray-600 font-medium">是否加密：</span>
@@ -3612,7 +3596,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </template>
-                  <template v-else-if="confirmOrder.statusTodo === '2'">
+                  <template v-else-if="confirmOrder.statusTodo === '待发送'">
                     <div>
                       <span class="text-gray-600 font-medium">发送备注：</span>
                       <div class="mt-1 border rounded bg-white p-2">
@@ -3658,7 +3642,7 @@ onMounted(() => {
                 <div class="flex items-center">
                   <i class="i-mdi-alert mr-2 text-yellow-600" />
                   <span class="text-sm text-yellow-800">
-                    <strong>提示：</strong>提交后工单状态将变更为"已完成"，请确认以上信息无误后再提交。
+                    <strong>提示：</strong>提交后工单状态将变化，请确认以上信息无误后再提交。
                   </span>
                 </div>
               </div>

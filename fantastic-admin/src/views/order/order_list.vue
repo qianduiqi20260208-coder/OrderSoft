@@ -23,18 +23,71 @@ const userStore = useUserStore() // 添加用户store实例
 const modelList = ref<Array<{ id: string, name: string }>>([])
 // 检查是否从发送详情页面跳转而来
 const isFromSendDetail = ref(false)
-// 流转相关数据结构
+// -----------流转相关数据结构------------------
+// 完成工单流转信息
 interface TransferInfo {
-  transferExecutorID: string
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
   transferReason: string
   transferTime: string
 }
+
+// 加密环节流转信息
+interface TransferInfo_Encrypted
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
+// 发送环节流转信息
+interface TransferInfo_Delivery
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
+// 封装环节流转信息
+interface TransferInfo_Version
+{
+  transferExecutorID: string // 流转执行人ID
+  transferCreatorID: string // 流转创建人ID
+  transferReason: string
+  transferTime: string
+}
+
+// 封装环节信息
+interface Version_Info
+{
+  // 版本迭代类（完成）
+  finishModelVersion: string // 升级后模型版本
+  versionRemark?: string // 封装环节备注
+}
+
+// 加密环节信息
+interface Encrypted_Info
+{
+  // 交付发送类（完成）
+  isEncrypted: string // 是否加密（是/否）
+  finishAuthId?: string // 授权ID（数字）
+  finishShellNo?: string // 外壳号（字母+数字）
+  encryptedRemark?: string // 加密环节备注
+}
+
+
+
+
 // 定义工单所包括的内容
 interface OrderItem {
   // 工单类型
-  type: '问题复现' | '版本迭代' | '交付发送' | '版本迭代+交付发送' | '功能开发' | '其他'
+  type: string // 工单类型
   // 工单状态
   status: '草稿' | '待审批' | '待分发' | '进行中' | '已完成' | '已退回'
+  // 工单流程状态
+  statusTodo?: string // 待封装 0 待加密 1 待发送 2
   // 参考优先级
   referencePriority?: '紧急' | '一般' | ''
   // 任务优先级
@@ -53,6 +106,7 @@ interface OrderItem {
   rejectReason_dispatch?: string // 分发环节拒绝原因
   executorID?: string // 执行人ID
   finishTime?: string // 完成时间
+
   matlabVersion?: string // matlab版本号
   targetDeliveryTime?: string // 预计发送时间
 
@@ -84,6 +138,7 @@ interface OrderItem {
 
   // ----------完成工单相关字段（不可与创建复用）----------
   finishRemark?: string // 备注
+
   // 问题复现类（完成）
   finishPhenomenon?: string // 复现现象
 
@@ -102,7 +157,13 @@ interface OrderItem {
   // 其他类（完成）
   finishRemarkOther?: string // 备注（完成）
 
+  // 流转相关内容
   transfers?: TransferInfo[] // 多次流转记录
+  transfers_Encrypted?: TransferInfo_Encrypted[] // 加密环节流转记录
+  transfers_Delivery?: TransferInfo_Delivery[] // 发送环节流转记录
+  transfers_Version?: TransferInfo_Version[] // 封装环节流转记录
+  versionInfo?: Version_Info // 封装环节信息
+  encryptedInfo?: Encrypted_Info // 加密环节信息
 }
 
 // 工单列表分页相关变量
@@ -238,23 +299,66 @@ async function fetchUserOrders(page = 1) {
     // 处理返回的数据，将单个文件转换为文件数组
     const orders = res.data.list || []
     userOrders.value = orders.map((order: any) => {
-      // 如果有文件信息，转换为 files 数组格式
-      if (order.hasAttachment && order.fileName && order.fileUrl) {
-        order.files = [{
-          fileName: order.fileName,
-          fileUrl: order.fileUrl,
+      // 数据映射处理
+      const mappedOrder: OrderItem = {
+        orderID: order.workOrderId || '',
+        type: order.workOrderType === '直接封装+发送' ? '版本迭代+交付发送' : (order.workOrderType || '其他'),
+        status: order.workOrderStatus || '草稿',
+        referencePriority: order.priority || '',
+        taskPriority: order.taskPriority || '',
+        modelID: order.model || '',
+        modelVersionID: order.modelVersion || '',
+        promoterID: order.creatorName || '',
+        startTime: order.createdAt || '',
+        matlabVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '',
+        approverID: order.approverName || '',
+        distributorID: order.dispatcherName || '',
+        executorID: order.executorName || '',
+        approveTime: order.approvedAt || '',
+        distributeTime: order.dispatchedAt || '',
+        coordinationID: order.issueReproduction?.coordinationId || order.versionIteration?.coordinationId || order.packageSend?.coordinationId || '',
+        description: order.issueReproduction?.description || '',
+        files: [],
+        fileName: order.issueReproduction?.fileName || '',
+        fileUrl: order.issueReproduction?.referenceFile || '',
+        hasAttachment: order.issueReproduction?.hasAttachment || false,
+        updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '',
+        packageRequirement: order.versionIteration?.packagingRequirements || order.packageSend?.packagingRequirements || '',
+        apiChanged: order.versionIteration?.interfaceChanged || order.packageSend?.interfaceChanged || '',
+        targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '',
+        isCAEChecked: order.deliverySend?.validatedByCae || order.packageSend?.validatedByCae || '',
+        hasSensitiveInfo: order.deliverySend?.sensitiveInfo || order.packageSend?.sensitiveInfo || '',
+        targetDeliveryTime: order.deliverySend?.targetDeliveryTime || '',
+        featureDesc: order.functionDevelopment?.descriptionCreate || '',
+        contentDesc: order.otherWorkOrder?.description || '',
+        finishRemark: order.issueReproduction?.remarks || order.versionIteration?.remarks || order.deliverySend?.remarks || order.packageSend?.remarks || '',
+        finishPhenomenon: order.issueReproduction?.phenomenon || '',
+        finishModelVersion: order.versionIteration?.newModelVersionId || order.packageSend?.newModelVersionId || order.functionDevelopment?.newModelVersionId || '',
+        isEncrypted: order.deliverySend?.isEncrypted || order.packageSend?.isEncrypted || '',
+        finishAuthId: order.deliverySend?.authorizationId || order.packageSend?.productAuthorizationId || '',
+        finishShellNo: order.deliverySend?.shellCode || '',
+        finishFeatureDesc: order.functionDevelopment?.descriptionCompleted || '',
+        finishRemarkOther: order.otherWorkOrder?.remarks || '',
+        transfers: order.transferInfo || [],
+        transfers_Encrypted: order.transferInfoEncrypted || [],
+        transfers_Delivery: order.transferInfoDelivery || [],
+        transfers_Version: order.transferInfoVersion || [],
+        versionInfo: order.Version_Info || '',
+        encryptedInfo: order.Encrypted_Info || '',
+      }
+      // 文件数组处理
+      if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
+        mappedOrder.files = [{
+          fileName: mappedOrder.fileName,
+          fileUrl: mappedOrder.fileUrl,
         }]
+      } else {
+        mappedOrder.files = []
       }
-      else {
-        order.files = []
-      }
-
-      return order
+      return mappedOrder
     })
-
     total.value = res.data.total || 0
     currentPage.value = res.data.page || 1
-
     console.warn('工单列表查询成功:', { page, total: total.value })
   }
   finally {
