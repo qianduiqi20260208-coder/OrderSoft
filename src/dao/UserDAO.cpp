@@ -779,12 +779,12 @@ std::string UserDAO::queryBaseModelVersion(int modelVersionId)
 }
 
 
-TicketExecutor UserDAO::queryTicketExecutor(int workOrderId)
+TicketTranfer UserDAO::queryTicketExecutor(int workOrderId)
 {
     MYSQL* mysql;
     char local_sql[SQL_MAX];	
     DBConnectionManager::getConnection(mysql);
-    TicketExecutor executor;
+    TicketTranfer executor;
 
     snprintf(local_sql, SQL_MAX, "select executor_id,create_at,transfer_reason,create_id from work_order_executor where work_order_id = %d and status = '流转' order by id desc;",workOrderId);
     int local_ret = mysql_real_query(mysql, local_sql, (unsigned long)strlen(local_sql));

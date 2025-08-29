@@ -48,7 +48,7 @@ public:
 
     static std::string queryBaseModelVersion(int modelVersionId);
 
-    static TicketExecutor queryTicketExecutor(int workOrderId);
+    static TicketTranfer queryTicketExecutor(int workOrderId);
     static std::string queryProductAuthorization(int);
 };
 

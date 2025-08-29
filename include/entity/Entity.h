@@ -39,9 +39,10 @@ struct User {
     std::vector<std::string> flowRoleVec;
 };
 
-struct TicketExecutor {
+struct TicketTranfer {
     int id;
     int ticketId;
+    
     std::vector<std::string> executor;
     std::vector<std::string> timestamp;
     std::vector<std::string> reason;
@@ -66,7 +67,7 @@ struct Ticket {
     std::string completedTime; // 完成时间
     std::string targetDeliveryTime; //预计发送时间
     std::string rejectReason; // 拒绝原因
-    TicketExecutor executor;//流转工单时对应的执行人们
+    TicketTranfer executor;//流转工单时对应的执行人们
 
     std::string dispatchRejectReason; // 分发拒绝原因
 

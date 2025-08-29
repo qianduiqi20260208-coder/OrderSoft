@@ -127,8 +127,8 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         //判断是否加密，然后分开处理
         if(tmp.encrypted)
         {
-            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',authorization_id = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
-                tmp.encrypted,tmp.dongleId.c_str(),tmp.authorizationIdList.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
+            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
+                tmp.encrypted,tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
         }
@@ -152,8 +152,8 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
                     dongleStr += tmp.dongle[i];
                 }
             }
-            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,product_authorization_id = '%s',remarks = '%s',auth_id = '%s' where work_order_id = %d;", 
-                tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.authorizationIdList.c_str(),tmp.remark.c_str(),tmp.license.c_str(),tmp.Ticket::id);
+            snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = %d,encryption_key = '%s' ,remarks = '%s',auth_id = '%s' where work_order_id = %d;", 
+                tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.encrypted,dongleStr.c_str(),tmp.remark.c_str(),tmp.license.c_str(),tmp.Ticket::id);
         }else{
             snprintf(local_sql, SQL_MAX, "update package_send set new_model_version_id = (select id from model_version where model = '%s' and version = '%s'),is_encrypted = 0 where work_order_id = %d;", tmp.model.c_str(),tmp.newModelVersion.c_str(),tmp.Ticket::id);
         }
@@ -420,7 +420,17 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
         }
     }else{
         //修改工单状态
-        snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+        if(ticket.ticketType == "问题复现" || ticket.ticketType == "功能开发" || ticket.ticketType == "其他")
+        {
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待完成',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+        }
+        else if(ticket.ticketType == "版本迭代" || ticket.ticketType == "直接封装+发送")
+        {
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待封装',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+        }else if(ticket.ticketType == "交付发送" || ticket.ticketType == "直接封装+发送"){
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待加密',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+        }
+
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
         if (local_ret) {
             LOG_ERROR("function:dispatchTicket 修改work_order表失败！失败原因：%s", mysql_error(conn));
@@ -741,8 +751,10 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             if (row[11] && strlen(row[11]) > 0) {
                 tmp->dongle.push_back(row[11]);
             }
-            tmp->license =  row[12]?row[12]:"";
-            tmp->remark = (row[13]?row[13]:"");
+            tmp->remark = (row[12]?row[12]:"");
+            tmp->targetDeliveryTime = (row[13]?row[13]:"");
+            tmp->license =  row[15]?row[15]:"";
+
         }
         mysql_free_result(res);
 
@@ -776,8 +788,10 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
 
             tmp->encrypted = atoi((row[5]?row[5]:"-1"));
             tmp->dongleId =  (row[6]?row[6]:"");
-            tmp->licenseId =  (row[7]?row[7]:"");
-            tmp->remark = (row[8]?row[8]:"");
+
+            tmp->remark = (row[7]?row[7]:"");
+            tmp->targetDeliveryTime = (row[8]?row[8]:"");
+            tmp->licenseId =  (row[9]?row[9]:"");
         }
         //查找产品授权ID的sql
         if(tmp->licenseId != "")
@@ -835,7 +849,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
 
 }
 // 工单流转
-bool TicketDAO::orderTransfer(const TicketExecutor &executor)
+bool TicketDAO::orderTransfer(const TicketTranfer &executor)
 {
 
         // 使用BaseDAO的优化连接管理
@@ -853,7 +867,7 @@ bool TicketDAO::orderTransfer(const TicketExecutor &executor)
         return false;
     }
     //流转 状态未发送
-    snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`, `transfer_reason`, `status`, `create_id`, `encryption_status`) VALUES (%d, %d, NOW(), '%s', '流转', %d, '0');", executor.ticketId, stoi(executor.executor[1]), executor.reason[0].c_str(), stoi(executor.executor[0]));
+    snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`, `transfer_reason`, `status`, `create_id`, `encryption_status`) VALUES (%d, %d, NOW(), '%s', '流转', %d, '0');", executor.ticketId, stoi(executor.executor[0]), executor.reason[0].c_str(), stoi(executor.createId[0]));
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:orderTransfer 添加work_order_executor表失败！失败原因：%s", mysql_error(conn));

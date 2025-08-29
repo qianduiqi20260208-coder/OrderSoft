@@ -26,8 +26,6 @@ set(MY_INCLUDES
     "extern"
 )
 
-
-
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 # 手动移除 main.cpp
 list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp")
@@ -66,13 +64,13 @@ target_include_directories(TicketTest PRIVATE ${MY_INCLUDES})
 #catch_discover_tests(TicketTest)
 
 #主程序链接这个库
-# add_executable(ModelLifeManager src/main.cpp)
-# #主程序链接的核心库
-# target_link_libraries(ModelLifeManager PRIVATE ModelLifeCore)
-# #指定需要链接的具体的库 (web,加密相关的库)
-# target_link_libraries(ModelLifeManager PRIVATE  ws2_32 mswsock "${CMAKE_SOURCE_DIR}/extern/openssl/lib/libcrypto.lib")
-# set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-# target_include_directories(ModelLifeManager PRIVATE ${MY_INCLUDES})
+add_executable(ModelLifeManager src/main.cpp)
+#主程序链接的核心库
+target_link_libraries(ModelLifeManager PRIVATE ModelLifeCore)
+#指定需要链接的具体的库 (web,加密相关的库)
+target_link_libraries(ModelLifeManager PRIVATE  ws2_32 mswsock "${CMAKE_SOURCE_DIR}/extern/openssl/lib/libcrypto.lib")
+set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+target_include_directories(ModelLifeManager PRIVATE ${MY_INCLUDES})
 
 # #设置可执行文件输出的位置
 # set_target_properties(ModelLifeManager PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )

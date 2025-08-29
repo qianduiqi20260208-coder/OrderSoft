@@ -19,7 +19,7 @@ public:
     std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string,std::string> filter, int offset, int pageSize) override;
 
     //工单流转的实现
-    bool orderTransfer(const TicketExecutor& executor) override;
+    bool orderTransfer(const TicketTranfer& executor) override;
     unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) override;
     std::vector<std::string> getClient() override;
 

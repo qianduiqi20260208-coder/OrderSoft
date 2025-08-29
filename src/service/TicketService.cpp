@@ -56,7 +56,7 @@ std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition_(cons
     return ticketDAO->selectOrderByCondition_(filter, offset, pageSize);
 }
 
-bool TicketService::orderTransfer(const TicketExecutor &executor)
+bool TicketService::orderTransfer(const TicketTranfer &executor)
 {
     return ticketDAO->orderTransfer(executor);
 }

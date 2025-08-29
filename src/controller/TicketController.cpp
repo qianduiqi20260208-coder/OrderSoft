@@ -1057,7 +1057,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
         }
 
-        TicketExecutor ticketexecutor;
+        TicketTranfer ticketexecutor;
 
         // 清空并重新填充数组
         ticketexecutor.executor.clear();
@@ -1066,7 +1066,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
         // 检查字段
         ticketexecutor.ticketId = std::stoi(body.value("orderID", "")); // 工单ID
-        ticketexecutor.executor.push_back(body.value("executorID", "")); // [0] 当前执行人ID
+        ticketexecutor.createId.push_back(body.value("executorID", "")); // [0] 当前执行人ID
         ticketexecutor.executor.push_back(body.value("transferExecutorID", "")); // [1] 流转目标执行人ID
         ticketexecutor.reason.push_back(body.value("transferReason", "")); // [0] 流转原因
         ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // [0] 流转时间
