@@ -1259,7 +1259,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "
-       << "AND wo.type != '版本迭代' "
+       << "AND wo.type != '版本迭代' and wo.completed_at is not null"
        << ") UNION ("
        << "SELECT DISTINCT "
        << "wo.id, "
@@ -1375,7 +1375,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "
-       << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') "
+       << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') and wo.completed_at is not null"
        << ") ORDER BY id DESC;";
 
     int ret;
