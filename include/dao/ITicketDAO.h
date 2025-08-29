@@ -20,6 +20,7 @@ public:
     virtual std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string, std::string>& filter, int offset, int count) = 0;
 
     // 新增：复杂工单查询方法（支持分页）
+    virtual std::vector<nlohmann::json> selectOrderByConditionWithDetails(const std::map<std::string, std::string>& filter, int offset, int count) = 0;
 
     
     // 新增：版本分页查询方法

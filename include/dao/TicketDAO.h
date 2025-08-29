@@ -22,10 +22,14 @@ public:
     bool approveTicket(const Ticket& ticket) override;
     bool dispatchTicket(const Ticket& ticket, const std::string& account) override;
     bool completeTicket(const Ticket& ticket) override;
+    bool completeConcreteTicket(const Ticket& ticket);
 
 
 
     std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string, std::string>& filter, int offset, int count) override;
+    
+    // 新增：复杂工单查询方法（支持分页）
+    std::vector<nlohmann::json> selectOrderByConditionWithDetails(const std::map<std::string, std::string>& filter, int offset, int count) override;
 
     bool orderTransfer(const TicketTranfer& executor) override;
     unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) override;
@@ -46,15 +50,14 @@ public:
 
     ~TicketDAO();
 private:
-    //mysql套件
+    // 私有方法
     MYSQL* mysql;
     char sql[SQL_MAX];		// 存储sql语句
     MYSQL_RES* res;
     MYSQL_ROW row;
     int ret;
 
-    //工具函数
-    bool completeConcreteTicket(const Ticket& ticket);
+    // 私有方法
     bool saveUploadFile(const TicketReproduce& ticket);
     void concreteTicketList(int work_order_id,std::shared_ptr<Ticket> vecElement,std::vector<std::shared_ptr<Ticket>>&);
 

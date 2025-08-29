@@ -47,6 +47,8 @@ struct TicketTranfer {
     std::vector<std::string> timestamp;
     std::vector<std::string> reason;
     std::vector<std::string> createId;
+    std::string ticketType; // 工单类型
+    std::string transferType; // 流转类型
 };
 
 struct Ticket {
@@ -420,6 +422,7 @@ struct TicketFeature :public Ticket{
     std::string newModelVersion; // 完成后模型版本ID
     std::string baseModelVersion;//模型基版本
     std::string featureFinal; // 完成后功能描述
+    std::string matlab_version; // MATLAB版本
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
@@ -430,6 +433,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 
@@ -442,6 +446,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["completeModelVersion"] = featureFinal; // 完成功能描述
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 };
