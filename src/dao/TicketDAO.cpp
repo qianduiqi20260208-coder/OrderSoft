@@ -656,6 +656,10 @@ std::vector<std::shared_ptr<Ticket>> TicketDAO::selectOrderByCondition_(
             }else if(ele.first == "status")
             {
                 ss<<"wo."<<ele.first<<" = '"<<ele.second<<"'";
+            }else if(ele.first == "completed_at" && ele.second == "NOT NULL")
+            {
+                //处理查询完成时间为空的工单
+                ss<<"wo."<<ele.first<<" IS NOT NULL";
             }
             else{
                 ss<<ele.first<<" = '"<<ele.second<<"'";
