@@ -44,6 +44,11 @@ bool TicketService::completeTicket(const Ticket &ticket)
     return ticketDAO->completeTicket(ticket);
 }
 
+bool TicketService::completeConcreteTicket(const Ticket& ticket)
+{
+    return ticketDAO->completeTicket(ticket);
+}
+
 
 
 // std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter)
@@ -56,7 +61,12 @@ std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition_(cons
     return ticketDAO->selectOrderByCondition_(filter, offset, pageSize);
 }
 
-bool TicketService::orderTransfer(const TicketExecutor &executor)
+std::vector<nlohmann::json> TicketService::selectOrderByConditionWithDetails(const std::map<std::string, std::string> filter, int offset, int pageSize)
+{
+    return ticketDAO->selectOrderByConditionWithDetails(filter, offset, pageSize);
+}
+
+bool TicketService::orderTransfer(const TicketTranfer &executor)
 {
     return ticketDAO->orderTransfer(executor);
 }

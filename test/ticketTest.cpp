@@ -20,7 +20,7 @@ auto ticketSvc = std::make_shared<TicketService>(ticketDAO,modelDAO);
 
 
 TEST_CASE("order tranfer") {
-    TicketExecutor ticketExecutor;
+    TicketTranfer ticketExecutor;
     ticketExecutor.ticketId = 1;
     ticketExecutor.executor.push_back("888888");
     ticketExecutor.executor.push_back("999999");
