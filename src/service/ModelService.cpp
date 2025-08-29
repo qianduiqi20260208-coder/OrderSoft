@@ -31,24 +31,25 @@ std::vector<std::pair<std::vector<std::string>, std::vector<std::shared_ptr<Tick
         tmp.first.push_back(model);
         tmp.first.push_back(vec[0]);
         tmp.first.push_back(vec[2]);
+
         //根据model_version_id来倒叙查询工单 不同类型的工单分开处理。
         std::map<std::string,std::string> ruleMap;
         ruleMap["model_version_id"] = vec[1];
+        ruleMap["completed_at"] = "NOT NULL";
         ruleMap["type"] = "问题复现";
         tmp.second = std::move(ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX));
+
         ruleMap["type"] = "交付发送";
         const auto& ret1 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
-        for(const auto& ele:ret1)
-            tmp.second.push_back(ele);
+        tmp.second.insert(tmp.second.end(),ret1.begin(),ret1.end());
+
         ruleMap["type"] = "其他";
         const auto& ret2 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
-        for(const auto& ele:ret2)
-            tmp.second.push_back(ele);
+        tmp.second.insert(tmp.second.end(),ret2.begin(),ret2.end());
 
         //查找所有目标版本为给定值的工单
         const auto& ret3 = findOrdersByTargetVersion(vec[0]);
-        for(const auto& ele:ret3)
-            tmp.second.push_back(ele);
+        tmp.second.insert(tmp.second.end(),ret3.begin(),ret3.end());
 
         retVec.push_back(tmp);
     }
@@ -61,7 +62,9 @@ std::vector<std::shared_ptr<Ticket>> ModelService::findOrdersByTargetVersion(std
     std::vector<std::shared_ptr<Ticket>> retVec;
     //查询版本迭代类工单
     std::map<std::string,std::string> ruleMap;
+    ruleMap["completed_at"] = "NOT NULL";
     ruleMap["type"] = "版本迭代";
+
     const auto& ret1 = ticketDAO_->selectOrderByCondition_(ruleMap,0,INT_MAX);
     for(const auto& ele:ret1)
     {
