@@ -121,7 +121,7 @@ async function apiFetchUserOrders() {
     const orders = res.data.list || []
 
     const pendingOrders = orders.filter((order: any) =>
-      order.status && ['草稿', '待审批', '待分发', '进行中'].includes(order.status),
+      order.workOrderStatus && ['草稿', '待审批', '待分发', '进行中'].includes(order.workOrderStatus),
     )
 
     totalPendingCount.value = pendingOrders.length
@@ -129,15 +129,15 @@ async function apiFetchUserOrders() {
 
     return limitedOrders.map((order: any) => {
       const mappedOrder: OrderItem = {
-        orderID: order.orderID || '',
-        type: order.type || '其他',
-        status: order.status || '草稿',
-        referencePriority: order.referencePriority || '',
+        orderID: order.workOrderId || '',
+        type: order.workOrderType || '其他',
+        status: order.workOrderStatus || '草稿',
+        referencePriority: order.priority || '',
         taskPriority: order.taskPriority || '',
-        modelID: order.modelID || '',
-        modelVersionID: order.modelVersionID || '',
-        promoterID: order.promoterID || '',
-        startTime: order.startTime || '',
+        modelID: order.model || '',
+        modelVersionID: order.modelVersion || '',
+        promoterID: order.creatorName || '',
+        startTime: order.createdAt || '',
       }
       return mappedOrder
     })
