@@ -263,17 +263,24 @@ std::vector<std::vector<std::string>> CustomerInfoDAO::selectAllSendRecordByClie
     int local_ret;
     MYSQL_RES* local_res;
     MYSQL_ROW local_row;
+
+    //使用联合查询
     snprintf(local_sql, SQL_MAX,
-        "SELECT wo.model, mv.version, wo.id, wo.completed_at "
+        "(SELECT wo.model, mv.version, wo.id, wo.completed_at "
         "FROM work_order AS wo "
+        "INNER JOIN delivery_send AS ds ON ds.work_order_id = wo.id "
         "INNER JOIN model_version AS mv ON wo.model_version_id = mv.id "
-        "LEFT JOIN delivery_send AS ds ON ds.work_order_id = wo.id "
-        "LEFT JOIN package_send AS ps ON ps.work_order_id = wo.id "
-        "WHERE (ds.target_customer = '%s' OR ps.target_customer = '%s') "
-        "AND wo.completed_at IS NOT NULL "
-        "ORDER BY wo.completed_at DESC;",
+        "WHERE ds.target_customer = '%s' AND wo.completed_at IS NOT NULL) "
+        "UNION "
+        "(SELECT wo.model, mv.version, wo.id, wo.completed_at "
+        "FROM work_order AS wo "
+        "INNER JOIN package_send AS ps ON ps.work_order_id = wo.id "
+        "INNER JOIN model_version AS mv ON ps.new_model_version_id = mv.id "
+        "WHERE ps.target_customer = '%s' AND wo.completed_at IS NOT NULL) "
+        "ORDER BY completed_at DESC;",
         client.c_str(), client.c_str()
     );
+
 
     local_ret = mysql_real_query(conn.get(), local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
