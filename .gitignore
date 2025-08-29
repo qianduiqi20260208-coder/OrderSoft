@@ -12,3 +12,5 @@ fantastic-admin/src/views/index_back.vue
 fantastic-admin/src/views/order/order_list_back.vue
 fantastic-admin/src/views/order/order_list copy.vue
 CMakeLists.txt
+.vscode/settings.json
+CMakeLists.txt

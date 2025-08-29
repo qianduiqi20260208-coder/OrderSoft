@@ -1,4 +1,10 @@
 {
+    "eslint.enable": false,  // 完全禁用 ESLint
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "never",  // 保存时不自动修复
+        "source.fixAll.stylelint": "never"  // 保存时不自动修复样式
+    },
+    "eslint.validate": [],  // 清空验证的文件类型
     "files.associations": {
         "iostream": "cpp",
         "array": "cpp",
