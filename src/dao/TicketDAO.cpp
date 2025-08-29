@@ -61,23 +61,23 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
             return false;
         }
     }else if(ticket.ticketType == "交付发送"){
-        //去产品授权表里根据外壳号以及授权码找出唯一的产品授权ID
-        const TicketDelivery& tmp = dynamic_cast<const TicketDelivery&>(ticket);
-        //判断是否加密，然后分开处理
-        if(tmp.encrypted)
-        {
-            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
-                tmp.encrypted,tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
-        }else{
-            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
-        }
+        // //去产品授权表里根据外壳号以及授权码找出唯一的产品授权ID
+        // const TicketDelivery& tmp = dynamic_cast<const TicketDelivery&>(ticket);
+        // //判断是否加密，然后分开处理
+        // if(tmp.encrypted)
+        // {
+        //     snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
+        //         tmp.encrypted,tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
+        // }else{
+        //     snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
+        // }
 
-        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-        if (local_ret) {
-            LOG_ERROR("function:completeConcreteTicket 修改delivery_send表失败！失败原因：%s", mysql_error(conn));
-            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
-            return false;
-        }
+        // local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        // if (local_ret) {
+        //     LOG_ERROR("function:completeConcreteTicket 修改delivery_send表失败！失败原因：%s", mysql_error(conn));
+        //     mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+        //     return false;
+        // }
         
     }else if(ticket.ticketType == "直接封装+发送"){
         
@@ -422,7 +422,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
         else if(ticket.ticketType == "版本迭代" || ticket.ticketType == "版本迭代+交付发送")
         {
             snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待封装',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
-        }else if(ticket.ticketType == "交付发送" || ticket.ticketType == "版本迭代+交付发送"){
+        }else if(ticket.ticketType == "交付发送"){
             snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待加密',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
         }
 
@@ -489,7 +489,94 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
 
 
     //修改工单状态
-    snprintf(local_sql, SQL_MAX, "update work_order set status = '已完成', completed_at = NOW() where id = %d;",ticket.id);
+    if(ticket.ticketType == "交付发送"){
+        // 加密操作
+        auto& ticketDelivery = dynamic_cast<const TicketDelivery&>(ticket);
+        // 先根据是否加密判断状态 ticketDelivery.remark.c_str()可以为空
+        if(ticketDelivery.encrypted){
+            // 修改delivery_send加密信息
+            snprintf(local_sql, SQL_MAX, "update `model_life_manager`.`delivery_send` set `is_encrypted` = %d, `shell_code` = '%s', `remarks` = '%s', `auth_id` = '%s' where `work_order_id` = %d;",
+            ticketDelivery.encrypted ? 1 : 0, ticketDelivery.dongleId.c_str(), ticketDelivery.remark.c_str(), ticketDelivery.licenseId.c_str(), ticket.id);
+            //执行SQL
+            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                std::cerr << "更新delivery_send加密信息失败：" << mysql_error(conn) << std::endl;
+                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                return false;
+            }
+            
+            // 插入work_order_executor 加密
+            snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`,product_authorization_remark) VALUES (%d, '%s', NOW(), '加密', '%s','%s');",
+                ticket.id,ticket.executorId.c_str(),ticket.executorId.c_str(),ticketDelivery.remark.c_str());
+            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                std::cerr << "插入work_order_executor加密记录失败：" << mysql_error(conn) << std::endl;
+                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                return false;
+            }
+            
+            // 如果sendExecutorId 和 加密的executorId 不同 修改user_multi_role
+            if(ticket.executorId != ticket.sendExecutorId){
+                snprintf(local_sql, SQL_MAX, "update user_multi_role set user_id = '%s' where work_order_id = %d and user_id = '%s' and flow_role = '执行人';",
+                ticket.sendExecutorId.c_str(),ticket.id,ticket.executorId.c_str());
+                if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                    std::cerr << "更新user_multi_role失败：" << mysql_error(conn) << std::endl;
+                    mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                    return false;
+                }
+                
+                // 插入work_order_executor 发送流转
+                snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`,transfer_type) VALUES (%d, '%s', NOW(), '流转', '%s', '发送流转');",
+                ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
+                if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                    std::cerr << "插入work_order_executor发送流转记录失败：" << mysql_error(conn) << std::endl;
+                    mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                    return false;
+                }
+            }else{
+                // 插入work_order_executor 发送
+                snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`,transfer_type) VALUES (%d, '%s', NOW(), '发送', '%s', '');",
+                ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
+                if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                    std::cerr << "插入work_order_executor发送记录失败：" << mysql_error(conn) << std::endl;
+                    mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                    return false;
+                }
+            }
+            
+        }else{
+            // 不用加密
+            snprintf(local_sql, SQL_MAX, "update `model_life_manager`.`delivery_send` set `is_encrypted` = %d,  `remarks` = '%s' where `work_order_id` = %d;",
+            ticketDelivery.encrypted ? 1 : 0, ticketDelivery.remark.c_str(), ticket.id);
+            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                std::cerr << "更新delivery_send信息失败：" << mysql_error(conn) << std::endl;
+                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                return false;
+            }
+            
+            snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '发送', '%s');",
+            ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
+            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                std::cerr << "插入work_order_executor发送记录失败：" << mysql_error(conn) << std::endl;
+                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                return false;
+            }
+        }
+        
+        // 修改work_order status_todo信息
+        snprintf(local_sql, SQL_MAX, "update work_order set status_todo = '待发送' where id = %d;",ticket.id);
+        if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+            std::cerr << "更新work_order状态失败：" << mysql_error(conn) << std::endl;
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        if (mysql_real_query(conn, "COMMIT",strlen("COMMIT"))) {
+            std::cerr << "交付发送事务提交失败：" << mysql_store_result(conn) << "\n";
+            return false;
+        }
+        return true;
+    }else if(ticket.ticketType == "版本迭代+交付发送"){
+        snprintf(local_sql, SQL_MAX, "update work_order set status_todo = '待封装' where id = %d;",ticket.id);
+    }
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
 		 LOG_ERROR("function:completeTicket  修改work_order表失败！失败原因：%s", mysql_error(conn));

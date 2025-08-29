@@ -1130,6 +1130,48 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         return crow::response{ resp.dump() };
         }));
 
+    // 工单加密流转
+    CROW_ROUTE(app, "/order/transfer_encrypted").methods("POST"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        }
+        auto body = nlohmann::json::parse(req.body, nullptr, false);
+        if (body.is_discarded()) {
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
+        }
+
+        TicketTranfer ticketexecutor;
+
+        // 检查字段
+        ticketexecutor.ticketId = std::stoi(body.value("orderID", "")); // 工单ID
+        ticketexecutor.createId.push_back(body.value("executorID", "")); // 当前执行人ID
+        ticketexecutor.executor.push_back(body.value("transferExecutorID", "")); // 流转目标执行人ID
+        ticketexecutor.reason.push_back(body.value("transferReason", "")); // 流转原因
+        ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // 流转时间
+        ticketexecutor.transferType = "加密流转"; // 固定为加密流转类型
+
+        bool ok = ticketService->orderTransfer(ticketexecutor);
+        
+        nlohmann::json resp;
+        if (ok) {
+            resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {{"message", "加密流转成功"}}}
+            };
+        }
+        else {
+            resp = {
+                {"status", 1},
+                {"error", "加密流转失败"},
+                {"data", nlohmann::json::object()}
+            };
+        }
+        return crow::response{ resp.dump() };
+        }));
+
     // 获取客户信息列表
     CROW_ROUTE(app, "/customer/list").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
@@ -1491,6 +1533,117 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 resp = {
                     {"status", 1},
                     {"error", "工单完成失败"},
+                    {"data", nlohmann::json::object()}
+                };
+            }
+            
+            return crow::response{resp.dump()};
+        }
+        catch (const std::exception& e) {
+            nlohmann::json error = {
+                {"status", 1},
+                {"error", "处理请求时发生错误"}
+            };
+            return crow::response(500, error.dump());
+        }
+    }));
+
+    // 交付发送工单加密接口
+    CROW_ROUTE(app, "/order/finish-encrypt").methods("POST"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        }
+        
+        auto body = nlohmann::json::parse(req.body, nullptr, false);
+        if (body.is_discarded()) {
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
+        }
+
+        // 解析请求参数
+        std::string orderID = body.value("orderID", "");
+        std::string status = body.value("status", "");
+        std::string orderType = body.value("orderType", "");
+        std::string finishTime = body.value("finishTime", "");
+        std::string isEncrypted = body.value("isEncrypted", "");
+        std::string finishAuthId = body.value("finishAuthId", "");
+        std::string encryptedRemark = body.value("encryptedRemark", "");
+        std::string executorID = body.value("executorID", "");
+        std::string sendExecutorID = body.value("sendExecutorID", "");
+        std::string encryptedExecutorID = body.value("executorID", "");
+
+        // 参数验证
+        if (orderID.empty() || orderType.empty()) {
+            return crow::response(400, R"({"status":1,"error":"缺少必要参数","data":{}})");
+        }
+
+        try {
+            bool result = false;
+            
+            // 如果是交付发送工单，调用 completeConcreteTicket
+            if (orderType == "交付发送") {
+                // 创建 TicketDelivery 对象
+                TicketDelivery ticket;
+                // 设置基类Ticket的id字段
+                ticket.Ticket::id = std::stoi(orderID);
+                // 设置派生类TicketDelivery的id字段
+                ticket.id = std::stoi(orderID);
+                ticket.ticketType = orderType;
+                ticket.status = status;
+                ticket.completedTime = finishTime;
+                ticket.encrypted = (isEncrypted == "是");
+                ticket.licenseId = finishAuthId;
+                ticket.remark = encryptedRemark;
+                ticket.executorId = executorID;
+                ticket.sendExecutorId = sendExecutorID;
+                ticket.encryptedExecutorId = encryptedExecutorID;
+                
+                // 处理外壳号列表
+                if (body.contains("finishShellNo") && body["finishShellNo"].is_array()) {
+                    std::string shellNos;
+                    for (const auto& shellNo : body["finishShellNo"]) {
+                        if (shellNo.is_string()) {
+                            if (!shellNos.empty()) {
+                                shellNos += ",";
+                            }
+                            shellNos += shellNo.get<std::string>();
+                        }
+                    }
+                    ticket.dongleId = shellNos;
+                }
+                
+                // 处理授权ID主键数组
+                if (body.contains("authorizationId_list") && body["authorizationId_list"].is_array()) {
+                    std::string authIds;
+                    for (const auto& authId : body["authorizationId_list"]) {
+                        if (authId.is_string()) {
+                            if (!authIds.empty()) {
+                                authIds += ",";
+                            }
+                            authIds += authId.get<std::string>();
+                        }
+                    }
+                    ticket.authorizationIdList = authIds;
+                }
+                
+                result = ticketService->completeConcreteTicket(ticket);
+            } else {
+                // 其他类型的工单处理逻辑
+                return crow::response(400, R"({"status":1,"error":"暂不支持该工单类型的加密完成操作","data":{}})");
+            }
+            
+            nlohmann::json resp;
+            if (result) {
+                resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {{"message", "交付发送工单加密完成成功"}}}
+                };
+            } else {
+                resp = {
+                    {"status", 1},
+                    {"error", "交付发送工单加密完成失败"},
                     {"data", nlohmann::json::object()}
                 };
             }
