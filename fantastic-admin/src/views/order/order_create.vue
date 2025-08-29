@@ -47,8 +47,14 @@ const problemOrderForm = ref<ProblemOrderForm>({
 })
 
 // 处理附件上传时的回调，更新表单中的文件列表
-function handleProblemFileChange(_file: any, fileList: any[]) {
-  problemOrderForm.value.files = fileList
+function handleProblemFileChange(file: any, fileList: any[]) {
+  // 只保留最新上传的文件
+  if (fileList.length > 1) {
+    // 只保留最后一个文件，重新赋值为新数组
+    problemOrderForm.value.files = [fileList[fileList.length - 1]]
+  } else {
+    problemOrderForm.value.files = [...fileList]
+  }
 }
 
 // 提交问题复现工单的方法（使用FormData格式上传文件）
@@ -1036,9 +1042,9 @@ async function fetchCustomerList() {
               v-model:file-list="problemOrderForm.files"
               action="#"
               :auto-upload="false"
-              :limit="5"
-              :on-change="handleProblemFileChange"
+              :limit="1"
               list-type="text"
+              :on-change="handleProblemFileChange"
             >
               <el-button type="primary">
                 上传附件

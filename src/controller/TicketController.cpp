@@ -39,7 +39,7 @@ TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketSer
 }
 
 // 解析 multipart/form-data 格式的表单数据
-MultipartResult TicketController::parseMultipartForm(const std::string& content_type, const std::string& body)
+MultipartResult TicketController::parseMultipartForm(const std::string& content_type, const std::string& body,TicketReproduce& ticketreproduce)
 {
     MultipartResult result; // 用于保存解析结果，包括表单字段和已保存的文件路径
 
@@ -94,7 +94,7 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
             }
         }
 
-	    TicketReproduce ticketreproduce; // 问题复现工单结构体
+	    // TicketReproduce ticketreproduce; // 问题复现工单结构体
         // 如果是文件，则保存到磁盘，并记录路径
         if (!filename.empty()) {
             std::string saved_path;
@@ -294,16 +294,16 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 提交问题复现工单（支持FormData格式上传文件）
     CROW_ROUTE(app, "/order/problem").methods("POST"_method)
-        (withAspect([this](const crow::request& req) {
+        ([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
 		// 解析请求体中的多部分表单数据
         const std::string content_type = req.get_header_value("Content-Type");
-        MultipartResult result = parseMultipartForm(content_type, req.body);
-
+        
 	    TicketReproduce ticketreproduce; // 问题复现工单结构体
+        MultipartResult result = parseMultipartForm(content_type, req.body,ticketreproduce);
         // 检查字段
         ticketreproduce.ticketType = "问题复现"; // 工单类型
         ticketreproduce.status = "待审批"; // 工单状态
@@ -313,8 +313,6 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketreproduce.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
         ticketreproduce.coordinationId = getField(result, "coordinationID"); // 协调单ID
         ticketreproduce.content = getField(result, "description"); // 复现内容描述
-        //ticketreproduce.attachment.file = body.value("files", std::vector<nlohmann::json>{}));
-        //ticketreproduce.attachment.fileName = body.value("files", std::vector<nlohmann::json>{}));
         ticketreproduce.approverId = (getField(result, "approverID")); // 审批人ID
         bool ok = ticketService->createTicket(ticketreproduce);
         nlohmann::json resp;
@@ -333,7 +331,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             };
         }
         return crow::response{ resp.dump() };
-        }));
+        });
 
     // 提交版本迭代工单
     CROW_ROUTE(app, "/order/iter").methods("POST"_method)
@@ -357,7 +355,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.createTime = body.value("startTime", ""); // 发起时间
         ticketversion.model = body.value("modelID", "");  // 关联模型
         ticketversion.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
-        ticketversion.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
+        ticketversion.matlab_version = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketversion.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -1145,12 +1143,15 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
 
     // 工单附件文件下载接口
-    CROW_ROUTE(app, "/files/ticket/<int>/<string>").methods("GET"_method)
-        (withAspectTicketDownload([this](const crow::request& req, int ticketId, const std::string& filename) {
+    CROW_ROUTE(app, "/files/ticket").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
+        // , int ticketId, const std::string& filename
+        int ticketId = std::stoi(req.url_params.get("ticketId"));
+        std::string filename = req.url_params.get("filename");
         std::string decodedFilename = url_decode(filename);
         LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, decodedFilename.c_str());
         return downloadTicketFile(ticketId, decodedFilename);
@@ -1350,4 +1351,39 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 return crow::response(500, error.dump());
             }
         });
+
+    // 获取用户待办工单（包含详细信息和流转信息）
+    CROW_ROUTE(app, "/order/pending").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        }
+        
+        try {
+            // 从JWT中获取用户ID
+            std::string userId = getAccountFromToken(req);
+            // 调用服务层获取用户待办工单
+            auto pendingOrders = ticketService->getUserPendingWorkOrders(userId);
+            
+            // 构建响应
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {
+                    {"list", pendingOrders},
+                    {"total", pendingOrders.size()}
+                }}
+            };
+            
+            return crow::response(200, resp.dump());
+        }
+        catch (const std::exception& e) {
+            nlohmann::json error = {
+                {"status", 1},
+                {"error", "获取用户待办工单失败"}
+            };
+            return crow::response(500, error.dump());
+        }
+    }));
 }
