@@ -1729,6 +1729,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    ps.auth_id AS package_product_authorization_id, "
         "    ps.remarks AS package_remarks, "
         "    ps.matlab_version AS package_matlab_version, "
+        "    ps.target_delivery_time AS package_target_delivery_time, "
         "    fd.description_create AS function_description_create, "
         "    fd.description_completed AS function_description_completed, "
         "    fd.model_id AS function_model_id, "
@@ -1904,21 +1905,22 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
             packageInfo["productAuthorizationId"] = row[54] ? row[54] : "";
             packageInfo["remarks"] = row[55] ? row[55] : "";
             packageInfo["matlabVersion"] = row[56] ? row[56] : "";
+            packageInfo["targetDeliveryTime"] = row[57] ? row[57] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[57] ? row[57] : "";
-            functionInfo["descriptionCompleted"] = row[58] ? row[58] : "";
-            functionInfo["modelId"] = row[59] ? row[59] : "";
-            functionInfo["newModelVersionId"] = row[60] ? row[60] : "";
-            functionInfo["matlabVersion"] = row[61] ? row[61] : "";
+            functionInfo["descriptionCreate"] = row[58] ? row[58] : "";
+            functionInfo["descriptionCompleted"] = row[59] ? row[59] : "";
+            functionInfo["modelId"] = row[60] ? row[60] : "";
+            functionInfo["newModelVersionId"] = row[61] ? row[61] : "";
+            functionInfo["matlabVersion"] = row[62] ? row[62] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[62] ? row[62] : "";
-            otherInfo["remarks"] = row[63] ? row[63] : "";
+            otherInfo["description"] = row[63] ? row[63] : "";
+            otherInfo["remarks"] = row[64] ? row[64] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
@@ -2084,6 +2086,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    ps.auth_id AS package_product_authorization_id, "
        << "    ps.remarks AS package_remarks, "
        << "    ps.matlab_version AS package_matlab_version, "
+       << "    ps.target_delivery_time AS package_target_delivery_time, "
        << "    fd.description_create AS function_description_create, "
        << "    fd.description_completed AS function_description_completed, "
        << "    fd.model_id AS function_model_id, "
@@ -2272,21 +2275,22 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             packageInfo["productAuthorizationId"] = row[50] ? row[50] : "";
             packageInfo["remarks"] = row[51] ? row[51] : "";
             packageInfo["matlabVersion"] = row[52] ? row[52] : "";
+            packageInfo["targetDeliveryTime"] = row[53] ? row[53] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[53] ? row[53] : "";
-            functionInfo["descriptionCompleted"] = row[54] ? row[54] : "";
-            functionInfo["modelId"] = row[55] ? row[55] : "";
-            functionInfo["newModelVersionId"] = row[56] ? row[56] : "";
-            functionInfo["matlabVersion"] = row[57] ? row[57] : "";
+            functionInfo["descriptionCreate"] = row[54] ? row[54] : "";
+            functionInfo["descriptionCompleted"] = row[55] ? row[55] : "";
+            functionInfo["modelId"] = row[56] ? row[56] : "";
+            functionInfo["newModelVersionId"] = row[57] ? row[57] : "";
+            functionInfo["matlabVersion"] = row[58] ? row[58] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[58] ? row[58] : "";
-            otherInfo["remarks"] = row[59] ? row[59] : "";
+            otherInfo["description"] = row[59] ? row[59] : "";
+            otherInfo["remarks"] = row[60] ? row[60] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
