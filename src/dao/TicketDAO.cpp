@@ -349,7 +349,13 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
         // 如果ticket.targetDeliveryTime不为空，按照ticket.id更新delivery_send表的targetDeliveryTime
         if(ticket.targetDeliveryTime != "")
         {
-            snprintf(local_sql, SQL_MAX, "update delivery_send set target_delivery_time = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
+            if(ticket.ticketType == "交付发送"){
+
+                snprintf(local_sql, SQL_MAX, "update delivery_send set target_delivery_time = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
+            }else if (ticket.ticketType == "版本迭代+交付发送")
+            {
+                snprintf(local_sql, SQL_MAX, "update package_send set target_delivery_time = '%s' where work_order_id = %d;", ticket.targetDeliveryTime.c_str(),ticket.id);
+            }
             local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
             if (local_ret) {
                 LOG_ERROR("function:createTicket 修改delivery_send表失败！失败原因：%s", mysql_error(conn));
@@ -417,13 +423,13 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
         //修改工单状态
         if(ticket.ticketType == "问题复现" || ticket.ticketType == "功能开发" || ticket.ticketType == "其他")
         {
-            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待完成',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待完成',dispatched_at = NOW(),task_priority = '%s', to_dispatcher_id = '%s' where id = %d;", ticket.priorityTask.c_str(), ticket.executorId.c_str(), ticket.id);
         }
         else if(ticket.ticketType == "版本迭代" || ticket.ticketType == "版本迭代+交付发送")
         {
-            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待封装',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待封装',dispatched_at = NOW(),task_priority = '%s', to_dispatcher_id = '%s' where id = %d;", ticket.priorityTask.c_str(), ticket.executorId.c_str(), ticket.id);
         }else if(ticket.ticketType == "交付发送"){
-            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待加密',dispatched_at = NOW(),task_priority = '%s' where id = %d;", ticket.priorityTask.c_str(),ticket.id);
+            snprintf(local_sql, SQL_MAX, "update work_order set status = '进行中', status_todo = '待加密',dispatched_at = NOW(),task_priority = '%s', to_dispatcher_id = '%s' where id = %d;", ticket.priorityTask.c_str(), ticket.executorId.c_str(), ticket.id);
         }
 
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
@@ -533,7 +539,7 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
                 }
             }else{
                 // 插入work_order_executor 发送
-                snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`,transfer_type) VALUES (%d, '%s', NOW(), '发送', '%s', '');",
+                snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '发送', '%s');",
                 ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
                 if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
                     std::cerr << "插入work_order_executor发送记录失败：" << mysql_error(conn) << std::endl;
@@ -551,6 +557,16 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
                 mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
                 return false;
             }
+            // 添加没有加密的执行记录
+            
+            snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '加密', '%s');",
+            ticket.id,ticket.executorId.c_str(),ticket.executorId.c_str());
+            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+                std::cerr << "插入work_order_executor加密记录失败：" << mysql_error(conn) << std::endl;
+                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+                return false;
+            }
+
             
             snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '发送', '%s');",
             ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
@@ -1696,6 +1712,10 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    ds.auth_id AS delivery_authorization_id, "
         "    ds.remarks AS delivery_remarks, "
         "    ds.target_delivery_time, "
+        "    u_encryptor.real_name AS delivery_encryptor_name, "
+        "    u_sender.real_name AS delivery_sender_name, "
+        "    woe_encryptor.create_at AS delivery_encryptor_time, "
+        "    woe_sender.finish_at AS delivery_sender_time, "
         "    ps.coordination_id AS package_coordination_id, "
         "    ps.update_content AS package_update_content, "
         "    ps.packaging_requirements AS package_packaging_requirements, "
@@ -1715,12 +1735,18 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "    fd.new_model_version_id AS function_new_model_version_id, "
         "    fd.matlab_version AS function_matlab_version, "
         "    owo.description AS other_description, "
-        "    owo.remarks AS other_remarks "
+        "    owo.remarks AS other_remarks, "
+        "    wo.to_dispatcher_id, "
+        "    u_to_dispatcher.real_name AS to_dispatcher_name, "
+        "    wo.encrypted_remark, "
+        "    wo.send_remark, "
+        "    wo.package_remark "
         "FROM work_order wo "
         "LEFT JOIN model_version mv ON wo.model_version_id = mv.id "
         "LEFT JOIN user u_creator ON wo.creator_id = u_creator.username "
         "LEFT JOIN user u_approver ON wo.approver_id = u_approver.username "
         "LEFT JOIN user u_dispatcher ON wo.dispatcher_id = u_dispatcher.username "
+        "LEFT JOIN user u_to_dispatcher ON wo.to_dispatcher_id = u_to_dispatcher.username "
         "LEFT JOIN ( "
         "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status, woe1.transfer_type "
         "    FROM work_order_executor woe1 "
@@ -1736,6 +1762,22 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND wo.type = '问题复现' "
         "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
         "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
+        "LEFT JOIN ( "
+        "    SELECT woe_enc.work_order_id, woe_enc.executor_id, woe_enc.create_at "
+        "    FROM work_order_executor woe_enc "
+        "    WHERE woe_enc.status = '加密' "
+        "    ORDER BY woe_enc.create_at DESC "
+        "    LIMIT 1 "
+        ") woe_encryptor ON wo.id = woe_encryptor.work_order_id AND wo.type = '交付发送' "
+        "LEFT JOIN user u_encryptor ON woe_encryptor.executor_id = u_encryptor.username "
+        "LEFT JOIN ( "
+        "    SELECT woe_send.work_order_id, woe_send.executor_id, woe_send.finish_at "
+        "    FROM work_order_executor woe_send "
+        "    WHERE woe_send.status = '发送' "
+        "    ORDER BY woe_send.create_at DESC "
+        "    LIMIT 1 "
+        ") woe_sender ON wo.id = woe_sender.work_order_id AND wo.type = '交付发送' "
+        "LEFT JOIN user u_sender ON woe_sender.executor_id = u_sender.username "
         "LEFT JOIN package_send ps ON wo.id = ps.work_order_id AND wo.type = '直接封装+发送' "
         "LEFT JOIN function_development fd ON wo.id = fd.work_order_id AND wo.type = '功能开发' "
         "LEFT JOIN other_work_order owo ON wo.id = owo.work_order_id AND wo.type = '其他' "
@@ -1788,6 +1830,15 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         workOrder["encryptionStatus"] = row[17] ? row[17] : "";
         workOrder["flowRole"] = row[18] ? row[18] : "";
         
+        // 获取to_dispatcher_name、encrypted_remark、send_remark和package_remark字段
+        unsigned int num_fields = mysql_num_fields(res);
+        if (num_fields > 19) {
+            workOrder["toDispatcherName"] = row[num_fields - 4] ? row[num_fields - 4] : "";
+            workOrder["encryptedRemark"] = row[num_fields - 3] ? row[num_fields - 3] : "";
+            workOrder["sendRemark"] = row[num_fields - 2] ? row[num_fields - 2] : "";
+            workOrder["packageRemark"] = row[num_fields - 1] ? row[num_fields - 1] : "";
+        }
+        
         // 根据工单类型封装详细信息
         std::string workOrderType = row[1] ? row[1] : "";
         std::string workOrderId = row[0] ? row[0] : "";
@@ -1816,7 +1867,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
             versionInfo["coordinationId"] = row[25] ? row[25] : "";
             versionInfo["updateContent"] = row[26] ? row[26] : "";
             versionInfo["packagingRequirements"] = row[27] ? row[27] : "";
-            versionInfo["interfaceChanged"] = row[28] ? (std::string(row[28]) == "1" ? true : false) : false;
+            versionInfo["interfaceChanged"] = row[28] ? (std::string(row[28]) == "1" ? "是" : "否") : "否";
             versionInfo["newModelVersionId"] = row[29] ? row[29] : "";
             versionInfo["remarks"] = row[30] ? row[30] : "";
             versionInfo["matlabVersion"] = row[31] ? row[31] : "";
@@ -1825,45 +1876,49 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
             deliveryInfo["targetCustomer"] = row[32] ? row[32] : "";
-            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? true : false) : false;
+            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? "是" : "否") : "否";
             deliveryInfo["sensitiveInfo"] = row[34] ? row[34] : "";
-            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? true : false) : false;
+            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? "是" : "否") : "否";
             deliveryInfo["shellCode"] = row[36] ? row[36] : "";
             deliveryInfo["authorizationId"] = row[37] ? row[37] : "";
             deliveryInfo["remarks"] = row[38] ? row[38] : "";
             deliveryInfo["targetDeliveryTime"] = row[39] ? row[39] : "";
+            deliveryInfo["encryptorName"] = row[40] ? row[40] : "";
+            deliveryInfo["senderName"] = row[41] ? row[41] : "";
+            deliveryInfo["encryptorTime"] = row[42] ? row[42] : "";
+            deliveryInfo["senderTime"] = row[43] ? row[43] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
             nlohmann::json packageInfo;
-            packageInfo["coordinationId"] = row[40] ? row[40] : "";
-            packageInfo["updateContent"] = row[41] ? row[41] : "";
-            packageInfo["packagingRequirements"] = row[42] ? row[42] : "";
-            packageInfo["interfaceChanged"] = row[43] ? (std::string(row[43]) == "1" ? true : false) : false;
-            packageInfo["targetCustomer"] = row[44] ? row[44] : "";
-            packageInfo["validatedByCae"] = row[45] ? (std::string(row[45]) == "1" ? true : false) : false;
-            packageInfo["sensitiveInfo"] = row[46] ? row[46] : "";
-            packageInfo["newModelVersionId"] = row[47] ? row[47] : "";
-            packageInfo["isEncrypted"] = row[48] ? (std::string(row[48]) == "1" ? true : false) : false;
-            packageInfo["encryptionKey"] = row[49] ? row[49] : "";
-            packageInfo["productAuthorizationId"] = row[50] ? row[50] : "";
-            packageInfo["remarks"] = row[51] ? row[51] : "";
-            packageInfo["matlabVersion"] = row[52] ? row[52] : "";
+            packageInfo["coordinationId"] = row[44] ? row[44] : "";
+            packageInfo["updateContent"] = row[45] ? row[45] : "";
+            packageInfo["packagingRequirements"] = row[46] ? row[46] : "";
+            packageInfo["interfaceChanged"] = row[47] ? (std::string(row[47]) == "1" ? "是" : "否") : "否";
+            packageInfo["targetCustomer"] = row[48] ? row[48] : "";
+            packageInfo["validatedByCae"] = row[49] ? (std::string(row[49]) == "1" ? "是" : "否") : "否";
+            packageInfo["sensitiveInfo"] = row[50] ? row[50] : "";
+            packageInfo["newModelVersionId"] = row[51] ? row[51] : "";
+            packageInfo["isEncrypted"] = row[52] ? (std::string(row[52]) == "1" ? "是" : "否") : "否";
+            packageInfo["encryptionKey"] = row[53] ? row[53] : "";
+            packageInfo["productAuthorizationId"] = row[54] ? row[54] : "";
+            packageInfo["remarks"] = row[55] ? row[55] : "";
+            packageInfo["matlabVersion"] = row[56] ? row[56] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[53] ? row[53] : "";
-            functionInfo["descriptionCompleted"] = row[54] ? row[54] : "";
-            functionInfo["modelId"] = row[55] ? row[55] : "";
-            functionInfo["newModelVersionId"] = row[56] ? row[56] : "";
-            functionInfo["matlabVersion"] = row[57] ? row[57] : "";
+            functionInfo["descriptionCreate"] = row[57] ? row[57] : "";
+            functionInfo["descriptionCompleted"] = row[58] ? row[58] : "";
+            functionInfo["modelId"] = row[59] ? row[59] : "";
+            functionInfo["newModelVersionId"] = row[60] ? row[60] : "";
+            functionInfo["matlabVersion"] = row[61] ? row[61] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[58] ? row[58] : "";
-            otherInfo["remarks"] = row[59] ? row[59] : "";
+            otherInfo["description"] = row[62] ? row[62] : "";
+            otherInfo["remarks"] = row[63] ? row[63] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
@@ -1951,8 +2006,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         workOrder["transferInfoEncrypted"] = encryptedInfo;// 加密环节流转信息
         workOrder["transferInfoDelivery"] = transferInfoDelivery;// 发送环节流转信息
         
-        result.push_back(workOrder);
-    }
+        result.push_back(workOrder);    }
     
     mysql_free_result(res);
     return result;
@@ -1986,6 +2040,11 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    u_creator.real_name AS creator_name, "
        << "    u_approver.real_name AS approver_name, "
        << "    u_dispatcher.real_name AS dispatcher_name, "
+       << "    wo.to_dispatcher_id, "
+       << "    u_to_dispatcher.real_name AS to_dispatcher_name, "
+       << "    wo.encrypted_remark, "
+       << "    wo.send_remark, "
+       << "    wo.package_remark, "
        << "    woe_latest.executor_id, "
        << "    u_executor.real_name AS executor_name, "
        << "    woe_latest.transfer_type AS executor_status, "
@@ -2031,12 +2090,17 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    fd.new_model_version_id AS function_new_model_version_id, "
        << "    fd.matlab_version AS function_matlab_version, "
        << "    owo.description AS other_description, "
-       << "    owo.remarks AS other_remarks "
+       << "    owo.remarks AS other_remarks, "
+       << "    woe_encryptor.executor_id AS delivery_encryptor_name, "
+       << "    woe_sender.executor_id AS delivery_sender_name, "
+       << "    woe_encryptor.create_at AS delivery_encryptor_time, "
+       << "    woe_sender.create_at AS delivery_sender_time "
        << "FROM work_order wo "
        << "LEFT JOIN model_version mv ON wo.model_version_id = mv.id "
        << "LEFT JOIN user u_creator ON wo.creator_id = u_creator.username "
        << "LEFT JOIN user u_approver ON wo.approver_id = u_approver.username "
        << "LEFT JOIN user u_dispatcher ON wo.dispatcher_id = u_dispatcher.username "
+       << "LEFT JOIN user u_to_dispatcher ON wo.to_dispatcher_id = u_to_dispatcher.username "
        << "LEFT JOIN ( "
        << "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status, woe1.transfer_type "
        << "    FROM work_order_executor woe1 "
@@ -2054,7 +2118,17 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
        << "LEFT JOIN package_send ps ON wo.id = ps.work_order_id AND wo.type = '直接封装+发送' "
        << "LEFT JOIN function_development fd ON wo.id = fd.work_order_id AND wo.type = '功能开发' "
-       << "LEFT JOIN other_work_order owo ON wo.id = owo.work_order_id AND wo.type = '其他' ";
+       << "LEFT JOIN other_work_order owo ON wo.id = owo.work_order_id AND wo.type = '其他' "
+       << "LEFT JOIN ( "
+       << "    SELECT woe_enc.work_order_id, woe_enc.executor_id, woe_enc.create_at "
+       << "    FROM work_order_executor woe_enc "
+       << "    WHERE woe_enc.status = '加密' "
+       << ") woe_encryptor ON wo.id = woe_encryptor.work_order_id "
+       << "LEFT JOIN ( "
+       << "    SELECT woe_send.work_order_id, woe_send.executor_id, woe_send.create_at "
+       << "    FROM work_order_executor woe_send "
+       << "    WHERE woe_send.status = '发送' "
+       << ") woe_sender ON wo.id = woe_sender.work_order_id ";
     
     // 添加过滤条件
     std::set<std::string> intSet={"id","creator_id","model_version_id","approver_id","dispatcher_id","executor_id"};
@@ -2124,6 +2198,15 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
         workOrder["encryptionStatus"] = row[17] ? row[17] : "";
         workOrder["flowRole"] = row[18] ? row[18] : "";
         
+        // 获取to_dispatcher_name、encrypted_remark、send_remark和package_remark字段
+        unsigned int num_fields = mysql_num_fields(res);
+        if (num_fields > 19) {
+            workOrder["toDispatcherName"] = row[num_fields - 5] ? row[num_fields - 5] : "";
+            workOrder["encryptedRemark"] = row[num_fields - 4] ? row[num_fields - 4] : "";
+            workOrder["sendRemark"] = row[num_fields - 3] ? row[num_fields - 3] : "";
+            workOrder["packageRemark"] = row[num_fields - 2] ? row[num_fields - 2] : "";
+        }
+        
         // 根据工单类型封装详细信息（与getUserPendingWorkOrders相同的逻辑）
         std::string workOrderType = row[1] ? row[1] : "";
         std::string workOrderId = row[0] ? row[0] : "";
@@ -2161,13 +2244,17 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
             deliveryInfo["targetCustomer"] = row[32] ? row[32] : "";
-            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? true : false) : false;
+            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? "是" : "否") : "否";
             deliveryInfo["sensitiveInfo"] = row[34] ? row[34] : "";
-            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? true : false) : false;
+            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? "是" : "否") : "否";
             deliveryInfo["shellCode"] = row[36] ? row[36] : "";
             deliveryInfo["authorizationId"] = row[37] ? row[37] : "";
             deliveryInfo["remarks"] = row[38] ? row[38] : "";
             deliveryInfo["targetDeliveryTime"] = row[39] ? row[39] : "";
+            deliveryInfo["encryptorName"] = row[60] ? row[60] : "";
+            deliveryInfo["senderName"] = row[61] ? row[61] : "";
+            deliveryInfo["encryptorTime"] = row[62] ? row[62] : "";
+            deliveryInfo["senderTime"] = row[63] ? row[63] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
@@ -2177,10 +2264,10 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             packageInfo["packagingRequirements"] = row[42] ? row[42] : "";
             packageInfo["interfaceChanged"] = row[43] ? (std::string(row[43]) == "1" ? true : false) : false;
             packageInfo["targetCustomer"] = row[44] ? row[44] : "";
-            packageInfo["validatedByCae"] = row[45] ? (std::string(row[45]) == "1" ? true : false) : false;
+            packageInfo["validatedByCae"] = row[45] ? (std::string(row[45]) == "1" ? "是" : "否") : "否";
             packageInfo["sensitiveInfo"] = row[46] ? row[46] : "";
             packageInfo["newModelVersionId"] = row[47] ? row[47] : "";
-            packageInfo["isEncrypted"] = row[48] ? (std::string(row[48]) == "1" ? true : false) : false;
+            packageInfo["isEncrypted"] = row[48] ? (std::string(row[48]) == "1" ? "是" : "否") : "否";
             packageInfo["encryptionKey"] = row[49] ? row[49] : "";
             packageInfo["productAuthorizationId"] = row[50] ? row[50] : "";
             packageInfo["remarks"] = row[51] ? row[51] : "";
@@ -2292,6 +2379,107 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
     
     mysql_free_result(res);
     return result;
+}
+
+bool TicketDAO::completeSendTicket(const Ticket& ticket)
+{
+    MYSQL* conn = getConnection();
+    if (!conn) {
+        LOG_ERROR("function:completeSendTicket 获取数据库连接失败");
+        return false;
+    }
+    
+    // 开始事务
+    if (mysql_real_query(conn, "START TRANSACTION", strlen("START TRANSACTION"))) {
+        LOG_ERROR("function:completeSendTicket 开始事务失败！失败原因：%s", mysql_error(conn));
+        return false;
+    }
+    
+    char sql[SQL_MAX];
+    int ret;
+    // 获取当前时间
+    // 获取当前时间
+    std::time_t now = std::time(nullptr);
+    char timeStr[20];
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    std::string completedTime = timeStr;
+    try {
+        // 1. 更新工单状态为已完成
+        std::string remarkStr = "";
+        if (ticket.ticketType == "交付发送") {
+            const TicketDelivery& deliveryTicket = dynamic_cast<const TicketDelivery&>(ticket);
+            remarkStr = deliveryTicket.remark;
+        } else if (ticket.ticketType == "版本迭代+交付") {
+            const TicketPackage& packageTicket = dynamic_cast<const TicketPackage&>(ticket);
+            remarkStr = packageTicket.remark;
+        }
+        
+        snprintf(sql, SQL_MAX, 
+            "UPDATE work_order SET status = '已完成', completed_at = '%s', send_remark = '%s' WHERE id = %d",
+            ticket.completedTime.c_str(), remarkStr.c_str(), ticket.id);
+        
+        ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            LOG_ERROR("function:completeSendTicket 更新工单状态失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        // 2. 根据工单id修改完成时间
+        snprintf(sql, SQL_MAX,
+            "UPDATE work_order_executor SET finish_at = '%s' WHERE work_order_id = %d and status = '发送'", completedTime.c_str(), ticket.id);
+        
+        ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            LOG_ERROR("function:completeSendTicket 插入工单执行记录失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        // 更新相应的详细信息表
+        const TicketDelivery& deliveryTicket = dynamic_cast<const TicketDelivery&>(ticket);
+        snprintf(sql, SQL_MAX, "UPDATE work_order SET completed_at = '%s', status = '已完成',status_todo = null WHERE id = %d",
+               completedTime.c_str(), deliveryTicket.id);
+        
+        // 3. 根据工单类型更新相应的详细信息表
+        if (ticket.ticketType == "交付发送") {
+
+        } else if (ticket.ticketType == "版本迭代") {
+            // TODO 备注对齐
+
+        } else if (ticket.ticketType == "直接封装+发送") {
+            const TicketPackage& packageTicket = dynamic_cast<const TicketPackage&>(ticket);
+            snprintf(sql, SQL_MAX,
+                "UPDATE package_send SET send_executor_id = %s, send_time = '%s', send_remark = '%s' WHERE work_order_id = %d",
+                packageTicket.sendExecutorId.c_str(), packageTicket.completedTime.c_str(),
+                packageTicket.remark.c_str(), packageTicket.id);
+        } else {
+            LOG_ERROR("function:completeSendTicket 不支持的工单类型: %s", ticket.ticketType.c_str());
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+        if (ret) {
+            LOG_ERROR("function:completeSendTicket 更新详细信息表失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        // 提交事务
+        if (mysql_real_query(conn, "COMMIT", strlen("COMMIT"))) {
+            LOG_ERROR("function:completeSendTicket 提交事务失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
+        
+        LOG_INFO("function:completeSendTicket 工单发送完成成功，工单ID: %d", ticket.id);
+        return true;
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("function:completeSendTicket 处理过程中发生异常: %s", e.what());
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
 }
 
 TicketDAO::~TicketDAO()

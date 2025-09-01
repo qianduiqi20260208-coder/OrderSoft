@@ -49,6 +49,11 @@ bool TicketService::completeConcreteTicket(const Ticket& ticket)
     return ticketDAO->completeTicket(ticket);
 }
 
+bool TicketService::completeSendTicket(const Ticket& ticket)
+{
+    return ticketDAO->completeSendTicket(ticket);
+}
+
 
 
 // std::vector<std::shared_ptr<Ticket>> TicketService::selectOrderByCondition(const std::map<std::string, std::string> filter)

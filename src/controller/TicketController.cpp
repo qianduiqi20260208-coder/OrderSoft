@@ -442,7 +442,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.createTime = body.value("startTime", ""); // 发起时间
         ticketpackage.model = body.value("modelID", ""); // 关联模型
         ticketpackage.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
-        ticketpackage.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
+        // ticketpackage.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
+        ticketpackage.matlab_version = body.value("completeModelVersion", ""); // Matlab版本
         ticketpackage.coordinationId = body.value("coordinationID", ""); // 协调单ID
         ticketpackage.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketpackage.packRequirement = body.value("packageRequirement", ""); // 封装要求
@@ -451,6 +452,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
         ticketpackage.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
         ticketpackage.approverId = (body.value("approverID", "")); // 审批人ID
+        ticketpackage.ticketType = "直接封装+发送"; // 工单类型 
 
 
         bool ok = ticketService->createTicket(ticketpackage);
@@ -579,6 +581,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.priorityHint = body.value("referencePriority", ""); // 参考优先级
         ticket.distributorId = (body.value("distributorID", "")); // 分发人ID
         ticket.targetDeliveryTime = (body.value("targetDeliveryTime", "")); // 预计发送时间
+        ticket.ticketType = body.value("orderType", ""); // 工单类型
 
         bool ok = ticketService->approveTicket(ticket);
         nlohmann::json resp;
@@ -1172,6 +1175,48 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         return crow::response{ resp.dump() };
         }));
 
+    // 工单发送流转
+    CROW_ROUTE(app, "/order/transfer_send").methods("POST"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        }
+        auto body = nlohmann::json::parse(req.body, nullptr, false);
+        if (body.is_discarded()) {
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
+        }
+
+        TicketTranfer ticketexecutor;
+
+        // 检查字段
+        ticketexecutor.ticketId = std::stoi(body.value("orderID", "")); // 工单ID
+        ticketexecutor.createId.push_back(body.value("executorID", "")); // 当前执行人ID
+        ticketexecutor.executor.push_back(body.value("transferExecutorID", "")); // 流转目标执行人ID
+        ticketexecutor.reason.push_back(body.value("transferReason", "")); // 流转原因
+        ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // 流转时间
+        ticketexecutor.transferType = "发送流转"; // 固定为发送流转类型
+
+        bool ok = ticketService->orderTransfer(ticketexecutor);
+        
+        nlohmann::json resp;
+        if (ok) {
+            resp = {
+                {"status", 1},
+                {"error", ""},
+                {"data", {{"message", "发送流转成功"}}}
+            };
+        }
+        else {
+            resp = {
+                {"status", 1},
+                {"error", "发送流转失败"},
+                {"data", nlohmann::json::object()}
+            };
+        }
+        return crow::response{ resp.dump() };
+        }));
+
     // 获取客户信息列表
     CROW_ROUTE(app, "/customer/list").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
@@ -1516,7 +1561,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 ticket.status = status;
                 ticket.executorId = executorID;
                 
-                result = ticketService->completeConcreteTicket(ticket);
+                result = ticketService->completeSendTicket(ticket);
             } else {
                 // 其他类型的工单处理逻辑（用户稍后提供）
                 return crow::response(400, R"({"status":1,"error":"暂不支持该工单类型的完成操作","data":{}})");
@@ -1644,6 +1689,97 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 resp = {
                     {"status", 1},
                     {"error", "交付发送工单加密完成失败"},
+                    {"data", nlohmann::json::object()}
+                };
+            }
+            
+            return crow::response{resp.dump()};
+        }
+        catch (const std::exception& e) {
+            nlohmann::json error = {
+                {"status", 1},
+                {"error", "处理请求时发生错误"}
+            };
+            return crow::response(500, error.dump());
+        }
+    }));
+
+    // 待发送工单完成接口
+    CROW_ROUTE(app, "/order/finish-send").methods("POST"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        if (!checkToken(req)) {
+            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        }
+        
+        auto body = nlohmann::json::parse(req.body, nullptr, false);
+        if (body.is_discarded()) {
+            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
+        }
+
+        // 解析请求参数
+        std::string orderID = body.value("orderID", "");
+        std::string status = body.value("status", "");
+        std::string orderType = body.value("orderType", "");
+        std::string finishTime = body.value("finishTime", "");
+        std::string sendRemark = body.value("sendRemark", "");
+        std::string executorID = body.value("executorID", "");
+
+        // 参数验证
+        if (orderID.empty() || orderType.empty() || executorID.empty()) {
+            return crow::response(400, R"({"status":1,"error":"缺少必要参数","data":{}})");
+        }
+
+        try {
+            bool result = false;
+            
+            // 处理交付发送工单
+            if (orderType == "交付发送") {
+                TicketDelivery ticket;
+                // 设置基类Ticket的id字段
+                ticket.Ticket::id = std::stoi(orderID);
+                // 设置派生类TicketDelivery的id字段
+                ticket.id = std::stoi(orderID);
+                ticket.ticketType = orderType;
+                ticket.status = "已完成"; // 发送完成后状态为已完成
+                ticket.completedTime = finishTime;
+                ticket.remark = sendRemark;
+                ticket.executorId = executorID;
+                ticket.sendExecutorId = executorID; // 发送人ID
+                
+                result = ticketService->completeSendTicket(ticket);
+            }
+            // 处理直接封装+发送工单
+            else if (orderType == "版本迭代+交付") {
+                TicketPackage ticket;
+                // 设置基类Ticket的id字段
+                ticket.Ticket::id = std::stoi(orderID);
+                // 设置派生类TicketPackage的id字段
+                ticket.id = std::stoi(orderID);
+                ticket.ticketType = orderType;
+                ticket.status = "已完成"; // 发送完成后状态为已完成
+                ticket.completedTime = finishTime;
+                ticket.remark = sendRemark;
+                ticket.executorId = executorID;
+                ticket.sendExecutorId = executorID; // 发送人ID
+                
+                result = ticketService->completeSendTicket(ticket);
+            }
+            else {
+                return crow::response(400, R"({"status":1,"error":"不支持的工单类型","data":{}})");
+            }
+            
+            nlohmann::json resp;
+            if (result) {
+                resp = {
+                    {"status", 1},
+                    {"error", ""},
+                    {"data", {{"message", "工单发送完成成功"}}}
+                };
+            } else {
+                resp = {
+                    {"status", 1},
+                    {"error", "工单发送完成失败"},
                     {"data", nlohmann::json::object()}
                 };
             }
