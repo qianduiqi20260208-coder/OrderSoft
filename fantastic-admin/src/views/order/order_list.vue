@@ -193,6 +193,7 @@ const filterReferencePriority = ref('') // 参考优先级下拉框
 const filterTaskPriority = ref('') // 任务优先级下拉框
 const filterStatus = ref('') // 工单状态下拉框
 const filterMine = ref(false) // 与我相关复选框
+const filterDeliveryDateRange = ref<[string, string]>(['', ''])
 
 // 新增：每个工单的展开状态
 const expandedMap = ref<Record<string, boolean>>({})
@@ -284,6 +285,8 @@ async function fetchUserOrders(page = 1) {
       status?: string
       startDate?: string
       endDate?: string
+      filterMineFlag?: boolean
+      userId?: string
     } = {
       page,
       pageSize,
@@ -301,13 +304,18 @@ async function fetchUserOrders(page = 1) {
       params.endDate = filterDateRange.value[1]
     }
 
+    if (
+      filterDeliveryDateRange.value && filterDeliveryDateRange.value[0] && filterDeliveryDateRange.value[1]
+    ) {
+      params.startDate = `${filterDeliveryDateRange.value[0]} 00:00:00`
+      params.endDate = `${filterDeliveryDateRange.value[1]} 23:59:59`
+    }
+
     // 如果勾选了与我相关，设置四个角色为当前用户ID
     if (filterMine.value) {
       const myId = userStore.account
-      params.promoterID = myId
-      params.approverID = myId
-      params.distributorID = myId
-      params.executorID = myId
+      params.userId = myId
+      params.filterMineFlag = true
     }
 
     // 查询前做限制 模型工程师只能查看自己负责的模型
@@ -524,68 +532,60 @@ function closeDialog() {
 }
 
 // --------------员工工号下拉------------------
-// 修改：用于员工工号下拉（从后端获取）
-const userList = ref<Array<{ id: string, name: string }>>([])
-const userListLoading = ref(false) // 执行人列表加载状态
+// // 修改：用于员工工号下拉（从后端获取）
+// const userList = ref<Array<{ id: string, name: string }>>([])
+// const userListLoading = ref(false) // 执行人列表加载状态
 
-// 获取执行人列表
-async function fetchExecutorList() {
-  userListLoading.value = true
-  try {
-    // 只传递单个模型ID
-    let modelId = ''
-    if (filterModelID.value) {
-      modelId = filterModelID.value
-    }
-    else if (Array.isArray(userStore.userModels) && userStore.userModels.length > 0) {
-      modelId = userStore.userModels[0]
-    }
+// // 获取执行人列表
+// async function fetchExecutorList() {
+//   userListLoading.value = true
+//   try {
+//     // 只传递单个模型ID
+//     let modelId = ''
+//     if (filterModelID.value) {
+//       modelId = filterModelID.value
+//     }
+//     else if (Array.isArray(userStore.userModels) && userStore.userModels.length > 0) {
+//       modelId = userStore.userModels[0]
+//     }
 
-    // 传递模型参数给后端
-    const res = await orderApi.fetchExecutorList(modelId)
+//     // 传递模型参数给后端
+//     const res = await orderApi.fetchExecutorList(modelId)
 
-    if (res?.data) {
-      // 新的数据格式直接映射 id 和 name
-      const executorList = res.data.list || []
+//     if (res?.data) {
+//       // 新的数据格式直接映射 id 和 name
+//       const executorList = res.data.list || []
 
-      const mappedUserList = executorList.map((item: { id: string, name: string }) => ({
-        id: String(item.id),
-        name: String(item.name),
-      }))
+//       const mappedUserList = executorList.map((item: { id: string, name: string }) => ({
+//         id: String(item.id),
+//         name: String(item.name),
+//       }))
 
-      userList.value = mappedUserList
-    }
-    else {
-      ElMessage.error('获取执行人列表失败：响应数据为空')
-      userList.value = []
-    }
-  }
-  catch (error: any) {
-    console.error('获取执行人列表失败:', error)
+//       userList.value = mappedUserList
+//     }
+//     else {
+//       ElMessage.error('获取执行人列表失败：响应数据为空')
+//       userList.value = []
+//     }
+//   }
+//   catch (error: any) {
+//     console.error('获取执行人列表失败:', error)
 
-    // 处理不同类型的错误
-    if (error?.response?.data?.message) {
-      ElMessage.error(error.response.data.message)
-    }
-    else if (error?.message) {
-      ElMessage.error(error.message)
-    }
-    else {
-      ElMessage.error('获取执行人列表失败，请稍后重试')
-    }
-  }
-  finally {
-    userListLoading.value = false
-  }
-}
-
-// 员工工号下拉框显示事件处理
-function handleExecutorDropdownVisible(visible: boolean) {
-  if (visible) {
-    // 下拉框打开时获取执行人列表
-    fetchExecutorList()
-  }
-}
+//     // 处理不同类型的错误
+//     if (error?.response?.data?.message) {
+//       ElMessage.error(error.response.data.message)
+//     }
+//     else if (error?.message) {
+//       ElMessage.error(error.message)
+//     }
+//     else {
+//       ElMessage.error('获取执行人列表失败，请稍后重试')
+//     }
+//   }
+//   finally {
+//     userListLoading.value = false
+//   }
+// }
 
 // 返回发送详情页面
 function handleBackToSendDetail() {
@@ -732,18 +732,18 @@ function handleCopyOrder(order: OrderItem) {
       </template>
       <div class="py-2 space-y-4">
         <!-- 搜索选项占满一行 -->
-        <div class="w-full flex items-center gap-4">
+        <div class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <!-- 工单ID搜索框 -->
           <el-input
             v-model="filterOrderID"
             placeholder="工单ID"
             clearable
-            class="min-w-[240px] flex-1"
+            class="min-w-[120px] w-full"
             @keyup.enter="handleSearch"
           />
 
           <!-- 工单类型下拉框 -->
-          <el-select v-model="filterType" placeholder="工单类型" clearable class="min-w-[120px] flex-1">
+          <el-select v-model="filterType" placeholder="工单类型" clearable class="min-w-[100px] w-full">
             <el-option label="全部" value="" />
             <el-option label="GX(更新)" value="版本迭代" />
             <el-option label="JF(交付)" value="交付发送" />
@@ -753,69 +753,45 @@ function handleCopyOrder(order: OrderItem) {
             <el-option label="QT(其他)" value="其他" />
           </el-select>
 
-          <!-- 员工工号下拉框 - 显示“姓名（工号）”形式 -->
-          <el-select
-            v-model="filterPromoterID"
-            placeholder="发起员工工号"
-            clearable
-            class="min-w-[120px] flex-1"
-            :loading="userListLoading"
-            @visible-change="handleExecutorDropdownVisible"
-          >
-            <el-option label="全部" value="" />
-            <el-option
-              v-for="user in userList"
-              :key="user.id"
-              :label="`${user.name}（${user.id}）`"
-              :value="user.id"
-            >
-              <div class="flex items-center">
-                <span>{{ user.name }}（{{ user.id }}）</span>
-              </div>
-            </el-option>
-          </el-select>
-
           <!-- 模型下拉框 -->
-          <el-select v-model="filterModelID" placeholder="模型" clearable class="min-w-[120px] flex-1">
-            <!-- 修改：所有用户都显示“全部”选项 -->
-            <el-option
-              label="全部"
-              value=""
-            />
-            <el-option
-              v-for="model in modelList"
-              :key="model.id"
-              :label="model.name"
-              :value="model.id"
-            />
+          <el-select v-model="filterModelID" placeholder="模型" clearable class="min-w-[100px] w-full">
+            <el-option label="全部" value="" />
+            <el-option v-for="model in modelList" :key="model.id" :label="model.name" :value="model.id" />
           </el-select>
 
-          <!-- 优先级下拉框（参考优先级） -->
-          <el-select v-model="filterReferencePriority" placeholder="参考优先级" clearable class="min-w-[120px] flex-1">
-            <el-option label="全部" value="" />
-            <el-option label="紧急" value="紧急" />
-            <el-option label="一般" value="一般" />
-          </el-select>
-
-          <!-- 优先级下拉框（任务优先级） -->
-          <el-select v-model="filterTaskPriority" placeholder="任务优先级" clearable class="min-w-[120px] flex-1">
-            <el-option label="全部" value="" />
-            <el-option label="紧急" value="紧急" />
-            <el-option label="一般" value="一般" />
-          </el-select>
+          <!-- 预计发送时间段筛选 -->
+          <div class="flex flex-col">
+            <el-date-picker
+              v-model="filterDeliveryDateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              class="min-w-[220px] w-full"
+              clearable
+              @change="handleSearch"
+            />
+          </div>
 
           <!-- 状态下拉框 -->
-          <el-select v-model="filterStatus" placeholder="工单状态" clearable class="min-w-[120px] flex-1">
-            <el-option label="全部" value="" />
-            <el-option label="草稿" value="草稿" />
-            <el-option label="待审批" value="待审批" />
-            <el-option label="待分发" value="待分发" />
-            <el-option label="进行中" value="进行中" />
-            <el-option label="已完成" value="已完成" />
-            <el-option label="已退回" value="已退回" />
-          </el-select>
-          <!-- 新增：与我相关复选框 -->
-          <el-checkbox v-model="filterMine">与我相关</el-checkbox>
+          <div class="flex flex-col">
+            <el-select v-model="filterStatus" placeholder="工单状态" clearable class="min-w-[120px] w-full">
+              <el-option label="全部" value="" />
+              <el-option label="草稿" value="草稿" />
+              <el-option label="待审批" value="待审批" />
+              <el-option label="待分发" value="待分发" />
+              <el-option label="进行中" value="进行中" />
+              <el-option label="已完成" value="已完成" />
+              <el-option label="已退回" value="已退回" />
+            </el-select>
+          </div>
+
+          <!-- 与我相关复选框 -->
+          <div class="flex flex-col justify-center">
+            <el-checkbox v-model="filterMine" class="w-full">与我相关</el-checkbox>
+          </div>
         </div>
 
         <!-- 搜索按钮单独占一行居中 -->
@@ -1935,7 +1911,9 @@ function handleCopyOrder(order: OrderItem) {
                       <!-- 标签和内容分开显示，标签小且不加粗，内容正常 -->
                       <span class="ml-3 text-sm text-gray-500">模型：</span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
-                      <span class="ml-3 text-sm text-gray-500">基准版本：</span>
+                      <span class="ml-3 text-sm text-gray-500">
+                        {{ order.type === '交付发送' ? '发送版本：' : '基准版本：' }}
+                      </span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
@@ -2232,7 +2210,7 @@ function handleCopyOrder(order: OrderItem) {
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
+                  <span class="w-32 text-black font-semibold">发送版本：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
                 </div>
                 <div class="flex items-center gap-2">
@@ -2432,29 +2410,12 @@ function handleCopyOrder(order: OrderItem) {
                     >
                   </div>
                   <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">外壳号：</span>
-                    <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
-                      :value="currentOrder.finishShellNo"
-                      readonly
-                    >
-                  </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">授权ID：</span>
                     <input
                       class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
                       :value="currentOrder.finishAuthId"
                       readonly
                     >
-                  </div>
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">备注：</span>
-                    <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
-                      :value="currentOrder.finishRemark"
-                      rows="2"
-                      readonly
-                    />
                   </div>
                 </template>
 
@@ -2475,14 +2436,6 @@ function handleCopyOrder(order: OrderItem) {
                   <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">授权ID：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.finishAuthId" readonly>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">外壳号：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.finishShellNo" readonly>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">备注：</span>
-                    <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.finishRemark" rows="2" readonly />
                   </div>
                 </template>
 

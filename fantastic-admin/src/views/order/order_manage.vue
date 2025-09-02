@@ -2124,13 +2124,13 @@ onMounted(() => {
                     <div class="flex items-center">
                       <span class="text-lg text-blue-900 font-bold">加密工单</span>
                       <span
-                        v-if="order.status === '进行中'"
+                        v-if="order.status === '进行中' && order.statusTodo === '待加密'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
-                        v-else-if="order.status === '已完成'"
+                        v-else-if="order.status === '进行中' && order.statusTodo === '待发送'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
@@ -2168,24 +2168,20 @@ onMounted(() => {
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">
                           <span class="mr-1 text-red-500">*</span>
-                          授权ID：</span>
-                        <div class="flex flex-1 items-center gap-2">
-                          <el-input
-                            v-model="order.finishAuthId"
-                            placeholder="请选择授权ID"
-                            readonly
-                            class="flex-1"
-                            :disabled="order.statusTodo !== '待加密'"
-                          />
-                          <el-button
-                            type="primary"
-                            size="small"
-                            :disabled="order.statusTodo !== '待加密'"
-                            @click="handleAuthIdSelectClick(order)"
-                          >
-                            选择
-                          </el-button>
-                        </div>
+                          授权ID：
+                        </span>
+                        <el-button
+                          type="primary"
+                          size="default"
+                          :disabled="order.statusTodo !== '待加密'"
+                          @click="handleAuthIdSelectClick(order)"
+                        >
+                          选择
+                        </el-button>
+                        <span v-if="order.finishAuthId" class="ml-3 text-blue-700 font-bold">
+                          {{ order.finishAuthId }}
+                        </span>
+                        <span v-else class="ml-3 text-gray-400">未选择</span>
                       </div>
                     </template>
                     <div class="col-span-2 w-full flex items-center gap-2">
@@ -2289,12 +2285,6 @@ onMounted(() => {
                           </span>
                         </div>
                       </template>
-                      <div class="flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">发送人：</span>
-                        <span class="rounded bg-blue-50 px-2 py-1 font-bold text-blue-700">
-                          {{ order.sendExecutorID || '未填写' }}
-                        </span>
-                      </div>
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">加密备注：</span>
                         <span class="rounded bg-gray-50 px-2 py-1 font-bold text-gray-700">
@@ -2363,24 +2353,20 @@ onMounted(() => {
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">
                           <span class="mr-1 text-red-500">*</span>
-                          授权ID：</span>
-                        <div class="flex flex-1 items-center gap-2">
-                          <el-input
-                            v-model="order.finishAuthId"
-                            placeholder="请选择授权ID"
-                            readonly
-                            class="flex-1"
-                            :disabled="order.statusTodo !== '待加密'"
-                          />
-                          <el-button
-                            type="primary"
-                            size="small"
-                            :disabled="order.statusTodo !== '待加密'"
-                            @click="handleAuthIdSelectClick(order)"
-                          >
-                            选择
-                          </el-button>
-                        </div>
+                          授权ID：
+                        </span>
+                        <el-button
+                          type="primary"
+                          size="default"
+                          :disabled="order.statusTodo !== '待加密'"
+                          @click="handleAuthIdSelectClick(order)"
+                        >
+                          选择
+                        </el-button>
+                        <span v-if="order.finishAuthId" class="ml-3 text-blue-700 font-bold">
+                          {{ order.finishAuthId }}
+                        </span>
+                        <span v-else class="ml-3 text-gray-400">未选择</span>
                       </div>
                     </template>
                     <div class="col-span-2 w-full flex items-center gap-2">
@@ -2484,12 +2470,6 @@ onMounted(() => {
                           </span>
                         </div>
                       </template>
-                      <div class="flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">发送人：</span>
-                        <span class="rounded bg-blue-50 px-2 py-1 font-bold text-blue-700">
-                          {{ order.sendExecutorID || '未填写' }}
-                        </span>
-                      </div>
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">加密备注：</span>
                         <span class="rounded bg-gray-50 px-2 py-1 font-bold text-gray-700">
@@ -3354,7 +3334,9 @@ onMounted(() => {
                       <!-- 标签和内容分开显示，标签小且不加粗，内容正常 -->
                       <span class="ml-3 text-sm text-gray-500">模型：</span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
-                      <span class="ml-3 text-sm text-gray-500">基准版本：</span>
+                      <span class="ml-3 text-sm text-gray-500">
+                        {{ order.type === '交付发送' ? '发送版本：' : '基准版本：' }}
+                      </span>
                       <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
                       <span
                         v-if="order.completeModelVersion"

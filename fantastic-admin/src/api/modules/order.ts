@@ -1,4 +1,3 @@
-import type { S } from 'node_modules/@faker-js/faker/dist/airline-BUL6NtOJ'
 import api from '../index'
 
 export default {
@@ -18,6 +17,8 @@ export default {
     status?: string // 工单状态（可选）
     startDate?: string // 开始时间（筛选区间，可选）
     endDate?: string // 结束时间（筛选区间，可选）
+    filterMineFlag?: boolean // 是否仅显示与当前用户相关的工单（可选，true/false）
+    userId?: string // 当前用户ID（可选，配合filterMineFlag使用）
   }) =>
     api.get('order/all', {
       // baseURL: '/mock/', // mock数据接口地址

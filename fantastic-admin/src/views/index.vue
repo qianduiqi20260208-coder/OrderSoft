@@ -50,6 +50,7 @@ interface OrderItem {
   modelVersionID: string // 模型版本号
   promoterID: string // 发起人ID
   startTime: string // 发起时间
+  statusTodo?: string // 流程状态
 }
 
 // 定义客户信息数据结构
@@ -120,6 +121,7 @@ async function apiFetchUserOrders() {
     }
 
     const res = await orderApi.fetchUserOrderList(params)
+    console.warn(res)
     const orders = res.data.list || []
 
     const pendingOrders = orders.filter((order: any) =>
@@ -132,7 +134,7 @@ async function apiFetchUserOrders() {
     return limitedOrders.map((order: any) => {
       const mappedOrder: OrderItem = {
         orderID: order.workOrderId || '',
-        type: order.workOrderType || '其他',
+        type: order.workOrderType === '直接封装+发送' ? '版本迭代+交付发送' : order.workOrderType || '其他',
         status: order.workOrderStatus || '草稿',
         referencePriority: order.priority || '',
         taskPriority: order.taskPriority || '',
@@ -140,6 +142,7 @@ async function apiFetchUserOrders() {
         modelVersionID: order.modelVersion || '',
         promoterID: order.creatorName || '',
         startTime: order.createdAt || '',
+        statusTodo: order.statusTodo || '',
       }
       return mappedOrder
     })
@@ -186,66 +189,6 @@ async function apiFetchRecentOrders() {
     return []
   }
 }
-
-// // 新增：获取图表统计数据
-// async function fetchChartData() {
-//   chartLoading.value = true
-//   try {
-//     // 再次检查容器是否存在
-//     if (!chartContainer.value) {
-//       console.error('图表容器仍未找到，跳过图表渲染')
-//       return
-//     }
-
-//     // 调用后端API获取预计算的统计数据
-//     const res = await orderApi.fetchOrderStatistics()
-
-//     // 手动数据映射，确保数据结构正确
-//     if (res?.data) {
-//       // 映射每日数据
-//       const mappedDaily: DailyChartData[] = (res.data.daily || []).map((item: any) => ({
-//         date: item.date || '',
-//         clientName: item.clientName || '',
-//         versionIterationCount: Number(item.versionIterationCount) || 0,
-//         deliveryCount: Number(item.deliveryCount) || 0,
-//       }))
-
-//       // 映射周数据
-//       const mappedWeekly: WeeklyChartData[] = (res.data.weekly || []).map((item: any) => ({
-//         weekLabel: item.weekLabel || '',
-//         clientName: item.clientName || '',
-//         versionIterationCount: Number(item.versionIterationCount) || 0,
-//         deliveryCount: Number(item.deliveryCount) || 0,
-//       }))
-
-//       // 映射月数据
-//       const mappedMonthly: MonthlyChartData[] = (res.data.monthly || []).map((item: any) => ({
-//         monthLabel: item.monthLabel || '',
-//         clientName: item.clientName || '',
-//         versionIterationCount: Number(item.versionIterationCount) || 0,
-//         deliveryCount: Number(item.deliveryCount) || 0,
-//       }))
-
-//       chartStatistics.value = {
-//         daily: mappedDaily,
-//         weekly: mappedWeekly,
-//         monthly: mappedMonthly,
-//       }
-
-//       console.warn('图表数据加载成功:', chartStatistics.value)
-//     }
-//     else {
-//       throw new Error('响应数据为空')
-//     }
-//   }
-//   catch (error) {
-//     console.error('获取图表数据失败:', error)
-//     ElMessage.error('获取图表数据失败')
-//   }
-//   finally {
-//     chartLoading.value = false
-//   }
-// }
 
 // 新增：获取图表统计数据
 async function fetchChartData() {
@@ -537,8 +480,8 @@ function renderChart() {
           type: 'line',
           smooth: false,
           symbol: 'circle',
-          symbolSize: 6,
-          lineStyle: { width: 3 },
+          symbolSize: 16,
+          lineStyle: { width: 8 },
           itemStyle: { color: colors[index % colors.length] },
           label: {
             show: true,
@@ -740,6 +683,34 @@ function toggleClient(clientName: string) {
   renderChart() // 直接重新渲染，不需要重新获取数据
 }
 
+function getOrderSteps(type: string): string[] {
+  if (type === '版本迭代') {
+    return ['待审批', '待分发', '待封装', '已完成']
+  }
+  if (type === '交付发送') {
+    return ['待审批', '待分发', '待加密', '待发送', '已完成']
+  }
+  if (type === '版本迭代+交付发送') {
+    return ['待审批', '待分发', '待封装', '待加密', '待发送', '已完成']
+  }
+  // 问题复现、功能开发、其他
+  return ['待审批', '待分发', '进行中', '已完成']
+}
+
+function getStepColor(currentStatus: string, step: string): string {
+  if (currentStatus === step) {
+    return '#409eff'
+  }
+  // 已完成的步骤用绿色
+  const steps = ['待审批', '待分发', '待封装', '待加密', '待发送', '进行中', '已完成']
+  const currentIdx = steps.indexOf(currentStatus)
+  const stepIdx = steps.indexOf(step)
+  if (stepIdx < currentIdx) {
+    return '#67c23a'
+  }
+  return '#c0c4cc'
+}
+
 const pageLoading = ref(false)
 // 页面加载时获取数据
 onMounted(async () => {
@@ -783,7 +754,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 待办工单信息内容块 -->
+      <!-- 待办工单内容块，仅显示流程信息，使用时间轴 -->
       <FaPageMain class="mb-6">
         <template #title>
           <div class="flex items-center gap-2">
@@ -796,7 +767,6 @@ onUnmounted(() => {
           </div>
         </template>
 
-        <!-- ...待办工单内容保持不变... -->
         <el-skeleton :loading="loading" animated>
           <template #template>
             <div class="space-y-4">
@@ -817,74 +787,45 @@ onUnmounted(() => {
             </div>
 
             <div v-else class="space-y-4">
-              <!-- 每一条待办工单 -->
               <FaPageMain
                 v-for="order in userOrders"
                 :key="order.orderID"
                 class="border border-gray-200"
               >
-                <div class="w-full flex items-center justify-between">
-                  <div>
-                    <span class="block flex items-center text-lg text-black font-extrabold tracking-wide">
-                      工单#{{ order.orderID }}
-                      <span
-                        class="ml-4 align-middle text-base font-bold"
-                        :class="{
-                          'text-blue-700': order.type === '问题复现',
-                          'text-green-700': order.type === '版本迭代',
-                          'text-yellow-700': order.type === '交付发送',
-                          'text-purple-700': order.type === '直接封装+发送',
-                          'text-pink-700': order.type === '功能开发',
-                          'text-gray-700': order.type === '其他',
-                        }"
-                      >
-                        {{ order.type }}
-                      </span>
-                    </span>
-                    <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
-                      <span>
-                        <i class="i-mdi-cube mr-1 text-blue-400" />
-                        <span class="text-gray-600">模型：</span>
-                        <span class="text-black font-bold">{{ order.modelID }}</span>
-                      </span>
-                      <span>
-                        <i class="i-mdi-account mr-1 text-blue-400" />
-                        <span class="text-gray-600">发起人ID：</span>
-                        <span class="text-black font-bold">{{ order.promoterID }}</span>
-                      </span>
-                      <span>
-                        <i class="i-mdi-calendar-clock mr-1 text-blue-400" />
-                        <span class="text-gray-600">发起时间：</span>
-                        <span class="text-black font-bold">{{ order.startTime }}</span>
-                      </span>
-                      <span>
-                        <i class="i-mdi-flag mr-1 text-blue-400" />
-                        <span class="text-gray-600">参考优先级：</span>
-                        <span class="text-black font-bold">{{ order.referencePriority || '无' }}</span>
-                      </span>
-                      <span>
-                        <i class="i-mdi-alert mr-1 text-blue-400" />
-                        <span class="text-gray-600">任务优先级：</span>
-                        <span class="text-black font-bold">{{ order.taskPriority || '无' }}</span>
-                      </span>
-                      <span>
-                        <i class="i-mdi-progress-clock mr-1 text-blue-400" />
-                        <span class="text-gray-600">当前状态：</span>
-                        <span
-                          class="ml-2 rounded-full px-3 py-1 font-bold"
-                          :class="{
-                            'bg-yellow-100 text-yellow-700': order.status === '草稿',
-                            'bg-orange-100 text-orange-700': order.status === '待审批',
-                            'bg-purple-100 text-purple-700': order.status === '待分发',
-                            'bg-blue-100 text-blue-700': order.status === '进行中',
-                            'bg-green-100 text-green-700': order.status === '已完成',
-                            'bg-red-100 text-red-700': order.status === '已退回',
-                          }"
+                <div class="px-4 py-2">
+                  <div class="mb-2 text-lg font-bold text-black">
+                    工单#{{ order.orderID }}
+                    <span class="ml-2 text-base font-semibold" :class="{
+                      'text-blue-700': order.type === '问题复现',
+                      'text-green-700': order.type === '版本迭代',
+                      'text-yellow-700': order.type === '交付发送',
+                      'text-purple-700': order.type === '版本迭代+交付发送',
+                      'text-pink-700': order.type === '功能开发',
+                      'text-gray-700': order.type === '其他',
+                    }">{{ order.type }}</span>
+                  </div>
+                  <!-- 横向时间轴 -->
+                  <div class="flex items-center justify-start gap-8 px-2 py-4">
+                    <template v-for="(step, idx) in getOrderSteps(order.type)" :key="step">
+                      <div class="flex flex-col items-center">
+                        <div
+                          class="w-8 h-8 flex items-center justify-center rounded-full border-2"
+                          :class="order.status === step ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
+                            : getStepColor(order.status, step) === '#67c23a' ? 'bg-green-100 border-green-600 text-green-600'
+                              : 'bg-gray-100 border-gray-300 text-gray-400'"
                         >
-                          {{ order.status }}
+                          <span v-if="order.status === step">✔</span>
+                          <span v-else>{{ idx + 1 }}</span>
+                        </div>
+                        <span
+                          class="mt-2 text-sm"
+                          :class="order.status === step ? 'font-bold text-blue-600' : getStepColor(order.status, step) === '#67c23a' ? 'text-green-600' : 'text-gray-500'"
+                        >
+                          {{ step }}
                         </span>
-                      </span>
-                    </div>
+                      </div>
+                      <div v-if="idx < getOrderSteps(order.type).length - 1" class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    </template>
                   </div>
                 </div>
               </FaPageMain>
@@ -904,6 +845,10 @@ onUnmounted(() => {
                 <i class="i-mdi-information-outline text-purple-500" />
                 (显示不同时间段的工单发送趋势)
               </span>
+            </div>
+            <!-- 新增提示语 -->
+            <div v-if="selectedOrderType === '交付发送'" class="mt-2 text-sm text-orange-600 font-semibold">
+              提示：点击客户曲线数据点可跳转到该客户的发送详情页面
             </div>
           </template>
 
