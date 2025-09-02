@@ -15,6 +15,8 @@ public:
     virtual bool completeTicket(const Ticket& ticket){return true;};
     virtual bool completeConcreteTicket(const Ticket& ticket){return true;};
     virtual bool completeSendTicket(const Ticket& ticket){return true;};
+    virtual bool completePackageSendTicket(const TicketPackage& ticket){return true;};
+    virtual bool completePackageSendEncryptedTicket(const TicketPackage& ticket){return true;};
 
 
     virtual std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string,std::string> filter, int offset, int pageSize) = 0;

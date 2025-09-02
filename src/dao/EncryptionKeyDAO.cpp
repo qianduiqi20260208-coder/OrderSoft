@@ -659,7 +659,8 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 {
     char sql[SQL_MAX];
     int ret;
-
+    
+    MYSQL* mysql = getConnection();
     if (!mysql) {
         LOG_ERROR("function:updateAuthorizationEndDates MySQL连接为空！\n");
         return false;
@@ -767,6 +768,7 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     char sql[SQL_MAX];
     int ret;
 
+    MYSQL* mysql = getConnection();
     if (!mysql) {
         LOG_ERROR("function:updateShellDeviceInfo MySQL连接为空！\n");
         return false;

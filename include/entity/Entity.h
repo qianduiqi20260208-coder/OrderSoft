@@ -49,6 +49,7 @@ struct TicketTranfer {
     std::vector<std::string> createId;
     std::string ticketType; // 工单类型
     std::string transferType; // 流转类型
+    std::string newModelVersion; // 新的模型版本
 };
 
 struct Ticket {
@@ -314,6 +315,7 @@ struct TicketPackage :public Ticket{
     std::string baseModelVersion;// 模型基版本
     bool encrypted; // 是否加密
     std::vector<std::string> dongle; // 外壳号列表
+    std::string dongles; // 外壳号列表
     std::string license; // 授权ID
     std::string authorizationIdList; // 授权ID列表
     std::string remark; // 备注
