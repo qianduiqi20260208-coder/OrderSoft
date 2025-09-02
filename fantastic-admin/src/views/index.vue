@@ -615,11 +615,10 @@ function renderChart() {
     chartInstance.value.setOption(option)
     // 新增：监听点击事件
     chartInstance.value.on('click', (params: any) => {
-      // 支持点击数据点和x轴标签
+      // 只有交付发送工单类型时，点击客户曲线（series）才跳转
       if (
         selectedOrderType.value === '交付发送' && params.componentType === 'series' && params.seriesName
       ) {
-        console.warn('client', params.seriesName)
         router.push({
           path: '/client_manage/send_detail',
           query: {
