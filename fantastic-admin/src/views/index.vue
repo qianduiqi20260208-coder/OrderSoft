@@ -2,11 +2,13 @@
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import deliveryApi from '@/api/modules/delivery'
 import orderApi from '@/api/modules/order'
 import { useUserStore } from '@/store/modules/user'
 
 // -----------------变量定义-----------------
+const router = useRouter()
 const loading = ref(false)
 const userOrders = ref<OrderItem[]>([])
 const totalPendingCount = ref(0)
@@ -611,6 +613,21 @@ function renderChart() {
     }
 
     chartInstance.value.setOption(option)
+    // 新增：监听点击事件
+    chartInstance.value.on('click', (params: any) => {
+      // 支持点击数据点和x轴标签
+      if (
+        selectedOrderType.value === '交付发送' && params.componentType === 'series' && params.seriesName
+      ) {
+        console.warn('client', params.seriesName)
+        router.push({
+          path: '/client_manage/send_detail',
+          query: {
+            clientName: params.seriesName,
+          },
+        })
+      }
+    })
   }
   catch (error) {
     console.error('渲染图表时出错:', error)

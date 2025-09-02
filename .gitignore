@@ -16,3 +16,4 @@ CMakeLists.txt
 CMakeLists.txt
 CMakeLists.txt
 fantastic-admin/.env.development
+.vscode/launch.json

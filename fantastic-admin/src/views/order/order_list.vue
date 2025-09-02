@@ -371,7 +371,14 @@ async function fetchUserOrders(page = 1) {
         targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称 ======================
         isCAEChecked: order.deliverySend?.validatedByCae || order.packageSend?.validatedByCae || '', // 是否通过CAE ====================
         hasSensitiveInfo: order.deliverySend?.sensitiveInfo || order.packageSend?.sensitiveInfo || '', // 是否包含敏感信息 ========================
-        targetDeliveryTime: order.deliverySend?.targetDeliveryTime || order.packageSend?.targetDeliveryTime || '', // 预计发送时间 =================
+        // 预计发送时间 =================
+        targetDeliveryTime: (
+          order.deliverySend?.targetDeliveryTime
+            ? order.deliverySend.targetDeliveryTime.split(' ')[0]
+            : (order.packageSend?.targetDeliveryTime
+                ? order.packageSend.targetDeliveryTime.split(' ')[0]
+                : '')
+        ),
 
         featureDesc: order.functionDevelopment?.descriptionCreate || '', // 功能描述 =====================
         contentDesc: order.otherWorkOrder?.description || '', // 内容描述====================
@@ -1001,7 +1008,11 @@ function handleCopyOrder(order: OrderItem) {
                       </span>
                       <span>
                         <span class="text-gray-600">Matlab版本：</span>
-                        <span class="text-black font-bold">{{ order.completeModelVersion || 'NA' }}</span>
+                        <span class="text-black font-bold">{{ order.completeModelVersion}}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">升级后版本：</span>
+                        <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">任务优先级：</span>

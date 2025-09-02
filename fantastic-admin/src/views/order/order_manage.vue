@@ -618,7 +618,14 @@ async function fetchUserOrders() {
         targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称 ======================
         isCAEChecked: order.deliverySend?.validatedByCae || order.packageSend?.validatedByCae || '', // 是否通过CAE ====================
         hasSensitiveInfo: order.deliverySend?.sensitiveInfo || order.packageSend?.sensitiveInfo || '', // 是否包含敏感信息 ========================
-        targetDeliveryTime: order.deliverySend?.targetDeliveryTime || order.packageSend?.targetDeliveryTime || '', // 预计发送时间 =================
+        // 预计发送时间 =================
+        targetDeliveryTime: (
+          order.deliverySend?.targetDeliveryTime
+            ? order.deliverySend.targetDeliveryTime.split(' ')[0]
+            : (order.packageSend?.targetDeliveryTime
+                ? order.packageSend.targetDeliveryTime.split(' ')[0]
+                : '')
+        ),
 
         featureDesc: order.functionDevelopment?.descriptionCreate || '', // 功能描述 =====================
 
