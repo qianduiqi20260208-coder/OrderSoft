@@ -62,22 +62,39 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
         }
     }else if(ticket.ticketType == "交付发送"){
         // //去产品授权表里根据外壳号以及授权码找出唯一的产品授权ID
-        // const TicketDelivery& tmp = dynamic_cast<const TicketDelivery&>(ticket);
-        // //判断是否加密，然后分开处理
-        // if(tmp.encrypted)
-        // {
-        //     snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
-        //         tmp.encrypted,tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
-        // }else{
-        //     snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
-        // }
-
-        // local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-        // if (local_ret) {
-        //     LOG_ERROR("function:completeConcreteTicket 修改delivery_send表失败！失败原因：%s", mysql_error(conn));
-        //     mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
-        //     return false;
-        // }
+        const TicketDelivery& tmp = dynamic_cast<const TicketDelivery&>(ticket);
+        //判断是否加密，然后分开处理
+        if(tmp.encrypted)
+        {
+            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = %d,shell_code = '%s',remarks = '%s' ,auth_id = '%s' where work_order_id = %d;", 
+                tmp.encrypted,tmp.dongleId.c_str(),tmp.remark.c_str(),tmp.licenseId.c_str(),tmp.Ticket::id);
+        }else{
+            snprintf(local_sql, SQL_MAX, "update delivery_send set is_encrypted = 0, remarks = '%s' where work_order_id = %d;", tmp.remark.c_str(), tmp.Ticket::id);
+        }
+        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        if (local_ret) {
+            LOG_ERROR("function:completeConcreteTicket 修改delivery_send表失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+        
+        snprintf(local_sql, SQL_MAX, "update work_order set encrypted_remark = '%s' where work_order_id = %d;", 
+            tmp.remark.c_str(),tmp.Ticket::id);
+        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        if (local_ret) {
+            LOG_ERROR("function:completeConcreteTicket 修改work_order表失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
+        // INSERT INTO `model_life_manager`.`work_order_executor` ( `work_order_id`, `executor_id`, `create_at`, `status`, `create_id`, `encryption_status`) 
+        snprintf(local_sql, SQL_MAX, "INSERT INTO work_order_executor (work_order_id,executor_id, create_at, status, create_id, encryption_status) VALUES (%d,'%s', NOW(), '加密', '%s', '0');"
+            , tmp.Ticket::id, tmp.sendExecutorId.c_str(), tmp.executorId.c_str());
+        local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+        if (local_ret) {
+            LOG_ERROR("function:completeConcreteTicket 插入work_order_executor表失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            return false;
+        }
         
     }else if(ticket.ticketType == "直接封装+发送"){
         
@@ -2307,7 +2324,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
     ss << " ORDER BY wo.created_at DESC";
     ss << " LIMIT " << count << " OFFSET " << offset;
     
-    printf("SQL执行: %s", ss.str().c_str());
+    LOG_DEBUG("SQL执行: %s", ss.str().c_str());
     
     int ret = mysql_real_query(conn, ss.str().c_str(), ss.str().size());
     if (ret) {
@@ -2432,6 +2449,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             packageInfo["remarks"] = row[67] ? row[67] : "";
             packageInfo["matlabVersion"] = row[68] ? row[68] : "";
             packageInfo["targetDeliveryTime"] = row[69] ? row[69] : "";
+            packageInfo["newModelVersion"] = row[84] ? row[84] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
@@ -2559,11 +2577,11 @@ bool TicketDAO::completeSendTicket(const Ticket& ticket)
     
     char sql[SQL_MAX];
     int ret;
-    // 获取当前时间
-    // 获取当前时间
+    // 获取当前时间 (UTF-8时区)
     std::time_t now = std::time(nullptr);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    // 使用UTC时间，确保UTF-8编码兼容性
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
     std::string completedTime = timeStr;
     try {
         // 1. 更新工单状态为已完成
@@ -2697,7 +2715,7 @@ bool TicketDAO::completePackageSendTicket(const TicketPackage& ticket)
     // 获取当前时间
     std::time_t now = std::time(nullptr);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
     std::string completedTime = timeStr;
     
     try {
@@ -2826,7 +2844,7 @@ bool TicketDAO::completePackageSendEncryptedTicket(const TicketPackage& ticket)
     // 获取当前时间
     std::time_t now = std::time(nullptr);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
     std::string completedTime = timeStr;
     
     try {
