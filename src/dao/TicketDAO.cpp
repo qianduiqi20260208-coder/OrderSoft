@@ -585,17 +585,17 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
             }
 
             
-            snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '发送', '%s');",
-            ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
-            if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
-                std::cerr << "插入work_order_executor发送记录失败：" << mysql_error(conn) << std::endl;
-                mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
-                return false;
-            }
         }
         
+        snprintf(local_sql, SQL_MAX, "INSERT INTO `work_order_executor` (`work_order_id`, `executor_id`, `create_at`,  `status`, `create_id`) VALUES (%d, '%s', NOW(), '发送', '%s');",
+        ticket.id,ticket.sendExecutorId.c_str(),ticket.executorId.c_str());
+        if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
+            std::cerr << "插入work_order_executor发送记录失败：" << mysql_error(conn) << std::endl;
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+            return false;
+        }
         // 修改work_order status_todo信息
-        snprintf(local_sql, SQL_MAX, "update work_order set status_todo = '待发送' where id = %d;",ticket.id);
+        snprintf(local_sql, SQL_MAX, "update work_order set status_todo = '待发送',encrypted_remark = '%s' where id = %d;",ticketDelivery.remark.c_str(),ticket.id);
         if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
             std::cerr << "更新work_order状态失败：" << mysql_error(conn) << std::endl;
             mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
@@ -2315,7 +2315,22 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                 ss << "wo." << ele.first << " = '" << ele.second << "'";
             }
         } else {
-            ss << "wo." << ele.first << " LIKE '%" << ele.second << "%'";
+            if(ele.first == "model") {
+                // 处理以逗号分割的模型名字符串，使用IN查询
+                ss << "wo." << ele.first << " IN (";
+                std::string models = ele.second;
+                std::stringstream modelStream(models);
+                std::string model;
+                bool firstModel = true;
+                while(std::getline(modelStream, model, ',')) {
+                    if(!firstModel) ss << ",";
+                    ss << "'" << model << "'";
+                    firstModel = false;
+                }
+                ss << ")";
+            } else {
+                ss << "wo." << ele.first << " LIKE '%" << ele.second << "%'";
+            }
         }
         first = false;
     }
