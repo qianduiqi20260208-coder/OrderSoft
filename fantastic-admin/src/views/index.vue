@@ -166,15 +166,15 @@ async function apiFetchRecentOrders() {
 
     return sortedOrders.map((order: any) => {
       const mappedOrder: OrderItem = {
-        orderID: order.orderID || '',
-        type: order.type || '其他',
-        status: order.status || '草稿',
-        referencePriority: order.referencePriority || '',
+        orderID: order.workOrderId || '',
+        type: order.workOrderType || '其他',
+        status: order.workOrderStatus || '草稿',
+        referencePriority: order.priority || '',
         taskPriority: order.taskPriority || '',
-        modelID: order.modelID || '',
-        modelVersionID: order.modelVersionID || '',
-        promoterID: order.promoterID || '',
-        startTime: order.startTime || '',
+        modelID: order.model || '',
+        modelVersionID: order.modelVersion || '',
+        promoterID: order.creatorName || '',
+        startTime: order.createdAt || '',
       }
       return mappedOrder
     })
@@ -817,7 +817,7 @@ onUnmounted(() => {
                           'text-blue-700': order.type === '问题复现',
                           'text-green-700': order.type === '版本迭代',
                           'text-yellow-700': order.type === '交付发送',
-                          'text-purple-700': order.type === '版本迭代+交付发送',
+                          'text-purple-700': order.type === '直接封装+发送',
                           'text-pink-700': order.type === '功能开发',
                           'text-gray-700': order.type === '其他',
                         }"
@@ -962,7 +962,7 @@ onUnmounted(() => {
 
       <!-- 近期发送工单信息内容块 -->
       <FaAuth :value="['SuperUser', 'ModelEngineer']">
-        <FaPageMain class="mb-6">
+        <FaPageMain class="mb-6" v-if="recentOrders.length > 0">
           <template #title>
             <div class="flex items-center gap-2">
               <i class="i-mdi-send-outline text-2xl text-green-500" />

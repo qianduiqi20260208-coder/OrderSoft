@@ -9,6 +9,9 @@ export default {
     orderID?: string // 工单ID（可选，支持模糊搜索）
     type?: string // 工单类型（如问题复现、迭代等，可选）
     promoterID?: string // 发起人工号（可选）
+    approverID?: string // 审批人ID（可选）
+    distributorID?: string // 发行人ID（可选）
+    executorID?: string // 执行人ID（可选）
     modelID?: string // 模型ID（可选）
     referencePriority?: string // 参考优先级（可选）
     taskPriority?: string // 任务优先级（可选）
@@ -126,6 +129,7 @@ export default {
   approveOrder: (data: {
     orderID: string // 工单ID
     status: string // 工单状态（审批后变为待分发）
+    orderType: string // 工单类型
     approverID: string // 审批人ID（当前用户）
     approveTime: string // 审批通过时间（系统自动获取）
     referencePriority: string // 参考优先级（审批时设置）
@@ -182,50 +186,50 @@ export default {
     // baseURL: '/mock/',
   }),
 
-  // 版本迭代工单完成接口
-  finishIterOrder: (data: {
-    orderID: string // 工单ID
-    modelID: string // 模型ID
-    status: string // 工单状态（已完成）
-    finishTime: string // 完成时间
-    finishModelVersion: string // 升级后模型版本
-    finishRemark: string // 备注
-    executorID: string // 完成人ID
-  }) => api.post('order/finish-iter', data, {
-    // baseURL: '/mock/',
-  }),
+  // // 版本迭代工单完成接口
+  // finishIterOrder: (data: {
+  //   orderID: string // 工单ID
+  //   modelID: string // 模型ID
+  //   status: string // 工单状态（已完成）
+  //   finishTime: string // 完成时间
+  //   finishModelVersion: string // 升级后模型版本
+  //   finishRemark: string // 备注
+  //   executorID: string // 完成人ID
+  // }) => api.post('order/finish-iter', data, {
+  //   // baseURL: '/mock/',
+  // }),
 
-  // 交付发送工单完成接口
-  finishDeliverOrder: (data: {
-    orderID: string // 工单ID
-    status: string // 工单状态（已完成）
-    finishTime: string // 完成时间
-    isEncrypted: string // 是否加密（是/否）
-    finishAuthId: string // 授权ID
-    finishShellNo: string[] // 外壳号
-    authorizationId_list: string[] // 授权ID主键数组
-    finishRemark: string // 备注
-    executorID: string // 完成人ID
-  }) => api.post('order/finish-deliver', data, {
-    // baseURL: '/mock/',
-  }),
+  // // 交付发送工单完成接口
+  // finishDeliverOrder: (data: {
+  //   orderID: string // 工单ID
+  //   status: string // 工单状态（已完成）
+  //   finishTime: string // 完成时间
+  //   isEncrypted: string // 是否加密（是/否）
+  //   finishAuthId: string // 授权ID
+  //   finishShellNo: string[] // 外壳号
+  //   authorizationId_list: string[] // 授权ID主键数组
+  //   finishRemark: string // 备注
+  //   executorID: string // 完成人ID
+  // }) => api.post('order/finish-deliver', data, {
+  //   // baseURL: '/mock/',
+  // }),
 
-  // 版本迭代+交付发送工单完成接口
-  finishIterDeliverOrder: (data: {
-    orderID: string // 工单ID
-    status: string // 工单状态（已完成）
-    modelID: string // 模型ID
-    finishTime: string // 完成时间
-    finishModelVersion: string // 升级后模型版本
-    isEncrypted: string // 是否加密（是/否）
-    finishAuthId: string // 授权ID
-    finishShellNo: string[] // 外壳号
-    authorizationId_list: string[] // 授权ID主键数组
-    finishRemark: string // 备注
-    executorID: string // 完成人ID
-  }) => api.post('order/finish-iter-deliver', data, {
-    // baseURL: '/mock/',
-  }),
+  // // 版本迭代+交付发送工单完成接口
+  // finishIterDeliverOrder: (data: {
+  //   orderID: string // 工单ID
+  //   status: string // 工单状态（已完成）
+  //   modelID: string // 模型ID
+  //   finishTime: string // 完成时间
+  //   finishModelVersion: string // 升级后模型版本
+  //   isEncrypted: string // 是否加密（是/否）
+  //   finishAuthId: string // 授权ID
+  //   finishShellNo: string[] // 外壳号
+  //   authorizationId_list: string[] // 授权ID主键数组
+  //   finishRemark: string // 备注
+  //   executorID: string // 完成人ID
+  // }) => api.post('order/finish-iter-deliver', data, {
+  //   // baseURL: '/mock/',
+  // }),
 
   // 功能开发工单完成接口
   finishDevOrder: (data: {
@@ -262,6 +266,7 @@ export default {
     finishModelVersion: string // 升级后模型版本
     packageRemark: string // 备注
     executorID: string // 完成人ID
+    encryptedExecutorID?: string // 加密人ID
   }) => api.post('order/finish-package', data, {
     // baseURL: '/mock/',
   }),
@@ -277,7 +282,8 @@ export default {
     finishShellNo: string[] // 外壳号
     authorizationId_list: string[] // 授权ID主键数组
     encryptedRemark: string // 加密备注
-    executorID: string // 完成人ID
+    executorID: string // 执行人ID
+    sendExecutorID: string // 发送人ID
   }) => api.post('order/finish-encrypt', data, {
     // baseURL: '/mock/',
   }),
@@ -325,6 +331,7 @@ export default {
     transferExecutorID: string // 流转执行人ID
     transferReason: string // 流转原因
     transferTime: string // 流转时间
+    finishModelVersion: string // 更新版本
   }) => api.post('order/transfer_encrypted', data, {
     // baseURL: '/mock/',
   }),

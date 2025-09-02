@@ -625,6 +625,7 @@ async function submitOtherOrder() {
 }
 
 onMounted(() => {
+  clientSuffixStore.fetchClientSuffixes() // 每次进入页面都请求后端获取客户后缀信息
   if (route.query.fromList === '1') {
     console.warn('从工单列表跳转到创建页面，复制工单类型:', route.query.copyType)
     // 判断是否为复制问题复现工单
