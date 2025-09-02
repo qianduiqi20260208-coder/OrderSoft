@@ -11,10 +11,10 @@ interface ImportMetaEnv {
   /**
    * 接口请求地址，会设置到 axios 的 baseURL 参数上
    * VITE_APP_API_BASEURL = /
+   * VITE_APP_API_BASEURL = http://localhost:18080/ # 需要与真实后端相连时填写对应的后端地址
    */
   readonly VITE_APP_API_BASEURL: string
   /**
-   * VITE_APP_API_BASEURL = http://172.16.22.95:18080/ # 胡
    * 调试工具，可设置 eruda 或 vconsole，如果不需要开启则留空
    */
   readonly VITE_APP_DEBUG_TOOL: string

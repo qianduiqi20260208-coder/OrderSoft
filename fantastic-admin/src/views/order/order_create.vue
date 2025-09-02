@@ -52,7 +52,8 @@ function handleProblemFileChange(file: any, fileList: any[]) {
   if (fileList.length > 1) {
     // 只保留最后一个文件，重新赋值为新数组
     problemOrderForm.value.files = [fileList[fileList.length - 1]]
-  } else {
+  }
+  else {
     problemOrderForm.value.files = [...fileList]
   }
 }

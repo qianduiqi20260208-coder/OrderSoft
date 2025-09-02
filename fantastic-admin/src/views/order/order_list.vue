@@ -77,9 +77,6 @@ interface Encrypted_Info
   encryptedRemark?: string // 加密环节备注
 }
 
-
-
-
 // 定义工单所包括的内容
 interface OrderItem {
   // 工单类型
@@ -267,7 +264,6 @@ async function downloadFile(fileUrl: string, fileName: string) {
   }
 }
 
-
 // 修改原有的分页查询函数，添加来源标识
 async function fetchUserOrders(page = 1) {
   loading.value = true
@@ -365,7 +361,12 @@ async function fetchUserOrders(page = 1) {
 
         updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '', // 版本更新内容说明 =========================
         packageRequirement: order.versionIteration?.packagingRequirements || order.packageSend?.packagingRequirements || '', // 封装要求 =======================
-        apiChanged: order.versionIteration?.interfaceChanged || order.packageSend?.interfaceChanged || '', // 接口是否变化 =====================
+        // 接口是否变化
+        apiChanged: typeof order.versionIteration?.interfaceChanged === 'boolean'
+          ? (order.versionIteration.interfaceChanged ? '是' : '否')
+          : (typeof order.packageSend?.interfaceChanged === 'boolean'
+              ? (order.packageSend.interfaceChanged ? '是' : '否')
+              : ''),
 
         targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称 ======================
         isCAEChecked: order.deliverySend?.validatedByCae || order.packageSend?.validatedByCae || '', // 是否通过CAE ====================
@@ -413,7 +414,8 @@ async function fetchUserOrders(page = 1) {
           fileName: mappedOrder.fileName,
           fileUrl: mappedOrder.fileUrl,
         }]
-      } else {
+      }
+      else {
         mappedOrder.files = []
       }
       return mappedOrder
@@ -1409,7 +1411,6 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
               </FaPageMain>
 
-
               <!-- 版本迭代+交付发送类工单-加密（只读展示，进行中/已完成） -->
               <FaPageMain
                 v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
@@ -1522,7 +1523,7 @@ function handleCopyOrder(order: OrderItem) {
 
               <!-- 版本迭代+交付发送类工单-封装（只读展示，进行中/已完成） -->
               <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待封装','待加密', '待发送'].includes(order.statusTodo ?? '')"
+                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待封装', '待加密', '待发送'].includes(order.statusTodo ?? '')"
                 title=""
                 :collaspe="!expandedMap[order.orderID]"
                 height="auto"
@@ -1552,7 +1553,7 @@ function handleCopyOrder(order: OrderItem) {
                   </div>
                 </template>
                 <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
-                    :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'">
+                     :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'">
                   <!-- 升级后模型版本（只读） -->
                   <div class="col-span-1 w-full flex items-center gap-2">
                     <span class="w-40 text-black font-semibold">
@@ -1634,7 +1635,7 @@ function handleCopyOrder(order: OrderItem) {
                   <div class="col-span-2 w-full flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">封装备注：</span>
                     <textarea
-                      :value="order.packageRemark"
+                      :value="order.finishRemark"
                       class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
                       rows="2"
                       readonly
