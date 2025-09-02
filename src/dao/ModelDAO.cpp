@@ -51,7 +51,7 @@ std::vector<std::string> ModelDAO::getModelVersionByModel(std::string modelName)
     MYSQL* conn = getConnection();
     std::vector<std::string> modelVersion;
 
-    snprintf(sql, SQL_MAX, "select version from model_version where model ='%s' order by id desc;",modelName.c_str());
+    snprintf(sql, SQL_MAX, "select version from model_version  where model ='%s' order by id desc;",modelName.c_str());
     ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
         LOG_ERROR("function:getModelVersionByModel 查询model_version表失败！失败原因：%s", mysql_error(conn));

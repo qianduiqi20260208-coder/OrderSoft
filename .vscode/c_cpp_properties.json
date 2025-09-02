@@ -10,7 +10,7 @@
                 "${workspaceFolder}/include/dao",
                 "${workspaceFolder}/include/service",
                 "${workspaceFolder}/include/controller",
-                // "${workspaceFolder}/extern/**",
+                "${workspaceFolder}/extern/**",
                 "${workspaceFolder}/extern/Crow-master/include",
                 "${workspaceFolder}/extern/asio/asio-1.34.2/include",
                 "${workspaceFolder}/extern/json/json-develop/include",
@@ -28,7 +28,7 @@
                 "_WIN32",
                 "DEBUG"
             ],
-            "compilerPath": "D:/software/mingw64/bin/g++.exe",
+            "compilerPath": "D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin/g++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-gcc-x64",

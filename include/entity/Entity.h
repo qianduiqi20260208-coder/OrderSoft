@@ -47,6 +47,9 @@ struct TicketTranfer {
     std::vector<std::string> timestamp;
     std::vector<std::string> reason;
     std::vector<std::string> createId;
+    std::string ticketType; // 工单类型
+    std::string transferType; // 流转类型
+    std::string newModelVersion; // 新的模型版本
 };
 
 struct Ticket {
@@ -61,6 +64,8 @@ struct Ticket {
     std::string priorityHint; // 参考优先级
     std::string distributorId; // 分发人ID
     std::string executorId; // 执行人ID 分发工单时指定的执行人ID
+    std::string sendExecutorId; // 发送人ID 交付发送工单时指定的发送人ID
+    std::string encryptedExecutorId; // 加密人ID 交付发送工单时指定的加密人ID
     std::string approvedTime; // 审批时间
     std::string priorityTask; // 任务优先级
     std::string distributedTime; // 分发时间
@@ -70,6 +75,9 @@ struct Ticket {
     TicketTranfer executor;//流转工单时对应的执行人们
 
     std::string dispatchRejectReason; // 分发拒绝原因
+    std::string encryptedRemark; // 加密备注
+    std::string sendRemark; // 发送备注
+    std::string packageRemark; // 封装备注
 
 
     // 多态序列化接口,与前端定义的变量对应
@@ -307,6 +315,7 @@ struct TicketPackage :public Ticket{
     std::string baseModelVersion;// 模型基版本
     bool encrypted; // 是否加密
     std::vector<std::string> dongle; // 外壳号列表
+    std::string dongles; // 外壳号列表
     std::string license; // 授权ID
     std::string authorizationIdList; // 授权ID列表
     std::string remark; // 备注
@@ -420,6 +429,7 @@ struct TicketFeature :public Ticket{
     std::string newModelVersion; // 完成后模型版本ID
     std::string baseModelVersion;//模型基版本
     std::string featureFinal; // 完成后功能描述
+    std::string matlab_version; // MATLAB版本
 
     // 多态序列化接口
 	nlohmann::json to_json() const override {
@@ -430,6 +440,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 
@@ -442,6 +453,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["completeModelVersion"] = featureFinal; // 完成功能描述
+        j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
 };

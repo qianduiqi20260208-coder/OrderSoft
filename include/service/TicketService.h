@@ -14,9 +14,16 @@ public:
     bool approveTicket(const Ticket& ticket)override;
     bool dispatchTicket(const Ticket& ticket, const std::string& account)override;
     bool completeTicket(const Ticket& ticket)override;
+    bool completeConcreteTicket(const Ticket& ticket)override;
+    bool completeSendTicket(const Ticket& ticket)override;
+    bool completePackageSendTicket(const TicketPackage& ticket)override;
+    bool completePackageSendEncryptedTicket(const TicketPackage& ticket)override;
 
     //根据条件筛选工单
     std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string,std::string> filter, int offset, int pageSize) override;
+    
+    // 新增：复杂工单查询方法（支持分页）
+    std::vector<nlohmann::json> selectOrderByConditionWithDetails(const std::map<std::string,std::string> filter, int offset, int pageSize) override;
 
     //工单流转的实现
     bool orderTransfer(const TicketTranfer& executor) override;

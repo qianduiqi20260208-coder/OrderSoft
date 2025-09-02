@@ -16,10 +16,14 @@ public:
     virtual bool approveTicket(const Ticket& ticket){return true;};
     virtual bool dispatchTicket(const Ticket& ticket, const std::string& account){return true;};
     virtual bool completeTicket(const Ticket& ticket){return true;};
+    virtual bool completeSendTicket(const Ticket& ticket){return true;};
+    virtual bool completePackageSendTicket(const TicketPackage& ticket){return true;};
+    virtual bool completePackageSendEncryptedTicket(const TicketPackage& ticket){return true;};
     
     virtual std::vector<std::shared_ptr<Ticket>> selectOrderByCondition_(const std::map<std::string, std::string>& filter, int offset, int count) = 0;
 
     // 新增：复杂工单查询方法（支持分页）
+    virtual std::vector<nlohmann::json> selectOrderByConditionWithDetails(const std::map<std::string, std::string>& filter, int offset, int count) = 0;
 
     
     // 新增：版本分页查询方法
