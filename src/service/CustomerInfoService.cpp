@@ -347,6 +347,13 @@ std::vector<std::pair<std::string, std::string>> CustomerInfoService::getAllClie
     return result;
 }
 
+std::pair<int, int> CustomerInfoService::getModelAndModelVersionCountByClient(const std::string &clientName)
+{
+    // 统计模型和版本数量
+    std::pair<int, int> modelStats = customerInfoDAO_->selectModelAndModelVersionCountByClient(clientName);
+    return modelStats;
+}
+
 nlohmann::json CustomerInfoService::getClientList()
 {
     nlohmann::json result;

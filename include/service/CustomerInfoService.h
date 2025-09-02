@@ -59,6 +59,9 @@ public:
     // 获取所有客户的suffix字段，返回带有客户标识的后缀列表
     std::vector<std::pair<std::string, std::string>> getAllClientSuffixList();
 
+    // 获取指定客户的模型ATA章节号和发送模型数量
+    std::pair<int,int> getModelAndModelVersionCountByClient(const std::string& clientName) override;
+
 private:
     std::shared_ptr<ICustomerInfoDAO> customerInfoDAO_;
     std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getAllSendRecordGroupedByClient(std::string client);

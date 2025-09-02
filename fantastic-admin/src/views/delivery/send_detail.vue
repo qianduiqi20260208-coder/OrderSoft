@@ -167,6 +167,9 @@ async function fetchSendDetail(clientName: string, page = 1) {
       total.value = res.data.total || 0 // 总日期数量
       currentPage.value = res.data.page || 1 // 当前页码
 
+      modelCount.value = res.data.modelCount || 0 // 发送模型数量
+      modelVersionCount.value = res.data.modelVersionCount || 0 // 发送模型版本数量
+
       // 初始化展开状态（默认都收起）
       expandedMap.value = {}
       mappedData.dailySendRecords.forEach((record) => {
@@ -202,8 +205,8 @@ function handlePageChange(page: number) {
 // 页面加载函数
 onMounted(() => {
   clientName.value = route.query.clientName as string || ''
-  modelCount.value = Number.parseInt(route.query.modelCount as string, 10) || 0
-  modelVersionCount.value = Number.parseInt(route.query.modelVersionCount as string, 10) || 0
+  // modelCount.value = Number.parseInt(route.query.modelCount as string, 10) || 0
+  // modelVersionCount.value = Number.parseInt(route.query.modelVersionCount as string, 10) || 0
 
   if (clientName.value) {
     fetchSendDetail(clientName.value)
