@@ -49,14 +49,15 @@ defineExpose({
           :is="subMenu ? 'div' : 'a'" v-bind="{
             ...(!subMenu && {
               href: item.meta?.link ? item.meta.link : href,
-              target: item.meta?.link ? '_blank' : '_self',
+              // target: item.meta?.link ? '_blank' : '_self',
+
               class: 'no-underline',
             }),
           }" :class="cn('group menu-item-container relative h-full w-full flex cursor-pointer items-center justify-between gap-1 rounded-lg px-4 py-3 text-[var(--g-sub-sidebar-menu-color)] transition-all hover-(bg-[var(--g-sub-sidebar-menu-hover-bg)] text-[var(--g-sub-sidebar-menu-hover-color)])', {
             'text-[var(--g-sub-sidebar-menu-active-color)]! bg-[var(--g-sub-sidebar-menu-active-bg)]!': isItemActive,
             'px-3': rootMenu.isMenuPopup && level === 0,
           })" :title="typeof item.meta?.title === 'function' ? item.meta?.title() : item.meta?.title" v-on="{
-            ...(!subMenu && {
+            ...(!subMenu && !item.meta?.link && {
               click: navigate,
             }),
           }"

@@ -145,7 +145,8 @@ std::shared_ptr<Connection> ConnectionPool::getConnection() {
             return nullptr;
         }
     }
-    
+    LOG_INFO("ConnectionPool::getConnection 剩余连接数量: %d", idleConnections_.size());
+
     std::shared_ptr<Connection> conn;
     
     if (!idleConnections_.empty()) {

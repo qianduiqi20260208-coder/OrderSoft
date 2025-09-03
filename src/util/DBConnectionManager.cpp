@@ -23,7 +23,7 @@ bool DBConnectionManager::initializePool()
     std::string dbName = config.getString("database", "database");
     
     // 读取连接池配置
-    int minConnections = config.getInt("connection_pool", "min_connections", 5);
+    int minConnections = config.getInt("connection_pool", "min_connections", 10);
     int maxConnections = config.getInt("connection_pool", "max_connections", 20);
     int maxIdleTime = config.getInt("connection_pool", "max_idle_time", 300);
     
