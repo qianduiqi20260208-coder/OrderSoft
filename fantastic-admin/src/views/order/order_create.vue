@@ -47,7 +47,7 @@ const problemOrderForm = ref<ProblemOrderForm>({
 })
 
 // 处理附件上传时的回调，更新表单中的文件列表
-function handleProblemFileChange(file: any, fileList: any[]) {
+function handleProblemFileChange(_file: any, fileList: any[]) {
   // 只保留最新上传的文件
   if (fileList.length > 1) {
     // 只保留最后一个文件，重新赋值为新数组
