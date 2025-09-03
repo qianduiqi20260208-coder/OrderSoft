@@ -683,6 +683,13 @@ function toggleClient(clientName: string) {
   renderChart() // 直接重新渲染，不需要重新获取数据
 }
 
+function isCurrentStep(order: OrderItem, step: string): boolean {
+  if (['待封装', '待加密', '待发送'].includes(step)) {
+    return order.statusTodo === step
+  }
+  return order.status === step
+}
+
 function getOrderSteps(type: string): string[] {
   if (type === '版本迭代') {
     return ['待审批', '待分发', '待封装', '已完成']
@@ -697,18 +704,25 @@ function getOrderSteps(type: string): string[] {
   return ['待审批', '待分发', '进行中', '已完成']
 }
 
-function getStepColor(currentStatus: string, step: string): string {
-  if (currentStatus === step) {
-    return '#409eff'
-  }
-  // 已完成的步骤用绿色
-  const steps = ['待审批', '待分发', '待封装', '待加密', '待发送', '进行中', '已完成']
-  const currentIdx = steps.indexOf(currentStatus)
+function getStepColor(order: OrderItem, step: string): string {
+  const steps = getOrderSteps(order.type)
+  let currentIdx = -1
   const stepIdx = steps.indexOf(step)
-  if (stepIdx < currentIdx) {
-    return '#67c23a'
+  // statusTodo 控制待封装、待加密、待发送
+  if (['待封装', '待加密', '待发送'].includes(step)) {
+    currentIdx = steps.indexOf(order.statusTodo ?? '')
+    // 如果 statusTodo 未进入流程，则用 status 作为当前步骤
+    if (currentIdx === -1) {
+      currentIdx = steps.indexOf(order.status)
+    }
   }
-  return '#c0c4cc'
+  else {
+    currentIdx = steps.indexOf(order.status)
+  }
+  if (stepIdx === currentIdx) {
+    return '#409eff' // 当前步骤蓝色
+  }
+  return '#c0c4cc' // 未到灰色
 }
 
 const pageLoading = ref(false)
@@ -810,16 +824,22 @@ onUnmounted(() => {
                       <div class="flex flex-col items-center">
                         <div
                           class="w-8 h-8 flex items-center justify-center rounded-full border-2"
-                          :class="order.status === step ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
-                            : getStepColor(order.status, step) === '#67c23a' ? 'bg-green-100 border-green-600 text-green-600'
+                          :class="isCurrentStep(order, step)
+                            ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'bg-green-100 border-green-600 text-green-600'
                               : 'bg-gray-100 border-gray-300 text-gray-400'"
                         >
-                          <span v-if="order.status === step">✔</span>
+                          <span v-if="isCurrentStep(order, step)">✔</span>
                           <span v-else>{{ idx + 1 }}</span>
                         </div>
                         <span
                           class="mt-2 text-sm"
-                          :class="order.status === step ? 'font-bold text-blue-600' : getStepColor(order.status, step) === '#67c23a' ? 'text-green-600' : 'text-gray-500'"
+                          :class="isCurrentStep(order, step)
+                            ? 'font-bold text-blue-600'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'text-green-600'
+                              : 'text-gray-500'"
                         >
                           {{ step }}
                         </span>
