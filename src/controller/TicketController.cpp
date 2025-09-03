@@ -216,9 +216,9 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     CROW_ROUTE(app, "/order/all").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
-        }
+        // if (!checkToken(req)) {
+        //     return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
+        // }
         
         // 解析查询参数
         auto params = crow::query_string(req.url_params);
@@ -231,8 +231,10 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         std::string referencePriority = params.get("referencePriority") ? params.get("referencePriority") : "";
         std::string taskPriority = params.get("taskPriority") ? params.get("taskPriority") : "";
         std::string status = params.get("status") ? params.get("status") : "";
-        // std::string startDate = params.get("startDate") ? params.get("startDate") : "";
-        // std::string endDate = params.get("endDate") ? params.get("endDate") : "";
+        std::string filterMineFlag = params.get("filterMineFlag") ? params.get("filterMineFlag") : "";
+        std::string userId = params.get("userId") ? params.get("userId") : "";
+        std::string startDate = params.get("startDate") ? params.get("startDate") : "";
+        std::string endDate = params.get("endDate") ? params.get("endDate") : "";
 
         // 构建筛选条件
         std::map<std::string, std::string> filter;
@@ -258,6 +260,18 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
         if (!modelID.empty()) {
             filter["model"] = modelID;  // 根据模型名筛选
+        }
+        if (!filterMineFlag.empty()) {
+            filter["filterMineFlag"] = filterMineFlag;  // 根据我的工单标志筛选
+        }
+        if (!userId.empty()) {
+            filter["userId"] = userId;  // 当前用户ID
+        }
+        if (!startDate.empty()) {
+            filter["startDate"] = startDate;  // 目标交付时间开始日期
+        }
+        if (!endDate.empty()) {
+            filter["endDate"] = endDate;  // 目标交付时间结束日期
         }
 
         // 计算分页偏移量
@@ -1778,7 +1792,6 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         std::string sendRemark = body.value("sendRemark", "");
         std::string executorID = body.value("executorID", "");
         std::string newModelVersion = body.value("finishVersion", "");
-
         // 参数验证
         if (orderID.empty() || orderType.empty() || executorID.empty()) {
             return crow::response(400, R"({"status":1,"error":"缺少必要参数","data":{}})");

@@ -86,7 +86,7 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
             mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
             return false;
         }
-        // INSERT INTO `model_life_manager`.`work_order_executor` ( `work_order_id`, `executor_id`, `create_at`, `status`, `create_id`, `encryption_status`) 
+        // INSERT INTO `work_order_executor` ( `work_order_id`, `executor_id`, `create_at`, `status`, `create_id`, `encryption_status`) 
         snprintf(local_sql, SQL_MAX, "INSERT INTO work_order_executor (work_order_id,executor_id, create_at, status, create_id, encryption_status) VALUES (%d,'%s', NOW(), '加密', '%s', '0');"
             , tmp.Ticket::id, tmp.sendExecutorId.c_str(), tmp.executorId.c_str());
         local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
@@ -518,7 +518,7 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
         // 先根据是否加密判断状态 ticketDelivery.remark.c_str()可以为空
         if(ticketDelivery.encrypted){
             // 修改delivery_send加密信息
-            snprintf(local_sql, SQL_MAX, "update `model_life_manager`.`delivery_send` set `is_encrypted` = %d, `shell_code` = '%s', `remarks` = '%s', `auth_id` = '%s' where `work_order_id` = %d;",
+            snprintf(local_sql, SQL_MAX, "update `delivery_send` set `is_encrypted` = %d, `shell_code` = '%s', `remarks` = '%s', `auth_id` = '%s' where `work_order_id` = %d;",
             ticketDelivery.encrypted ? 1 : 0, ticketDelivery.dongleId.c_str(), ticketDelivery.remark.c_str(), ticketDelivery.licenseId.c_str(), ticket.id);
             //执行SQL
             if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
@@ -567,7 +567,7 @@ bool TicketDAO::completeTicket(const Ticket &ticket)
             
         }else{
             // 不用加密
-            snprintf(local_sql, SQL_MAX, "update `model_life_manager`.`delivery_send` set `is_encrypted` = %d,  `remarks` = '%s' where `work_order_id` = %d;",
+            snprintf(local_sql, SQL_MAX, "update `delivery_send` set `is_encrypted` = %d,  `remarks` = '%s' where `work_order_id` = %d;",
             ticketDelivery.encrypted ? 1 : 0, ticketDelivery.remark.c_str(), ticket.id);
             if (mysql_real_query(conn, local_sql, strlen(local_sql))) {
                 std::cerr << "更新delivery_send信息失败：" << mysql_error(conn) << std::endl;
@@ -1409,7 +1409,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "
-       << "AND wo.type != '版本迭代' and wo.completed_at is not null"
+       << "AND wo.type != '版本迭代' AND MV.version = (CASE WHEN wo.type = '功能开发' THEN (SELECT version FROM model_version WHERE id = fd.new_model_version_id) WHEN wo.type = '直接封装+发送' THEN (SELECT version FROM model_version WHERE id = ps.new_model_version_id) ELSE NULL  END)  and wo.completed_at is not null"
        << ") UNION ("
        << "SELECT DISTINCT "
        << "wo.id, "
@@ -1525,7 +1525,7 @@ std::vector<nlohmann::json> TicketDAO::getWorkOrdersWithDetailsByVersions(const 
        << "WHERE mv.model = '" << modelName << "' "
        << "AND mv.version IS NOT NULL "
        << "AND mv.version IN " << versionInClause.str() << " "
-       << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送') and wo.completed_at is not null"
+       << "AND wo.type IN ('版本迭代', '功能开发', '直接封装+发送')  and wo.completed_at is not null"
        << ") ORDER BY id DESC;";
 
     int ret;
@@ -2119,41 +2119,41 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
     // 构建基础SQL查询语句（基于getUserPendingWorkOrders的结构）
     std::stringstream ss;
     ss << "SELECT DISTINCT "
-       << "    wo.id AS work_order_id, "// 0
-       << "    wo.type AS work_order_type, "//1
-       << "    wo.status AS work_order_status, "//2
-       << "    wo.created_at, "// 3
-       << "    wo.priority, "// 4
-       << "    wo.task_priority, "// 5
-       << "    wo.approved_at, "// 6
-       << "    wo.dispatched_at, "// 7
-       << "    wo.model, "// 8
-       << "    wo.status_todo, "// 9
-       << "    mv.version AS model_version, "// 10
-       << "    u_creator.real_name AS creator_name, "// 11
-       << "    u_approver.real_name AS approver_name, "// 12
-       << "    u_dispatcher.real_name AS dispatcher_name, "// 13
-       << "    wo.to_dispatcher_id, "// 14
-       << "    u_to_dispatcher.real_name AS to_dispatcher_name, "// 15
-       << "    wo.encrypted_remark, "// 16
-       << "    wo.send_remark, "// 17
-       << "    wo.package_remark, "// 18
-       << "    woe_latest.executor_id, "// 19
-       << "    u_executor.real_name AS executor_name, "// 20
-       << "    woe_latest.transfer_type AS executor_status, "// 21
-       << "    woe_latest.encryption_status, "// 22
-       << "    umr.flow_role, "// 23
-       << "    woe_encrypted.executor_id AS encrypted_executor_id, "// 24
-       << "    u_encrypted.real_name AS encrypted_executor_name, "// 25
-       << "    woe_sender.executor_id AS sender_executor_id, "// 26
-       << "    u_sender.real_name AS sender_executor_name, "// 27
-       << "    woe_encrypted.create_at AS encrypted_create_at, "// 28
-       << "    woe_sender.create_at AS sender_create_at, "// 29
-       << "    woe_package.update_version AS package_update_version, "// 30
-       << "    woe_package.executor_id AS package_executor_id, "// 31
-       << "    woe_package.create_at AS package_create_at, "// 32
-       << "    u_package.real_name AS package_create_name, "// 33
-       << "    woe_encrypted_dynamic.executor_id AS encrypted_executor_name_dynamic, "// 34
+       << "    wo.id AS work_order_id, "
+       << "    wo.type AS work_order_type, "
+       << "    wo.status AS work_order_status, "
+       << "    wo.created_at, "
+       << "    wo.priority, "
+       << "    wo.task_priority, "
+       << "    wo.approved_at, "
+       << "    wo.dispatched_at, "
+       << "    wo.model, "
+       << "    wo.status_todo, "
+       << "    mv.version AS model_version, "
+       << "    u_creator.real_name AS creator_name, "
+       << "    u_approver.real_name AS approver_name, "
+       << "    u_dispatcher.real_name AS dispatcher_name, "
+       << "    wo.to_dispatcher_id, "
+       << "    u_to_dispatcher.real_name AS to_dispatcher_name, "
+       << "    wo.encrypted_remark, "
+       << "    wo.send_remark, "
+       << "    wo.package_remark, "
+       << "    woe_latest.executor_id, "
+       << "    u_executor.real_name AS executor_name, "
+       << "    woe_latest.transfer_type AS executor_status, "
+       << "    woe_latest.encryption_status, "
+       << "    umr.flow_role, "
+       << "    woe_encrypted.executor_id AS encrypted_executor_id, "
+       << "    u_encrypted.real_name AS encrypted_executor_name, "
+       << "    woe_sender.executor_id AS sender_executor_id, "
+       << "    u_sender.real_name AS sender_executor_name, "
+       << "    woe_encrypted.create_at AS encrypted_create_at, "
+       << "    woe_sender.create_at AS sender_create_at, "
+       << "    woe_package.update_version AS package_update_version, "
+       << "    woe_package.executor_id AS package_executor_id, "
+       << "    woe_package.create_at AS package_create_at, "
+       << "    u_package.real_name AS package_create_name, "
+       << "    woe_encrypted_dynamic.executor_id AS encrypted_executor_name_dynamic, "
        << "    ir.coordination_id AS issue_coordination_id, "
        << "    ir.description AS issue_description, "
        << "    ir.reference_file AS issue_reference_file, "
@@ -2294,7 +2294,30 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
         ss << " WHERE ";
     }
     
+    // 处理filterMineFlag标志，根据userId过滤与当前用户相关的工单
+    auto filterMineFlagIt = filter.find("filterMineFlag");
+    auto userIdIt = filter.find("userId");
+    if (filterMineFlagIt != filter.end() && filterMineFlagIt->second == "true" && userIdIt != filter.end()) {
+        if (!first) ss << " AND ";
+        ss << "(";
+        ss << "wo.creator_id = '" << userIdIt->second << "' ";
+        ss << "OR wo.approver_id = '" << userIdIt->second << "' ";
+        ss << "OR wo.dispatcher_id = '" << userIdIt->second << "' ";
+        ss << "OR wo.to_dispatcher_id = '" << userIdIt->second << "' ";
+        ss << "OR woe_latest.executor_id = '" << userIdIt->second << "' ";
+        ss << "OR woe_sender.executor_id = '" << userIdIt->second << "' ";
+        ss << "OR woe_encrypted.executor_id = '" << userIdIt->second << "' ";
+        ss << "OR woe_package.executor_id = '" << userIdIt->second << "'";
+        ss << ")";
+        first = false;
+    }
+    
     for(auto ele: filter) {
+        // 跳过filterMineFlag和userId，它们已经在上面处理过了
+        if(ele.first == "filterMineFlag" || ele.first == "userId") {
+            continue;
+        }
+        
         if(!first) ss << " AND ";
         
         if(intSet.find(ele.first) != intSet.end()) {
@@ -2328,6 +2351,14 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                     firstModel = false;
                 }
                 ss << ")";
+            } else if(ele.first == "startDate") {
+                // 添加目标交付时间的开始日期过滤
+                ss << "((ds.target_delivery_time IS NOT NULL AND ds.target_delivery_time >= '" << ele.second << "') ";
+                ss << "OR (ps.target_delivery_time IS NOT NULL AND ps.target_delivery_time >= '" << ele.second << "'))";
+            } else if(ele.first == "endDate") {
+                // 添加目标交付时间的结束日期过滤
+                ss << "((ds.target_delivery_time IS NOT NULL AND ds.target_delivery_time <= '" << ele.second << "') ";
+                ss << "OR (ps.target_delivery_time IS NOT NULL AND ps.target_delivery_time <= '" << ele.second << "'))";
             } else {
                 ss << "wo." << ele.first << " LIKE '%" << ele.second << "%'";
             }
@@ -2607,7 +2638,7 @@ bool TicketDAO::completeSendTicket(const Ticket& ticket)
         snprintf(sql, SQL_MAX, 
             "UPDATE work_order SET status = '已完成', completed_at = '%s', send_remark = '%s' WHERE id = %d",
             ticket.completedTime.c_str(), remarkStr.c_str(), ticket.id);
-        } else if (ticket.ticketType == "版本迭代+交付") {
+        } else if (ticket.ticketType == "版本迭代+交付发送") {
             const TicketPackage& packageTicket = dynamic_cast<const TicketPackage&>(ticket);
             remarkStr = packageTicket.remark;
         snprintf(sql, SQL_MAX, 
@@ -2617,7 +2648,7 @@ bool TicketDAO::completeSendTicket(const Ticket& ticket)
         
         snprintf(sql, SQL_MAX, 
             "UPDATE work_order SET status = '已完成', completed_at = '%s', package_remark = '%s' WHERE id = %d",
-            ticket.completedTime.c_str(),remarkStr.c_str(), ticket.id);
+            ticket.completedTime.c_str(),ticket.packageRemark.c_str(), ticket.id);
         }
     
         
@@ -2886,9 +2917,9 @@ bool TicketDAO::completePackageSendEncryptedTicket(const TicketPackage& ticket)
             return false;
         }
         if(ticket.encrypted){
-            // UPDATE `model_life_manager`.`package_send` SET `encryption_key` = 'A53000000004,A53000000005,A53000000006', `auth_id` = '2025032672' WHERE `work_order_id` = 38
+            // UPDATE `package_send` SET `encryption_key` = 'A53000000004,A53000000005,A53000000006', `auth_id` = '2025032672' WHERE `work_order_id` = 38
             snprintf(sql, SQL_MAX,
-            "UPDATE `model_life_manager`.`package_send` SET `encryption_key` = '%s', `auth_id` = '%s', `is_encrypted` = '1' WHERE `work_order_id` = %d",
+            "UPDATE `package_send` SET `encryption_key` = '%s', `auth_id` = '%s', `is_encrypted` = '1' WHERE `work_order_id` = %d",
             ticket.dongles.c_str(), ticket.license.c_str(), ticket.id);
             ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
             if (ret) {
