@@ -10,7 +10,9 @@ import { useUserStore } from '@/store/modules/user'
 // -----------------变量定义-----------------
 const router = useRouter()
 const loading = ref(false)
-const userOrders = ref<OrderItem[]>([])
+const userOrders = ref<OrderItem[]>([])  
+const myRelatedOrders = ref<OrderItem[]>([])  // 与我相关的工单
+const myRelatedOrdersLoading = ref(false)  // 与我相关的工单加载状态
 const totalPendingCount = ref(0)
 const recentOrders = ref<OrderItem[]>([])
 const recentOrdersLoading = ref(false)
@@ -186,6 +188,41 @@ async function apiFetchRecentOrders() {
   }
   catch (error) {
     console.error('获取用户近期发送工单失败:', error)
+    return []
+  }
+}
+
+// 获取与我相关的工单
+async function apiFetchMyRelatedOrders() {
+  try {
+    const params = {
+      page: 1,
+      pageSize: 3,
+      userId: userStore.account || '',
+      filterMineFlag: true,
+    }
+
+    const res = await orderApi.fetchOrderPage(params)
+    const orders = res.data.list || []
+
+    return orders.map((order: any) => {
+      const mappedOrder: OrderItem = {
+        orderID: order.workOrderId || '',
+        type: order.workOrderType === '直接封装+发送' ? '版本迭代+交付发送' : order.workOrderType || '其他',
+        status: order.workOrderStatus || '草稿',
+        referencePriority: order.priority || '',
+        taskPriority: order.taskPriority || '',
+        modelID: order.model || '',
+        modelVersionID: order.modelVersion || '',
+        promoterID: order.creatorName || '',
+        startTime: order.createdAt || '',
+        statusTodo: order.statusTodo || '',
+      }
+      return mappedOrder
+    })
+  }
+  catch (error) {
+    console.error('获取与我相关的工单失败:', error)
     return []
   }
 }
@@ -739,12 +776,27 @@ function getStepColor(order: OrderItem, step: string): string {
 }
 
 const pageLoading = ref(false)
+// 获取与我相关的工单
+async function fetchMyRelatedOrders() {
+  myRelatedOrdersLoading.value = true
+  try {
+    myRelatedOrders.value = await apiFetchMyRelatedOrders()
+  }
+  catch (error) {
+    console.error('获取与我相关的工单失败:', error)
+  }
+  finally {
+    myRelatedOrdersLoading.value = false
+  }
+}
+
 // 页面加载时获取数据
 onMounted(async () => {
   pageLoading.value = true
   try {
     await fetchUserOrders() // 获取待办工单
     await fetchRecentOrders() // 获取近期发送工单
+    await fetchMyRelatedOrders() // 获取与我相关的工单
     await fetchClients() // 获取客户列表
     await fetchChartData() // 获取图表数据
     renderChart() // 渲染图表
@@ -816,6 +868,92 @@ onUnmounted(() => {
             <div v-else class="space-y-4">
               <FaPageMain
                 v-for="order in userOrders"
+                :key="order.orderID"
+                class="border border-gray-200"
+              >
+                <div class="px-4 py-2">
+                  <div class="mb-2 text-lg font-bold text-black">
+                    工单#{{ order.orderID }}
+                    <span class="ml-2 text-base font-semibold" :class="{
+                      'text-blue-700': order.type === '问题复现',
+                      'text-green-700': order.type === '版本迭代',
+                      'text-yellow-700': order.type === '交付发送',
+                      'text-purple-700': order.type === '版本迭代+交付发送',
+                      'text-pink-700': order.type === '功能开发',
+                      'text-gray-700': order.type === '其他',
+                    }">{{ order.type }}</span>
+                  </div>
+                  <!-- 横向时间轴 -->
+                  <div class="flex items-center justify-start gap-8 px-2 py-4">
+                    <template v-for="(step, idx) in getOrderSteps(order.type)" :key="step">
+                      <div class="flex flex-col items-center">
+                        <div
+                          class="w-8 h-8 flex items-center justify-center rounded-full border-2"
+                          :class="isCurrentStep(order, step)
+                            ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'bg-green-100 border-green-600 text-green-600'
+                              : 'bg-gray-100 border-gray-300 text-gray-400'"
+                        >
+                          <span v-if="isCurrentStep(order, step)">✔</span>
+                          <span v-else>{{ idx + 1 }}</span>
+                        </div>
+                        <span
+                          class="mt-2 text-sm"
+                          :class="isCurrentStep(order, step)
+                            ? 'font-bold text-blue-600'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'text-green-600'
+                              : 'text-gray-500'"
+                        >
+                          {{ step }}
+                        </span>
+                      </div>
+                      <div v-if="idx < getOrderSteps(order.type).length - 1" class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    </template>
+                  </div>
+                </div>
+              </FaPageMain>
+            </div>
+          </template>
+        </el-skeleton>
+      </FaPageMain>
+
+      <!-- 与我相关的工单模块 -->
+      <FaPageMain class="mb-6">
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="i-mdi-account-outline text-2xl text-green-500" />
+            <span class="text-xl font-bold">与我相关的工单</span>
+            <span class="flex items-center gap-1 text-base text-gray-500 font-medium">
+              <i class="i-mdi-information-outline text-green-500" />
+              (当前显示前{{ Math.min(3, myRelatedOrders.length) }}条与我相关的工单，共{{ myRelatedOrders.length }}条)
+            </span>
+          </div>
+        </template>
+
+        <el-skeleton :loading="myRelatedOrdersLoading" animated>
+          <template #template>
+            <div class="space-y-4">
+              <div v-for="i in 3" :key="i" class="border rounded-lg p-4">
+                <el-skeleton-item variant="text" style="width: 60%;" />
+                <div class="mt-2 space-y-2">
+                  <el-skeleton-item variant="text" style="width: 80%;" />
+                  <el-skeleton-item variant="text" style="width: 70%;" />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template #default>
+            <div v-if="myRelatedOrders.length === 0" class="py-8 text-center text-gray-500">
+              <i class="i-mdi-clipboard-outline mb-2 text-4xl" />
+              <p>暂无与我相关的工单</p>
+            </div>
+
+            <div v-else class="space-y-4">
+              <FaPageMain
+                v-for="order in myRelatedOrders"
                 :key="order.orderID"
                 class="border border-gray-200"
               >
