@@ -10,9 +10,9 @@ import { useUserStore } from '@/store/modules/user'
 // -----------------变量定义-----------------
 const router = useRouter()
 const loading = ref(false)
-const userOrders = ref<OrderItem[]>([])  
-const myRelatedOrders = ref<OrderItem[]>([])  // 与我相关的工单
-const myRelatedOrdersLoading = ref(false)  // 与我相关的工单加载状态
+const userOrders = ref<OrderItem[]>([])
+const myRelatedOrders = ref<OrderItem[]>([]) // 与我相关的工单
+const myRelatedOrdersLoading = ref(false) // 与我相关的工单加载状态
 const totalPendingCount = ref(0)
 const recentOrders = ref<OrderItem[]>([])
 const recentOrdersLoading = ref(false)
@@ -883,6 +883,34 @@ onUnmounted(() => {
                       'text-gray-700': order.type === '其他',
                     }">{{ order.type }}</span>
                   </div>
+                  <!-- 新增：工单详细信息 -->
+                  <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
+                    <span>
+                      <i class="i-mdi-cube mr-1 text-blue-400" />
+                      <span class="text-gray-600">模型：</span>
+                      <span class="text-black font-bold">{{ order.modelID }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-account mr-1 text-blue-400" />
+                      <span class="text-gray-600">发起人：</span>
+                      <span class="text-black font-bold">{{ order.promoterID }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-calendar-clock mr-1 text-blue-400" />
+                      <span class="text-gray-600">发起时间：</span>
+                      <span class="text-black font-bold">{{ order.startTime }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-flag mr-1 text-blue-400" />
+                      <span class="text-gray-600">参考优先级：</span>
+                      <span class="text-black font-bold">{{ order.referencePriority || '无' }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-alert mr-1 text-blue-400" />
+                      <span class="text-gray-600">任务优先级：</span>
+                      <span class="text-black font-bold">{{ order.taskPriority || '无' }}</span>
+                    </span>
+                  </div>
                   <!-- 横向时间轴 -->
                   <div class="flex items-center justify-start gap-8 px-2 py-4">
                     <template v-for="(step, idx) in getOrderSteps(order.type)" :key="step">
@@ -968,6 +996,34 @@ onUnmounted(() => {
                       'text-pink-700': order.type === '功能开发',
                       'text-gray-700': order.type === '其他',
                     }">{{ order.type }}</span>
+                  </div>
+                  <!-- 新增：工单详细信息 -->
+                  <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
+                    <span>
+                      <i class="i-mdi-cube mr-1 text-blue-400" />
+                      <span class="text-gray-600">模型：</span>
+                      <span class="text-black font-bold">{{ order.modelID }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-account mr-1 text-blue-400" />
+                      <span class="text-gray-600">发起人：</span>
+                      <span class="text-black font-bold">{{ order.promoterID }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-calendar-clock mr-1 text-blue-400" />
+                      <span class="text-gray-600">发起时间：</span>
+                      <span class="text-black font-bold">{{ order.startTime }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-flag mr-1 text-blue-400" />
+                      <span class="text-gray-600">参考优先级：</span>
+                      <span class="text-black font-bold">{{ order.referencePriority || '无' }}</span>
+                    </span>
+                    <span>
+                      <i class="i-mdi-alert mr-1 text-blue-400" />
+                      <span class="text-gray-600">任务优先级：</span>
+                      <span class="text-black font-bold">{{ order.taskPriority || '无' }}</span>
+                    </span>
                   </div>
                   <!-- 横向时间轴 -->
                   <div class="flex items-center justify-start gap-8 px-2 py-4">
