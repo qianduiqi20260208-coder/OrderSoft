@@ -160,9 +160,9 @@ std::vector<std::pair<std::string, std::string>> ModelDAO::selectModelUpdateNote
     MYSQL* mysql = getConnection();
     std::vector<std::pair<std::string, std::string>> retVec;
 
-    snprintf(sql, SQL_MAX, "select mv.version,vi.update_content from version_iteration vi"
-        " join model_version mv on vi.new_model_version_id = mv.id"
-        " join work_order wo on wo.id = vi.work_order_id where wo.model ='%s';",modelName.c_str());
+    snprintf(sql, SQL_MAX, "SELECT	mv.version,	vi.update_content " 
+        " FROM ( SELECT work_order_id, new_model_version_id, update_content FROM version_iteration UNION ALL SELECT work_order_id, new_model_version_id, update_content FROM package_send ) vi JOIN model_version mv ON vi.new_model_version_id = mv.id JOIN work_order wo ON wo.id = vi.work_order_id "
+        " WHERE wo.model = '%s';",modelName.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         LOG_ERROR("function:selectModelUpdateNotesByModelName 查询model_version表失败！失败原因：%s", mysql_error(mysql));
