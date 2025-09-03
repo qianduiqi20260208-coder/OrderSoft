@@ -478,7 +478,7 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
         return false;
     }
     // 5. 设置授权为归还
-    snprintf(sql, SQL_MAX, "UPDATE `model_life_manager`.`product_authorization` SET `return` = '1' WHERE `encryption_key` = '%s'", shellNumber.c_str());
+    snprintf(sql, SQL_MAX, "UPDATE `product_authorization` SET `return` = '1' WHERE `encryption_key` = '%s'", shellNumber.c_str());
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {
         LOG_ERROR("function:returnOperation 更新 product_authorization 表失败！失败原因：%s", mysql_error(mysql));
@@ -659,7 +659,8 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 {
     char sql[SQL_MAX];
     int ret;
-
+    
+    MYSQL* mysql = getConnection();
     if (!mysql) {
         LOG_ERROR("function:updateAuthorizationEndDates MySQL连接为空！\n");
         return false;
@@ -767,6 +768,7 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     char sql[SQL_MAX];
     int ret;
 
+    MYSQL* mysql = getConnection();
     if (!mysql) {
         LOG_ERROR("function:updateShellDeviceInfo MySQL连接为空！\n");
         return false;

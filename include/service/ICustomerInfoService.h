@@ -61,6 +61,9 @@ public:
     // 获取所有客户的suffix字段，返回带有客户标识的后缀列表
     virtual std::vector<std::pair<std::string, std::string>> getAllClientSuffixList() = 0;
 
+    // 获取指定客户的模型ATA章节号和发送模型数量
+    virtual std::pair<int,int> getModelAndModelVersionCountByClient(const std::string& clientName) = 0;
+
     virtual ~ICustomerInfoService() = default;
 };
 

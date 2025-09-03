@@ -52,7 +52,8 @@ function handleProblemFileChange(file: any, fileList: any[]) {
   if (fileList.length > 1) {
     // 只保留最后一个文件，重新赋值为新数组
     problemOrderForm.value.files = [fileList[fileList.length - 1]]
-  } else {
+  }
+  else {
     problemOrderForm.value.files = [...fileList]
   }
 }
@@ -625,6 +626,7 @@ async function submitOtherOrder() {
 }
 
 onMounted(() => {
+  clientSuffixStore.fetchClientSuffixes() // 每次进入页面都请求后端获取客户后缀信息
   if (route.query.fromList === '1') {
     console.warn('从工单列表跳转到创建页面，复制工单类型:', route.query.copyType)
     // 判断是否为复制问题复现工单
@@ -856,7 +858,7 @@ async function fetchCustomerList() {
             </div>
             <ol class="list-decimal pl-5 space-y-1">
               <li>模型（下拉选择）</li>
-              <li>基准版本（下拉选择）</li>
+              <li>发送版本（下拉选择）</li>
               <li>目标客户（下拉选择）</li>
               <li>是否通过CAE-IPT平台验证（是/否）</li>
               <li>当前版本是否包含敏感信息（是/否）</li>
@@ -1235,7 +1237,7 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="基准版本" required>
+          <el-form-item label="发送版本" required>
             <el-select
               v-model="deliverOrderForm.modelVersionID"
               placeholder="请选择基准版本"

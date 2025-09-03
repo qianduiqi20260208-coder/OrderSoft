@@ -2,24 +2,143 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug TicketTest",
+            "name": "Debug ModelLifeManager",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/CustomerInfoTest.exe",
+            "program": "${workspaceFolder}/build/bin/ModelLifeManager.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
+            "cwd": "${workspaceFolder}/build/bin", // 保持这个路径，这是正确的
+            "environment": [
+                {
+                    "name": "LANG",
+                    "value": "en_US.UTF-8"
+                },
+                {
+                    "name": "LC_ALL", 
+                    "value": "en_US.UTF-8"
+                },
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}/build/bin;D:/software/mysql-8.0.42-winx64/lib;D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "D:/software/mingw64/bin/gdb.exe",
+            "miDebuggerPath": "D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin/gdb.exe",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set working directory in GDB",
+                    "text": "-environment-cd ${workspaceFolder}/build/bin",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set breakpoint on C++ exceptions",
+                    "text": "-catch-throw",
+                    "ignoreFailures": true
                 }
-            ]
+            ],
+            "preLaunchTask": "build-debug",
+            "logging": {
+                "moduleLoad": false,
+                "trace": false,
+                "engineLogging": false
+            },
+            "showDisplayString": true,
+            "stopAtConnect": false,
+            "targetArchitecture": "x64"
+        },
+        {
+            "name": "Debug ModelLifeManager (External Console)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/ModelLifeManager.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/bin", // 保持这个路径
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}/build/bin;D:/software/mysql-8.0.42-winx64/lib;D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set working directory in GDB",
+                    "text": "-environment-cd ${workspaceFolder}/build/bin",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on all C++ exceptions",
+                    "text": "-catch-throw",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-debug"
+        },
+        {
+            "name": "Debug ModelLifeManager (Catch stoi Exception)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/ModelLifeManager.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/bin", // 保持这个路径
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}/build/bin;D:/software/mysql-8.0.42-winx64/lib;D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/software/x86_64-13.1.0-release-win32-seh-msvcrt-rt_v11-rev1/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set working directory in GDB",
+                    "text": "-environment-cd ${workspaceFolder}/build/bin",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on std::invalid_argument",
+                    "text": "-catch-throw std::invalid_argument",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on std::out_of_range", 
+                    "text": "-catch-throw std::out_of_range",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on all exceptions",
+                    "text": "-catch-throw",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-debug"
         }
     ]
 }

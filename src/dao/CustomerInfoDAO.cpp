@@ -48,8 +48,8 @@ bool CustomerInfoDAO::updateClient(std::string originClient, std::string newClie
     MYSQL* conn = getConnection();
     char local_sql[SQL_MAX];
     int local_ret;
-    
-    snprintf(local_sql, SQL_MAX, "update customer_info set customer_name = '%s',remarks = '%s' where customer_name = '%s'; ",originClient.c_str(),newClient.c_str(),clientRemark.c_str());
+
+    snprintf(local_sql, SQL_MAX, "update customer_info set customer_name = '%s',remarks = '%s' where customer_name = '%s'; ",  newClient.c_str(), clientRemark.c_str(), originClient.c_str());
     local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
         LOG_ERROR("function:updateClient 修改 customer_info 表失败！失败原因：%s", mysql_error(conn));

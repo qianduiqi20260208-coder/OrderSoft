@@ -253,6 +253,10 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         // 获取分页数据
         auto pagedSendDetail = customerInfoService_->getSendRecordByClientPagedByDate(clientName, page - 1, pageSize);
 
+        // 统计模型和版本数量
+        std::pair<int, int> modelStats = customerInfoService_->getModelAndModelVersionCountByClient(clientName);
+
+
         nlohmann::json dailySendRecords = nlohmann::json::array();
         for (const auto& groupPair : pagedSendDetail) {
             const auto& overview = groupPair.first; // SendOverview: [date, sendCount]
@@ -285,6 +289,8 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
                 {"clientName", clientName},
                 {"dailySendRecords", dailySendRecords},
                 {"total", total},
+                {"modelCount", modelStats.first},
+                {"modelVersionCount", modelStats.second},
                 {"page", page},
                 {"pageSize", pageSize}
             }}

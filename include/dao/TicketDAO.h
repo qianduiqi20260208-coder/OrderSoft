@@ -22,6 +22,9 @@ public:
     bool approveTicket(const Ticket& ticket) override;
     bool dispatchTicket(const Ticket& ticket, const std::string& account) override;
     bool completeTicket(const Ticket& ticket) override;
+    bool completeSendTicket(const Ticket& ticket) override;
+    bool completePackageSendTicket(const TicketPackage& ticket) override;
+    bool completePackageSendEncryptedTicket(const TicketPackage& ticket) override;
     bool completeConcreteTicket(const Ticket& ticket);
 
 
