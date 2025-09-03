@@ -1640,7 +1640,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="1"
+                              maxlength="4"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -2596,7 +2596,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="1"
+                              maxlength="4"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -2848,7 +2848,7 @@ onMounted(() => {
                           <el-input
                             v-model="order.finishModelVersionLetter"
                             placeholder="A"
-                            maxlength="1"
+                            maxlength="4"
                             class="version-input"
                             @input="value => handleFinishVersionInput(order, 'letter', value)"
                           />
