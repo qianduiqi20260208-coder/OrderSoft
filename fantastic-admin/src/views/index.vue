@@ -685,7 +685,7 @@ function toggleClient(clientName: string) {
 
 function isCurrentStep(order: OrderItem, step: string): boolean {
   if (['待封装', '待加密', '待发送'].includes(step)) {
-    return order.statusTodo === step
+    return order.status === '进行中' && order.statusTodo === step
   }
   return order.status === step
 }
@@ -706,23 +706,36 @@ function getOrderSteps(type: string): string[] {
 
 function getStepColor(order: OrderItem, step: string): string {
   const steps = getOrderSteps(order.type)
-  let currentIdx = -1
   const stepIdx = steps.indexOf(step)
-  // statusTodo 控制待封装、待加密、待发送
-  if (['待封装', '待加密', '待发送'].includes(step)) {
+
+  // 当前流程索引
+  let currentIdx = -1
+
+  // 1. 如果流程已到“进行中”及之后（即 status 为“进行中”或“已完成”），
+  //    则用 statusTodo 判断“待封装/待加密/待发送”，用 status 判断其他
+  if (order.status === '进行中') {
+    // statusTodo 只可能是“待封装/待加密/待发送”
     currentIdx = steps.indexOf(order.statusTodo ?? '')
-    // 如果 statusTodo 未进入流程，则用 status 作为当前步骤
+    // 如果 statusTodo 未进入流程，则 currentIdx 取 status
     if (currentIdx === -1) {
       currentIdx = steps.indexOf(order.status)
     }
   }
   else {
+    // status 为“待审批/待分发/已完成”等
     currentIdx = steps.indexOf(order.status)
   }
-  if (stepIdx === currentIdx) {
-    return '#409eff' // 当前步骤蓝色
+
+  // 已完成的步骤绿色
+  if (stepIdx < currentIdx) {
+    return '#67c23a'
   }
-  return '#c0c4cc' // 未到灰色
+  // 当前步骤蓝色
+  if (stepIdx === currentIdx) {
+    return '#409eff'
+  }
+  // 未到灰色
+  return '#c0c4cc'
 }
 
 const pageLoading = ref(false)
