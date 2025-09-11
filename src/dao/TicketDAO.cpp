@@ -2625,10 +2625,14 @@ bool TicketDAO::completeSendTicket(const Ticket& ticket)
     int ret;
     // 获取当前时间 (UTF-8时区)
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    // 使用UTC时间，确保UTF-8编码兼容性
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
+    LOG_INFO("完成时间：%s",  completedTime.c_str());
     try {
         // 1. 更新工单状态为已完成
         std::string remarkStr = "";
@@ -2760,8 +2764,12 @@ bool TicketDAO::completePackageSendTicket(const TicketPackage& ticket)
     int ret;
     // 获取当前时间
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
     
     try {
@@ -2889,8 +2897,12 @@ bool TicketDAO::completePackageSendEncryptedTicket(const TicketPackage& ticket)
     int ret;
     // 获取当前时间
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
     
     try {
