@@ -184,8 +184,8 @@ async function apiFetchUserModels() {
           isCAEChecked: order.validatedByCae === '1', // CAE验证
           isEncrypted: order.encrypted === '1', // 是否加密
           targetCustomer: order.targetClient || '', // 目标客户
-          finishAuthId: order.licenseId || '', // 授权ID
-          finishShellNo: order.dongleId || '', // 外壳号
+          finishAuthId: order.license || '', // 授权ID
+          finishShellNo: order.dongle || '', // 外壳号
           finishFeatureDesc: order.featureFinal || order.featureInit || '', // 功能描述
           finishModelVersionId: order.newModelVersion || '', // 升级后模型版本ID（功能开发类）
           finishRemarkOther: order.description || '', // 其他备注
