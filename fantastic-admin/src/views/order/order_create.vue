@@ -36,6 +36,7 @@ interface ProblemOrderForm {
   description: string // 复现内容描述
   approverID: string // 审批人ID
   files: any[] // 附件列表
+  create_remark: string // 创建备注
 }
 const problemOrderForm = ref<ProblemOrderForm>({
   modelId: '', // 模型ID
@@ -44,6 +45,7 @@ const problemOrderForm = ref<ProblemOrderForm>({
   description: '', // 复现内容描述
   approverID: '', // 审批人ID
   files: [], // 附件列表
+  create_remark: '', // 创建备注
 })
 
 // 处理附件上传时的回调，更新表单中的文件列表
@@ -79,6 +81,7 @@ async function submitProblemOrder() {
   formData.append('modelVersionID', problemOrderForm.value.modelVersionID)
   formData.append('coordinationID', problemOrderForm.value.coordinationId)
   formData.append('description', problemOrderForm.value.description)
+  formData.append('create_remark', problemOrderForm.value.create_remark)
   formData.append('approverID', problemOrderForm.value.approverID)
   formData.append('startTime', new Date().toISOString().slice(0, 19).replace('T', ' '))
   // 附件列表，逐个添加
@@ -101,6 +104,7 @@ async function submitProblemOrder() {
     description: '',
     files: [],
     approverID: '',
+    create_remark: '',
   }
 }
 
@@ -117,6 +121,7 @@ const iterOrderForm = ref({
   packageRequirement: '', // 封装要求
   apiChanged: '', // 接口是否变化
   approverID: '', // 审批人ID
+  create_remark: '', // 创建备注
 })
 
 // 初始化时自动填充前两位
@@ -217,6 +222,7 @@ async function submitIterOrder() {
     packageRequirement: iterOrderForm.value.packageRequirement, // 封装要求
     apiChanged: iterOrderForm.value.apiChanged, // 接口是否变化
     approverID: String(iterOrderForm.value.approverID), // 审批人ID
+    create_remark: iterOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
 
@@ -238,6 +244,7 @@ async function submitIterOrder() {
     packageRequirement: '',
     apiChanged: '',
     approverID: '',
+    create_remark: '',
   }
 }
 
@@ -250,6 +257,7 @@ const deliverOrderForm = ref({
   isCAEChecked: '', // 是否CAE检查
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
+  create_remark: '', // 创建备注
 })
 
 // 计算属性：获取交付发送工单选中客户的后缀列表
@@ -331,6 +339,7 @@ async function submitDeliverOrder() {
     isCAEChecked: deliverOrderForm.value.isCAEChecked, // 是否CAE检查
     hasSensitiveInfo: deliverOrderForm.value.hasSensitiveInfo, // 是否包含敏感信息
     approverID: String(deliverOrderForm.value.approverID), // 审批人ID
+    create_remark: deliverOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
   // 显示后端返回的 message
@@ -347,6 +356,7 @@ async function submitDeliverOrder() {
     isCAEChecked: '',
     hasSensitiveInfo: '',
     approverID: '',
+    create_remark: '',
   }
 }
 
@@ -491,6 +501,7 @@ async function confirmIterDeliverOrderSubmit() {
     isCAEChecked: iterDeliverOrderForm.value.isCAEChecked, // 是否CAE检查
     hasSensitiveInfo: iterDeliverOrderForm.value.hasSensitiveInfo, // 是否包含敏感信息
     approverID: String(iterDeliverOrderForm.value.approverID), // 审批人ID
+    create_remark: iterDeliverOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
   if (res?.data?.message) {
@@ -525,6 +536,7 @@ const devOrderForm = ref({
   completeModelVersionNumber: '', // 新增：完成模型版本号（只输入数字部分）
   featureDesc: '', // 功能描述
   approverID: '', // 审批人ID
+  create_remark: '', // 创建备注
 })
 
 // 功能开发工单完整版本号，直接取基准版本前三位
@@ -556,6 +568,7 @@ async function submitDevOrder() {
     matlab_version: getCompleteModelVersion(devOrderForm.value.modelVersionID), // 只取前三位
     featureDesc: devOrderForm.value.featureDesc, // 功能描述
     approverID: String(devOrderForm.value.approverID), // 审批人ID
+    create_remark: devOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
 
@@ -574,6 +587,7 @@ async function submitDevOrder() {
     completeModelVersionNumber: '',
     featureDesc: '',
     approverID: '',
+    create_remark: '',
   }
 }
 
@@ -584,6 +598,7 @@ const otherOrderForm = ref({
   modelVersionID: '', // 模型版本ID
   contentDesc: '', // 内容描述
   approverID: '', // 审批人ID
+  create_remark: '', // 创建备注
 })
 
 // 提交其他工单的方法
@@ -607,6 +622,7 @@ async function submitOtherOrder() {
     modelVersionID: otherOrderForm.value.modelVersionID, // 模型版本ID
     contentDesc: otherOrderForm.value.contentDesc, // 内容描述
     approverID: String(otherOrderForm.value.approverID), // 审批人ID
+    create_remark: otherOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
   })
 
@@ -622,6 +638,7 @@ async function submitOtherOrder() {
     modelVersionID: '',
     contentDesc: '',
     approverID: '',
+    create_remark: '',
   }
 }
 
@@ -1020,6 +1037,14 @@ async function fetchCustomerList() {
               placeholder="请详细描述复现内容"
             />
           </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="problemOrderForm.create_remark"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入备注"
+            />
+          </el-form-item>
           <!-- 问题复现工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1178,6 +1203,14 @@ async function fetchCustomerList() {
               placeholder="请输入封装要求"
             />
           </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="iterOrderForm.create_remark"
+              type="textarea"
+              :rows="2"
+              placeholder="请输入备注"
+            />
+          </el-form-item>
           <el-form-item required :label="`接口与${iterOrderForm.modelVersionID || '基准版本'}是否变化`" label-width="200px">
             <el-select v-model="iterOrderForm.apiChanged" placeholder="请选择">
               <el-option label="是" value="是" />
@@ -1292,6 +1325,14 @@ async function fetchCustomerList() {
               <el-option label="是" value="是" />
               <el-option label="否" value="否" />
             </el-select>
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="deliverOrderForm.create_remark"
+              type="textarea"
+              :rows="2"
+              placeholder="请输入备注"
+            />
           </el-form-item>
           <!-- 交付发送工单审批人ID -->
           <el-form-item label="审批人" required>
@@ -1479,6 +1520,14 @@ async function fetchCustomerList() {
               <el-option label="否" value="false" />
             </el-select>
           </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="iterDeliverOrderForm.create_remark"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入备注"
+            />
+          </el-form-item>
           <!-- 版本迭代+交付发送工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1566,6 +1615,14 @@ async function fetchCustomerList() {
               placeholder="请输入功能描述"
             />
           </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="devOrderForm.create_remark"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入备注"
+            />
+          </el-form-item>
           <!-- 功能开发工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1643,6 +1700,14 @@ async function fetchCustomerList() {
               type="textarea"
               :rows="3"
               placeholder="请输入内容描述"
+            />
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="otherOrderForm.create_remark"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入备注"
             />
           </el-form-item>
           <!-- 其他工单审批人ID -->

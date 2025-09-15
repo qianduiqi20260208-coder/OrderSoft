@@ -322,6 +322,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketreproduce.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
         ticketreproduce.coordinationId = getField(result, "coordinationID"); // 协调单ID
         ticketreproduce.content = getField(result, "description"); // 复现内容描述
+        ticketreproduce.createRemark = getField(result, "create_remark"); // 创建备注
         ticketreproduce.approverId = (getField(result, "approverID")); // 审批人ID
         bool ok = ticketService->createTicket(ticketreproduce);
         nlohmann::json resp;
@@ -369,6 +370,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
         ticketversion.interfaceChanged = (body.value("apiChanged", "") == "是"); // 接口是否变化
+        ticketversion.createRemark = body.value("create_remark", ""); // 创建备注
         ticketversion.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketversion);
@@ -414,6 +416,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.targetClient = body.value("targetCustomer", ""); // 目标客户
         ticketdelivery.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
         ticketdelivery.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
+        ticketdelivery.createRemark = body.value("create_remark", ""); // 创建备注
         ticketdelivery.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketdelivery);
@@ -465,6 +468,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.targetClient = body.value("targetCustomer", ""); // 目标客户
         ticketpackage.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
         ticketpackage.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
+        ticketpackage.createRemark = body.value("create_remark", ""); // 创建备注
         ticketpackage.approverId = (body.value("approverID", "")); // 审批人ID
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型 
 
@@ -511,6 +515,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketfeature.featureFinal = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketfeature.matlab_version = body.value("matlab_version", ""); // MATLAB版本
         ticketfeature.featureInit = body.value("featureDesc", ""); // 功能描述
+        ticketfeature.createRemark = body.value("create_remark", ""); // 创建备注
         ticketfeature.approverId = (body.value("approverID", "")); // 审批人ID
 
         bool ok = ticketService->createTicket(ticketfeature);
@@ -553,6 +558,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketother.model = body.value("modelID", ""); // 关联模型
         ticketother.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
         ticketother.description = body.value("contentDesc", ""); // 内容描述
+        ticketother.createRemark = body.value("create_remark", ""); // 创建备注
         ticketother.approverId = (body.value("approverID", "")); // 审批人ID
 
 

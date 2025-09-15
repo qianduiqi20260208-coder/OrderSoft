@@ -78,6 +78,7 @@ struct Ticket {
     std::string encryptedRemark; // 加密备注
     std::string sendRemark; // 发送备注
     std::string packageRemark; // 封装备注
+    std::string createRemark; // 创建备注
 
 
     // 多态序列化接口,与前端定义的变量对应

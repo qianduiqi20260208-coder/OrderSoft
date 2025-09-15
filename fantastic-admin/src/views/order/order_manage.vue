@@ -174,6 +174,7 @@ interface OrderItem {
 
   finishModelVersionNumber?: string
   finishModelVersionLetter?: string
+  createRemark?: string
 }
 
 const leaderPriority = ref<'' | '紧急' | '一般'>('')
@@ -666,6 +667,7 @@ async function fetchUserOrders() {
 
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
+        createRemark: order.createRemark || '' // 创建备注 
 
       }
 
@@ -3386,6 +3388,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">复现内容：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.description" rows="2" readonly />
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">复现参考文件：</span>
                       <template v-if="order.files && order.files.length">
@@ -3402,6 +3408,10 @@ onMounted(() => {
                         </div>
                       </template>
                       <span v-else class="text-gray-400">无</span>
+                    </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -3457,6 +3467,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3503,6 +3517,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3519,6 +3537,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">功能描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3530,6 +3552,10 @@ onMounted(() => {
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">内容描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
+                    </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>

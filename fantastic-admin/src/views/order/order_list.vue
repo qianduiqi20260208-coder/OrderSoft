@@ -173,6 +173,7 @@ interface OrderItem {
   packageAt?: string // 封装时间
   encryptedAt?: string // 加密时间
   sendAt?: string // 发送时间
+  createRemark?: string // 创建备注
 
 }
 
@@ -422,6 +423,7 @@ async function fetchUserOrders(page = 1) {
 
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
+        createRemark: order.createRemark || '', // 创建备注
       }
       // 文件数组处理
       if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
@@ -2155,6 +2157,10 @@ function handleCopyOrder(order: OrderItem) {
                   <span class="w-32 text-black font-semibold">复现内容：</span>
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.description" rows="2" readonly />
                 </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
@@ -2198,6 +2204,10 @@ function handleCopyOrder(order: OrderItem) {
                     readonly
                   >
                 </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
@@ -2225,6 +2235,10 @@ function handleCopyOrder(order: OrderItem) {
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
+                </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
@@ -2276,6 +2290,10 @@ function handleCopyOrder(order: OrderItem) {
                   <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
                 </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
@@ -2296,6 +2314,10 @@ function handleCopyOrder(order: OrderItem) {
                   <span class="w-32 text-black font-semibold">功能描述：</span>
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.featureDesc" rows="2" readonly />
                 </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>
                   <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
@@ -2315,6 +2337,10 @@ function handleCopyOrder(order: OrderItem) {
                 <div class="flex items-start gap-2">
                   <span class="w-32 text-black font-semibold">内容描述：</span>
                   <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.contentDesc" rows="2" readonly />
+                </div>
+                <div class="col-span-2 flex items-start gap-2">
+                  <span class="w-32 text-black font-semibold">创建备注：</span>
+                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.createRemark || '无'" rows="2" readonly />
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="w-32 text-black font-semibold">审批人：</span>

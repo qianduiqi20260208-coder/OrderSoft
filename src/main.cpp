@@ -9,6 +9,7 @@
 #include <locale>
 #include "crow.h"
 #include "crow/middlewares/cors.h"
+#include "util/IniReader.h"
 // 工单模块
 #include "TicketDAO.h"
 #include "TicketService.h"
@@ -41,6 +42,13 @@ int main() {
     std::filesystem::path iniPath = std::filesystem::absolute("config.ini");
     std::cout << "INI文件绝对路径: " << iniPath.string() << std::endl;
 	LOG_INFO("ModelLifeManager 服务启动中..");
+
+    // 读取配置文件
+    IniReader iniReader;
+    if (!iniReader.load("config.ini")) {
+        LOG_ERROR("无法加载配置文件 config.ini");
+        return -1;
+    }
 
 	// 初始化数据库连接池
 	if (!DBConnectionManager::initializePool()) {
@@ -92,8 +100,10 @@ int main() {
     customerInfoController.registerRoutes(app);
     encryptionKeyController.registerRoutes(app);
 
-	LOG_INFO("服务器启动成功，监听端口: 18080");
-	app.port(18080).multithreaded().run();
+	// 从配置文件读取端口号
+	int port = iniReader.getInt("server", "port", 18080);
+	LOG_INFO("服务器启动成功，监听端口: %d", port);
+	app.port(port).multithreaded().run();
 	
 
 	return 0;
