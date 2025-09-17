@@ -431,19 +431,26 @@ function expandModel(version: string, expand: boolean) {
                     </el-tooltip>
                     <span class="ml-2 text-2xl font-bold">
                       {{ model.version }}
-                      <sup
+                         <span v-if="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked)" class="ml-4 mb-2" >
+                          <img src="@/assets/icons/Cae3D.svg" style="position: relative; bottom: 3px;" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
+                        </span>
+                        <!-- 接口变更图标 -->
+                        <span v-if="model.orders.some(o => o.apiChanged)" :class="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked) ? 'ml-2': 'ml-4'">
+                          <img src="@/assets/icons/接口.svg" style="position: relative; bottom: 3px;" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
+                        </span>
+                      <!-- <sup
                         class="ml-1 text-sm font-bold"
                         :class="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked) ? 'text-green-700' : 'text-gray-400'"
                         style="line-height: 1;"
                       >
                         CAE
                         <FaIcon
-                          v-if="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked)"
+                          
                           name="check"
                           class="size-4 text-green-600"
                           style="vertical-align: middle;"
                         />
-                      </sup>
+                      </sup> -->
                     </span>
                     <div class="ml-auto flex gap-2">
                       <FaButton

@@ -130,6 +130,7 @@ interface OrderItem {
 
   // ----------功能开发类（创建）----------
   featureDesc?: string // 功能描述
+  targetPlatform?: string // 目标平台
 
   // ----------其他类（创建）----------
   contentDesc?: string // 内容描述
@@ -424,6 +425,7 @@ async function fetchUserOrders(page = 1) {
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
         createRemark: order.createRemark || '', // 创建备注
+        targetPlatform: order.versionIteration?.targetPlatform ||  order.functionDevelopment?.targetPlatform || ''
       }
       // 文件数组处理
       if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
@@ -846,24 +848,35 @@ function handleCopyOrder(order: OrderItem) {
                       :title="order.status"
                     />
                     <!-- 修改：工单类型在前面，加大字号和加粗 -->
-                    <span
-                      class="mr-4 text-xl font-black"
-                      :class="{
-                        'text-blue-700': order.type === '问题复现',
-                        'text-green-700': order.type === '版本迭代',
-                        'text-yellow-700': order.type === '交付发送',
-                        'text-purple-700': order.type === '版本迭代+交付发送',
-                        'text-pink-700': order.type === '功能开发',
-                        'text-gray-700': order.type === '其他',
-                      }"
-                    >
-                      {{ order.type }}
-                    </span>
+                    <div class="flex items-end">
+                      <span
+                        class="mr-2 text-xl font-black"
+                        :class="{
+                          'text-blue-700': order.type === '问题复现',
+                          'text-green-700': order.type === '版本迭代',
+                          'text-yellow-700': order.type === '交付发送',
+                          'text-purple-700': order.type === '版本迭代+交付发送',
+                          'text-pink-700': order.type === '功能开发',
+                          'text-gray-700': order.type === '其他',
+                        }"
+                      >
+                        {{ order.type }}
+                      </span>
 
-                    <!-- 修改：工单号在后面，相对较小的字号 -->
-                    <span class="text-lg text-gray-600 font-bold">
-                      工单#{{ order.orderID }}
-                    </span>
+                      <!-- 修改：工单号在后面，相对较小的字号 -->
+                      <span class="text-sm text-gray-500">
+                        工单#{{ order.orderID }}
+                      </span>
+                    </div>
+                    
+                      <!-- CAE图标 -->
+                        <span v-if="order.targetPlatform === 'CAE'" class="ml-4" >
+                          <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
+                        </span>
+                        <!-- 接口变更图标 -->
+                        <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2': 'ml-4'">
+                          <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
+                        </span>
                     <span style="margin-left: 24px;">
                       <div class="flex items-center gap-2">
                         <!-- 详细信息按钮 -->
@@ -994,6 +1007,10 @@ function handleCopyOrder(order: OrderItem) {
                         <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
                       </span>
                       <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">任务优先级：</span>
                         <span class="text-black font-bold">{{ order.taskPriority }}</span>
                       </span>
@@ -1025,6 +1042,10 @@ function handleCopyOrder(order: OrderItem) {
                       <span>
                         <span class="text-gray-600">基准版本：</span>
                         <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span v-if="order.type == '功能开发'" >
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">当前状态：</span>
@@ -1920,14 +1941,14 @@ function handleCopyOrder(order: OrderItem) {
                       <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.promoterID }}</span>
-                      <span>完成时间：{{ order.startTime }}</span>
+                      <span>发起人：{{ order.promoterID }}</span>
+                      <span>发起时间：{{ order.startTime }}</span>
                     </div>
                   </div>
                 </template>
                 <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4">
                   <!-- 基础信息 -->
-                  <div class="flex items-center gap-2">
+                  <!-- <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">工单：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.orderID" readonly>
                   </div>
@@ -1936,13 +1957,13 @@ function handleCopyOrder(order: OrderItem) {
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.type" readonly>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发起人：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
-                  </div>
-                  <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">发起时间：</span>
                     <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.startTime" readonly>
                   </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">发起人：</span>
+                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
+                  </div> -->
 
                   <!-- 问题复现类 -->
                   <template v-if="order.type === '问题复现'">
@@ -2092,6 +2113,12 @@ function handleCopyOrder(order: OrderItem) {
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
+                  
+                  <!-- 备注 -->
+                  <div class="flex items-center gap-2 w-full">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark" rows="2" readonly />
+                  </div>
                 </div>
               </FaPageMain>
             </div>
@@ -2473,6 +2500,13 @@ function handleCopyOrder(order: OrderItem) {
                     <input
                       class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
                       :value="currentOrder.finishModelVersion" readonly
+                    >
+                  </div>
+                  <div class="col-span-1 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">目标平台：</span>
+                    <input
+                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      :value="currentOrder.targetPlatform" readonly
                     >
                   </div>
                   <div class="col-span-1 w-full flex items-center gap-2">

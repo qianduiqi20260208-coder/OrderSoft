@@ -57,6 +57,7 @@ interface OrderItem {
   completeModelVersion?: string // matlab模型版本
   targetCustomer?: string // 目标客户
   targetDeliveryTime?: string // 预计发送时间
+  targetPlatform?: string // 目标平台
 }
 
 // 定义客户信息数据结构
@@ -151,6 +152,7 @@ async function apiFetchUserOrders() {
         statusTodo: order.statusTodo || '',
         finishModelVersion: order.versionIteration?.newModelVersion || order.packageSend?.newModelVersion || order.functionDevelopment?.newModelVersion || '', // 升级后模型版本
         completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '', // matlab版本号
+        targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || '', // 目标平台
         targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称
         // 预计发送时间
         targetDeliveryTime: (
@@ -939,6 +941,10 @@ onUnmounted(() => {
                         <span class="text-black font-bold">{{ order.completeModelVersion }}</span>
                       </span>
                       <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">目标客户：</span>
                         <span class="text-black font-bold">{{ order.targetCustomer }}</span>
                       </span>
@@ -991,8 +997,28 @@ onUnmounted(() => {
                         <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
                       </span>
                       <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">任务优先级：</span>
                         <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                    </template>
+                    <!-- 功能开发类工单 -->
+                    <template v-else-if="order.type === '功能开发'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
                       </span>
                     </template>
                     <!-- 其他类型工单 -->

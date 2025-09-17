@@ -56,6 +56,8 @@ export default {
     apiChanged: string // 接口是否变化
     approverID: string // 审批人ID
     startTime: string // 工单开始时间（提交时自动生成）
+    create_remark?: string // 创建备注
+    targetPlatform: string // 目标平台
   }) => api.post('order/iter', data, {
     // baseURL: '/mock/',
   }),
@@ -72,6 +74,7 @@ export default {
     hasSensitiveInfo: string // 是否包含敏感信息
     approverID: string // 审批人ID
     startTime: string // 工单开始时间（提交时自动生成）
+    create_remark?: string // 创建备注
   }) => api.post('order/deliver', data, {
     // baseURL: '/mock/',
   }),
@@ -93,6 +96,7 @@ export default {
     hasSensitiveInfo: string // 是否包含敏感信息
     approverID: string // 审批人ID
     startTime: string // 工单开始时间（提交时自动生成）
+    create_remark?: string // 创建备注
   }) => api.post('order/iter-deliver', data, {
     // baseURL: '/mock/',
   }),
@@ -108,6 +112,8 @@ export default {
     featureDesc: string // 功能描述
     approverID: string // 审批人ID
     startTime: string // 工单开始时间（提交时自动生成）
+    create_remark?: string // 创建备注
+    targetPlatform: string // 目标平台
   }) => api.post('order/dev', data, {
     // baseURL: '/mock/',
   }),
@@ -121,6 +127,7 @@ export default {
     modelVersionID: string // 模型版本ID
     contentDesc: string // 内容描述
     approverID: string // 审批人ID
+    create_remark?: string // 创建备注
     startTime: string // 工单开始时间（提交时自动生成）
   }) => api.post('order/other', data, {
     // baseURL: '/mock/',

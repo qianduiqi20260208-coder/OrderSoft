@@ -370,6 +370,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.updateNote = body.value("updateNotes", ""); // 更新内容
         ticketversion.packRequirement = body.value("packageRequirement", ""); // 封装要求
         ticketversion.interfaceChanged = (body.value("apiChanged", "") == "是"); // 接口是否变化
+        ticketversion.targetPlatform = body.value("targetPlatform", ""); // 目标平台
         ticketversion.createRemark = body.value("create_remark", ""); // 创建备注
         ticketversion.approverId = (body.value("approverID", "")); // 审批人ID
 
@@ -515,6 +516,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketfeature.featureFinal = body.value("completeModelVersion", ""); // 期望完成后的模型版本
         ticketfeature.matlab_version = body.value("matlab_version", ""); // MATLAB版本
         ticketfeature.featureInit = body.value("featureDesc", ""); // 功能描述
+        ticketfeature.targetPlatform = body.value("targetPlatform", ""); // 目标平台
         ticketfeature.createRemark = body.value("create_remark", ""); // 创建备注
         ticketfeature.approverId = (body.value("approverID", "")); // 审批人ID
 

@@ -120,6 +120,7 @@ const iterOrderForm = ref({
   updateNotes: '', // 更新说明
   packageRequirement: '', // 封装要求
   apiChanged: '', // 接口是否变化
+  targetPlatform: '', // 目标平台
   approverID: '', // 审批人ID
   create_remark: '', // 创建备注
 })
@@ -197,6 +198,7 @@ async function submitIterOrder() {
     || !iterOrderForm.value.completeModelVersionNumber
     || !iterOrderForm.value.updateNotes
     || !iterOrderForm.value.apiChanged
+    || !iterOrderForm.value.targetPlatform
     || !iterOrderForm.value.approverID
   ) {
     ElMessage.error('请完整填写所有必填项')
@@ -221,6 +223,7 @@ async function submitIterOrder() {
     updateNotes: iterOrderForm.value.updateNotes, // 更新说明
     packageRequirement: iterOrderForm.value.packageRequirement, // 封装要求
     apiChanged: iterOrderForm.value.apiChanged, // 接口是否变化
+    targetPlatform: iterOrderForm.value.targetPlatform, // 目标平台
     approverID: String(iterOrderForm.value.approverID), // 审批人ID
     create_remark: iterOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
@@ -243,6 +246,7 @@ async function submitIterOrder() {
     updateNotes: '',
     packageRequirement: '',
     apiChanged: '',
+    targetPlatform: '',
     approverID: '',
     create_remark: '',
   }
@@ -373,6 +377,7 @@ const iterDeliverOrderForm = ref({
   packageRequirement: '', // 封装要求
   apiChanged: '', // 接口是否变化
   targetCustomer: '', // 目标客户
+  create_remark: '', // 创建备注
   isCAEChecked: '', // 是否CAE检查
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
@@ -523,6 +528,7 @@ async function confirmIterDeliverOrderSubmit() {
     isCAEChecked: '',
     hasSensitiveInfo: '',
     approverID: '',
+    create_remark: '', // 创建备注
   }
 }
 
@@ -535,6 +541,7 @@ const devOrderForm = ref({
   completeModelVersionSecond: '', // 新增：第二位
   completeModelVersionNumber: '', // 新增：完成模型版本号（只输入数字部分）
   featureDesc: '', // 功能描述
+  targetPlatform: '', // 目标平台
   approverID: '', // 审批人ID
   create_remark: '', // 创建备注
 })
@@ -552,6 +559,7 @@ async function submitDevOrder() {
     !devOrderForm.value.modelId
     || !devOrderForm.value.modelVersionID
     || !devOrderForm.value.featureDesc
+    || !devOrderForm.value.targetPlatform
     || !devOrderForm.value.approverID
   ) {
     ElMessage.error('请完整填写所有必填项')
@@ -567,6 +575,7 @@ async function submitDevOrder() {
     modelVersionID: devOrderForm.value.modelVersionID, // 模型版本ID
     matlab_version: getCompleteModelVersion(devOrderForm.value.modelVersionID), // 只取前三位
     featureDesc: devOrderForm.value.featureDesc, // 功能描述
+    targetPlatform: devOrderForm.value.targetPlatform, // 目标平台
     approverID: String(devOrderForm.value.approverID), // 审批人ID
     create_remark: devOrderForm.value.create_remark, // 创建备注
     startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
@@ -586,6 +595,7 @@ async function submitDevOrder() {
     completeModelVersionSecond: '',
     completeModelVersionNumber: '',
     featureDesc: '',
+    targetPlatform: '',
     approverID: '',
     create_remark: '',
   }
@@ -1217,6 +1227,24 @@ async function fetchCustomerList() {
               <el-option label="否" value="否" />
             </el-select>
           </el-form-item>
+          <!-- 目标平台下拉选择 -->
+          <el-form-item label="目标平台" required>
+            <el-select
+              v-model="iterOrderForm.targetPlatform"
+              placeholder="请选择目标平台"
+              filterable
+              clearable
+              style="width: 100%;"
+              @visible-change="val => val && fetchCustomerList()"
+            >
+              <el-option
+                v-for="item in customerList"
+                :key="item"
+                :label="item"
+                :value="item"
+              />
+            </el-select>
+          </el-form-item>
           <!-- 版本迭代工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1243,7 +1271,7 @@ async function fetchCustomerList() {
           </el-button>
           <el-button
             type="primary"
-            :disabled="!iterOrderForm.modelId || !iterOrderForm.updateNotes || !iterOrderForm.apiChanged || !iterOrderForm.modelVersionID || !iterOrderForm.approverID"
+            :disabled="!iterOrderForm.modelId || !iterOrderForm.updateNotes || !iterOrderForm.apiChanged || !iterOrderForm.targetPlatform || !iterOrderForm.modelVersionID || !iterOrderForm.approverID"
             @click="submitIterOrder"
           >
             提交
@@ -1623,6 +1651,24 @@ async function fetchCustomerList() {
               placeholder="请输入备注"
             />
           </el-form-item>
+          <!-- 目标平台下拉选择 -->
+          <el-form-item label="目标平台" required>
+            <el-select
+              v-model="devOrderForm.targetPlatform"
+              placeholder="请选择目标平台"
+              filterable
+              clearable
+              style="width: 100%;"
+              @visible-change="val => val && fetchCustomerList()"
+            >
+              <el-option
+                v-for="item in customerList"
+                :key="item"
+                :label="item"
+                :value="item"
+              />
+            </el-select>
+          </el-form-item>
           <!-- 功能开发工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1649,7 +1695,7 @@ async function fetchCustomerList() {
           </el-button>
           <el-button
             type="primary"
-            :disabled="!devOrderForm.modelId || !devOrderForm.modelVersionID || !devOrderForm.featureDesc || !devOrderForm.approverID"
+            :disabled="!devOrderForm.modelId || !devOrderForm.modelVersionID || !devOrderForm.featureDesc || !devOrderForm.targetPlatform || !devOrderForm.approverID"
             @click="submitDevOrder"
           >
             提交

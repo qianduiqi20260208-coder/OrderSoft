@@ -260,6 +260,7 @@ struct TicketVersion :public Ticket{
     std::string newModelVersion; // 升级后模型版本
     std::string baseModelVersion;//模型基版本
     std::string remark; // 备注 
+    std::string targetPlatform; // 目标平台
 
     std::string matlab_version; // 备注 
 
@@ -275,6 +276,7 @@ struct TicketVersion :public Ticket{
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishRemark"] = remark; // 备注
+        j["targetPlatform"] = targetPlatform; // 目标平台
         j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
@@ -291,6 +293,7 @@ struct TicketVersion :public Ticket{
 		j["finishModelVersion"] = newModelVersion; // 升级后模型版本
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["completeModelVersion"] = remark; // 备注
+        j["targetPlatform"] = targetPlatform; // 目标平台
 
         j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
@@ -430,6 +433,7 @@ struct TicketFeature :public Ticket{
     std::string newModelVersion; // 完成后模型版本ID
     std::string baseModelVersion;//模型基版本
     std::string featureFinal; // 完成后功能描述
+    std::string targetPlatform; // 目标平台
     std::string matlab_version; // MATLAB版本
 
     // 多态序列化接口
@@ -441,6 +445,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["finishFeatureDesc"] = featureFinal; // 完成功能描述
+        j["targetPlatform"] = targetPlatform; // 目标平台
         j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
@@ -454,6 +459,7 @@ struct TicketFeature :public Ticket{
 		j["finishModelVersionId"] = newModelVersion; // 完成后模型版本ID
         j["baseModelVersion"] = baseModelVersion; // 模型父版本
 		j["completeModelVersion"] = featureFinal; // 完成功能描述
+        j["targetPlatform"] = targetPlatform; // 目标平台
         j["matlabVersion"] = matlab_version; // MATLAB版本
 		return j;
 	}
