@@ -4,6 +4,7 @@ import ColorScheme from './ColorScheme/index.vue'
 import Fullscreen from './Fullscreen/index.vue'
 import NavSearch from './NavSearch/index.vue'
 import PageReload from './PageReload/index.vue'
+import NotificationIcon from '@/components/NotificationIcon.vue'
 
 defineOptions({
   name: 'ToolbarRightSide',
@@ -17,6 +18,7 @@ const settingsStore = useSettingsStore()
     <NavSearch v-if="settingsStore.settings.toolbar.navSearch" />
     <Fullscreen v-if="settingsStore.settings.toolbar.fullscreen" />
     <PageReload v-if="settingsStore.settings.toolbar.pageReload" />
+    <NotificationIcon />
     <ColorScheme v-if="settingsStore.settings.toolbar.colorScheme" />
     <component :is="useSlots('toolbar-end')" />
   </div>

@@ -312,7 +312,7 @@ async function fetchChartData() {
         weekly: mappedWeekly,
         monthly: mappedMonthly,
       }
-      console.warn('图表数据加载成功:', chartStatistics.value)
+      console.log('图表数据加载成功:', chartStatistics.value)
     }
     else {
       throw new Error('响应数据为空')

@@ -15,6 +15,7 @@ type ToasterToast = ToastProps & {
   title?: string
   description?: StringOrVNode
   action?: Component
+  icon?: string
 }
 
 const actionTypes = {
