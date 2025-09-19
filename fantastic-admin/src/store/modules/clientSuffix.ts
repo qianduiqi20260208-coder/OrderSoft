@@ -26,7 +26,6 @@ export const useClientSuffixStore = defineStore(
           console.log('客户后缀数据加载成功:', suffixList.value)
         }
         else {
-          console.error('获取客户后缀失败:', response.error)
           ElMessage.error('获取客户后缀失败')
         }
       }
@@ -72,6 +71,7 @@ export const useClientSuffixStore = defineStore(
     }
   },
   {
+   //@ts-ignore
     persist: {
       key: 'client-suffix-store',
       storage: sessionStorage,

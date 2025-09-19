@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useSlots } from '@/slots'
 import Logo from '../Logo/index.vue'
+import NotificationIcon from '@/components/NotificationIcon.vue'
 
 defineOptions({
   name: 'LayoutHeader',
@@ -45,7 +46,10 @@ const { switchTo } = useMenu()
           </div>
         </FaScrollArea>
         <component :is="useSlots('header-after-menu')" />
-        <div class="flex-center">
+        <div class="flex items-center gap-3">
+          <!-- 通知图标 -->
+          <NotificationIcon />
+          <!-- 用户头像 -->
           <AccountButton only-avatar dropdown-side="bottom" class="size-12 p-2" />
         </div>
         <component :is="useSlots('header-end')" />

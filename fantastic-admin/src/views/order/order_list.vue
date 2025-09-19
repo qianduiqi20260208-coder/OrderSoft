@@ -130,6 +130,7 @@ interface OrderItem {
 
   // ----------功能开发类（创建）----------
   featureDesc?: string // 功能描述
+  targetPlatform?: string // 目标平台
 
   // ----------其他类（创建）----------
   contentDesc?: string // 内容描述
@@ -173,6 +174,7 @@ interface OrderItem {
   packageAt?: string // 封装时间
   encryptedAt?: string // 加密时间
   sendAt?: string // 发送时间
+  createRemark?: string // 创建备注
 
 }
 
@@ -197,6 +199,118 @@ const filterDeliveryDateRange = ref<[string, string]>(['', ''])
 
 // 新增：每个工单的展开状态
 const expandedMap = ref<Record<string, boolean>>({})
+
+// Tab切换相关数据
+const activeTabMap = ref<Record<string, string>>({})
+
+// 获取工单的Tab列表
+function getOrderTabs(order: OrderItem) {
+  const tabs = []
+  
+  // 任务发起 - 始终显示
+  tabs.push({
+    key: 'initiate',
+    label: '任务发起',
+    icon: '🚀',
+    status: 'completed',
+    responsible: order.promoterID
+  })
+  
+  // 任务审批
+  if (['待审批', '待分发', '进行中', '已完成', '已退回'].includes(order.status)) {
+    tabs.push({
+      key: 'approve',
+      label: '任务审批',
+      icon: '📋',
+      status: order.status === '待审批' ? 'in_progress' : 
+              order.status === '已退回' && order.rejectReason ? 'rejected' : 'completed',
+      responsible: order.approverID
+    })
+  }
+  
+  // 任务分发
+  if (['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== '') {
+    tabs.push({
+      key: 'dispatch',
+      label: '任务分发',
+      icon: '📤',
+      status: order.status === '待分发' ? 'in_progress' : 
+              order.status === '已退回' && order.rejectReason_dispatch ? 'rejected' : 'completed',
+      responsible: order.distributorID
+    })
+  }
+  
+  // 封装工单 - 版本迭代+交付发送类
+  if (['进行中', '已完成'].includes(order.status) && 
+      (order.type === '版本迭代+交付发送' || order.type === '版本迭代') &&
+      ['待封装', '待加密', '待发送'].includes(order.statusTodo ?? '')) {
+    tabs.push({
+      key: 'package',
+      label: '封装工单',
+      icon: '📦',
+      status: order.status === '进行中' && order.statusTodo === '待封装' ? 'in_progress' : 'completed',
+      responsible: order.packageExecutorID || order.executorID
+    })
+  }
+  
+  // 加密工单 - 版本迭代+交付发送类
+  if (['进行中', '已完成'].includes(order.status) && 
+      order.type === '版本迭代+交付发送' &&
+      ['待加密', '待发送'].includes(order.statusTodo ?? '')) {
+    tabs.push({
+      key: 'encrypt',
+      label: '加密工单',
+      icon: '🔐',
+      status: order.status === '进行中' && order.statusTodo === '待加密' ? 'in_progress' : 'completed',
+      responsible: order.encryptedExecutorID
+    })
+  }
+  
+  // 发送工单 - 交付发送和版本迭代+交付发送类
+  if (['进行中', '已完成'].includes(order.status) && 
+      ['交付发送', '版本迭代+交付发送'].includes(order.type) &&
+      order.statusTodo === '待发送') {
+    tabs.push({
+      key: 'send',
+      label: '发送工单',
+      icon: '📨',
+      status: order.status === '进行中' && order.statusTodo === '待发送' ? 'in_progress' : 'completed',
+      responsible: order.sendExecutorID
+    })
+  }
+  
+  // 完成工单 - 问题复现、功能开发、其他类
+  if (['进行中', '已完成'].includes(order.status) && 
+      ['问题复现', '功能开发', '其他'].includes(order.type)) {
+    tabs.push({
+      key: 'complete',
+      label: '完成工单',
+      icon: '✅',
+      status: order.status === '进行中' ? 'in_progress' : 'completed',
+      responsible: order.executorID
+    })
+  }
+  
+  return tabs
+}
+
+// 切换Tab
+function switchTab(orderId: string, tabKey: string) {
+  activeTabMap.value[orderId] = tabKey
+}
+
+// 获取当前激活的Tab
+function getActiveTab(orderId: string) {
+  if (!activeTabMap.value[orderId]) {
+    // 默认激活第一个Tab
+    const order = userOrders.value.find(o => o.orderID === orderId)
+    if (order) {
+      const tabs = getOrderTabs(order)
+      activeTabMap.value[orderId] = tabs[0]?.key || 'initiate'
+    }
+  }
+  return activeTabMap.value[orderId] || 'initiate'
+}
 
 // 详细信息弹窗功能
 const dialogVisible = ref(false)
@@ -422,6 +536,8 @@ async function fetchUserOrders(page = 1) {
 
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
+        createRemark: order.createRemark || '', // 创建备注
+        targetPlatform: order.versionIteration?.targetPlatform ||  order.functionDevelopment?.targetPlatform || ''
       }
       // 文件数组处理
       if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
@@ -844,24 +960,35 @@ function handleCopyOrder(order: OrderItem) {
                       :title="order.status"
                     />
                     <!-- 修改：工单类型在前面，加大字号和加粗 -->
-                    <span
-                      class="mr-4 text-xl font-black"
-                      :class="{
-                        'text-blue-700': order.type === '问题复现',
-                        'text-green-700': order.type === '版本迭代',
-                        'text-yellow-700': order.type === '交付发送',
-                        'text-purple-700': order.type === '版本迭代+交付发送',
-                        'text-pink-700': order.type === '功能开发',
-                        'text-gray-700': order.type === '其他',
-                      }"
-                    >
-                      {{ order.type }}
-                    </span>
+                    <div class="flex items-end">
+                      <span
+                        class="mr-2 text-xl font-black"
+                        :class="{
+                          'text-blue-700': order.type === '问题复现',
+                          'text-green-700': order.type === '版本迭代',
+                          'text-yellow-700': order.type === '交付发送',
+                          'text-purple-700': order.type === '版本迭代+交付发送',
+                          'text-pink-700': order.type === '功能开发',
+                          'text-gray-700': order.type === '其他',
+                        }"
+                      >
+                        {{ order.type }}
+                      </span>
 
-                    <!-- 修改：工单号在后面，相对较小的字号 -->
-                    <span class="text-lg text-gray-600 font-bold">
-                      工单#{{ order.orderID }}
-                    </span>
+                      <!-- 修改：工单号在后面，相对较小的字号 -->
+                      <span class="text-sm text-gray-500">
+                        工单#{{ order.orderID }}
+                      </span>
+                    </div>
+                    
+                      <!-- CAE图标 -->
+                        <span v-if="order.targetPlatform === 'CAE'" class="ml-4" >
+                          <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
+                        </span>
+                        <!-- 接口变更图标 -->
+                        <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2': 'ml-4'">
+                          <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
+                        </span>
                     <span style="margin-left: 24px;">
                       <div class="flex items-center gap-2">
                         <!-- 详细信息按钮 -->
@@ -992,6 +1119,10 @@ function handleCopyOrder(order: OrderItem) {
                         <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
                       </span>
                       <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">任务优先级：</span>
                         <span class="text-black font-bold">{{ order.taskPriority }}</span>
                       </span>
@@ -1024,6 +1155,10 @@ function handleCopyOrder(order: OrderItem) {
                         <span class="text-gray-600">基准版本：</span>
                         <span class="text-black font-bold">{{ order.modelVersionID }}</span>
                       </span>
+                      <span v-if="order.type == '功能开发'" >
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
+                      </span>
                       <span>
                         <span class="text-gray-600">当前状态：</span>
                         <span
@@ -1045,58 +1180,115 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
               </div>
             </template>
-            <div class="mt-4 space-y-3">
-              <!-- 完成工单 -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && ['问题复现', '功能开发', '其他'].includes(order.type)"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+            <!-- Tab切换区域 -->
+            <div class="mt-6">
+              <!-- Tab导航栏 -->
+              <div class="relative rounded-t-lg p-1 border-l border-r border-t border-gray-200 before:absolute before:bottom-0 before:left-[-8px] before:w-2 before:h-2 before:bg-gray-50 before:rounded-br-lg before:border-r before:border-b before:border-gray-200 after:absolute after:bottom-0 after:right-[-8px] after:w-2 after:h-2 after:bg-gray-50 after:rounded-bl-lg after:border-l after:border-b after:border-gray-200">
+                <nav class="flex space-x-1 w-full">
+                  <button
+                    v-for="tab in getOrderTabs(order)"
+                    :key="tab.key"
+                    @click="switchTab(order.orderID, tab.key)"
+                    class="relative whitespace-nowrap py-3 px-4 font-medium text-sm flex flex-col items-center gap-2 transition-all duration-300 ease-in-out transform hover:scale-102 w-full tab-button"
+                    :class="{
+                      'bg-white text-blue-700 border-t border-l border-r border-blue-200 rounded-t-md tab-active': getActiveTab(order.orderID) === tab.key,
+                      'text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-md': getActiveTab(order.orderID) !== tab.key
+                    }"
+                  >
+                    <!-- 激活状态的顶部指示条 -->
+                    <div 
+                      v-if="getActiveTab(order.orderID) === tab.key"
+                      class="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-500 rounded-full"
+                    ></div>
+                    
+                    <!-- 底部延伸线条 -->
+                    <div 
+                      v-if="getActiveTab(order.orderID) === tab.key"
+                      class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 extending-line"
+                    ></div>
+                    
+                    <div class="flex items-center gap-3">
+                      <!-- 图标 -->
+                      <!-- <span class="text-lg" v-if="tab.icon">{{ tab.icon }}</span> -->
+                      
+                      <!-- 标签名称 -->
+                      <span class="font-semibold">{{ tab.label }}</span>
+                      
+                      <!-- 状态指示器 -->
+                      <div class="relative">
+                        <span
+                          class="inline-block w-3 h-3 rounded-full border-2 border-white shadow-sm"
+                          :class="{
+                            'bg-green-500': tab.status === 'completed',
+                            'bg-orange-500': tab.status === 'in_progress',
+                            'bg-red-500': tab.status === 'rejected',
+                            'bg-gray-400': !tab.status || tab.status === 'pending'
+                          }"
+                          :title="tab.status === 'completed' ? '已完成' : 
+                                  tab.status === 'in_progress' ? '进行中' : 
+                                  tab.status === 'rejected' ? '已退回' : '未开始'"
+                        ></span>
+                        <!-- 脉冲动画（进行中状态） -->
+                        <span 
+                          v-if="tab.status === 'in_progress'"
+                          class="absolute top-1/6 left-0 w-3 h-3 bg-orange-500 rounded-full animate-ping opacity-75"
+                        ></span>
+                      </div>
+                    </div>
+                    
+                    <!-- 负责人信息 -->
+                    <div v-if="tab.responsible" class="flex items-center gap-1">
+                      <i class="i-mdi-account text-xs opacity-70"></i>
+                      <span class="text-xs font-medium opacity-80">{{ tab.responsible }}</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+              
+              <!-- Tab内容区域 -->
+              <div class="mt-0">
+              <!-- 完成工单 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'complete' && ['进行中', '已完成'].includes(order.status) && ['问题复现', '功能开发', '其他'].includes(order.type)"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">完成工单</span>
+                  <div class="mb-4 flex items-center gap-4">
                       <span
-                        v-if="order.status === '进行中'"
+                        v-if="order.status === '待审批'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
-                        v-else-if="order.status === '已完成'"
+                        v-else-if="['待分发', '进行中', '已完成'].includes(order.status)"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.executorID }}</span>
                       <span>完成时间：{{ order.completedAt }}</span>
                     </div>
                   </div>
-                </template>
-                <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
-                  :class="order.status === '进行中' ? 'bg-gray-50' : 'bg-gray-100 opacity-70'"
-                >
+                  <div
+                    class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
+                    :class="order.status === '进行中' ? 'bg-gray-50' : 'bg-gray-100 opacity-70'"
+                  >
                   <!-- 问题复现类工单 -->
                   <template v-if="order.type === '问题复现'">
-                    <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">复现现象：</span>
+                    <div class="col-span-1 w-full flex flex-col gap-2">
+                      <span class="text-black font-semibold">复现现象：</span>
                       <textarea
                         :value="order.finishPhenomenon"
-                        class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                         rows="2"
                         readonly
                       />
                     </div>
-                    <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">备注：</span>
+                    <div class="col-span-1 w-full flex flex-col gap-2">
+                      <span class="text-black font-semibold">备注：</span>
                       <textarea
                         :value="order.finishRemark"
-                        class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                         rows="2"
                         readonly
                       />
@@ -1105,19 +1297,19 @@ function handleCopyOrder(order: OrderItem) {
 
                   <!-- 功能开发类工单 -->
                   <template v-else-if="order.type === '功能开发'">
-                    <div class="col-span-1 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                    <div class="col-span-1 w-full flex flex-col gap-2">
+                      <span class="text-black font-semibold">升级后模型版本：</span>
                       <input
                         :value="order.finishModelVersion"
-                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
-                    <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">完成功能描述：</span>
+                    <div class="col-span-1 w-full flex flex-col gap-2">
+                      <span class="text-black font-semibold">完成功能描述：</span>
                       <textarea
                         :value="order.finishFeatureDesc"
-                        class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                         rows="2"
                         readonly
                       />
@@ -1126,295 +1318,246 @@ function handleCopyOrder(order: OrderItem) {
 
                   <!-- 其他类工单 -->
                   <template v-else-if="order.type === '其他'">
-                    <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">备注：</span>
+                    <div class="col-span-1 w-full flex flex-col gap-2">
+                      <span class="text-black font-semibold">备注：</span>
                       <textarea
                         :value="order.finishRemarkOther"
-                        class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         rows="2"
                         readonly
                       />
                     </div>
                   </template>
+                  </div>
                 </div>
-              </FaPageMain>
 
-              <!-- 交付发送类工单-发送（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '交付发送' && ['待发送'].includes(order.statusTodo ?? '')"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <!-- 发送工单 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'send' && ['进行中', '已完成'].includes(order.status) && order.type === '交付发送' && ['待发送'].includes(order.statusTodo ?? '')"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">发送工单</span>
+                <div class="mb-4 flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span
-                        v-if="order.status === '进行中'"
+                        v-if="order.status === '待审批'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
-                        v-else-if="order.status === '已完成'"
+                        v-else-if="['待分发', '进行中', '已完成'].includes(order.status)"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
-                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.sendExecutorID }}</span>
-                      <span>完成时间：{{ order.completedAt }}</span>
-                    </div>
+                    <span>完成时间：{{ order.completedAt }}</span>
                   </div>
-                </template>
+                </div>
                 <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
                   <!-- 授权ID（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">授权ID：</span>
                     <input
                       :value="order.finishAuthId"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 发送版本（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">发送版本：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">发送版本：</span>
                     <input
                       :value="order.modelVersionID"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 目标客户（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">目标客户：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">目标客户：</span>
                     <input
                       :value="order.targetCustomer"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 发送备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发送备注：</span>
+                  <div class="col-span-1 flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">发送备注：</span>
                     <textarea
                       :value="order.sendRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       rows="2"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
 
-              <!-- 版本迭代+交付发送类工单-发送（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待发送'].includes(order.statusTodo ?? '')"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <!-- 版本迭代+交付发送类工单-发送 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'send' && ['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待发送'].includes(order.statusTodo ?? '')"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">发送工单</span>
+                <div class="mb-4 flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span
-                        v-if="order.status === '进行中'"
+                        v-if="order.status === '待审批'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
-                        v-else-if="order.status === '已完成'"
+                        v-else-if="['待分发', '进行中', '已完成'].includes(order.status)"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
-                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.sendExecutorID }}</span>
-                      <span>完成时间：{{ order.completedAt }}</span>
-                    </div>
+                    <span>完成时间：{{ order.completedAt }}</span>
                   </div>
-                </template>
+                </div>
                 <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
                   <!-- 授权ID（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">授权ID：</span>
                     <input
                       :value="order.finishAuthId"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 发送版本（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">发送版本：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">发送版本：</span>
                     <input
                       :value="order.finishModelVersion"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 目标客户（只读） -->
-                  <div class="flex items-center gap-2 flex-1">
-                    <span class="w-32 text-black font-semibold">目标客户：</span>
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-black font-semibold">目标客户：</span>
                     <input
                       :value="order.targetCustomer"
-                      class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 发送备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
+                  <div class="col-span-1 flex flex-col gap-2 flex-1">
                     <span class="w-32 text-black font-semibold">发送备注：</span>
                     <textarea
                       :value="order.sendRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       rows="2"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
 
-              <!-- 发送环节流转内容块 -->
-              <template v-if="order.transfers_Delivery && order.transfers_Delivery.length">
-                <template v-for="(transfer, idx) in order.transfers_Delivery" :key="idx">
-                  <FaPageMain
-                    title=""
-                    :collaspe="!expandedMap[order.orderID]"
-                    height="auto"
-                    class="w-full"
-                  >
-                    <template #title>
-                      <div class="w-full flex items-center justify-between">
-                        <div class="flex items-center">
-                          <span class="text-lg text-green-900 font-bold">
-                            发送环节流转
-                            {{ order.transfers_Delivery.length > 1 ? `（第${order.transfers_Delivery.length - idx}次）` : '' }}
-                          </span>
-                          <span
-                            class="ml-2 inline-block align-middle"
-                            style="width: 12px;height: 12px;background: #22c55e ;border-radius: 50%;"
-                            title="发送流转"
-                          />
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                          <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                          <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                          <span>流转时间：{{ transfer.transferTime }}</span>
-                        </div>
+              <!-- 发送环节流转内容块 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'send_transfer' && order.transfers_Delivery && order.transfers_Delivery.length"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
+              >
+                <div class="space-y-4">
+                  <div v-for="(transfer, idx) in order.transfers_Delivery" :key="idx" class="border border-gray-200 rounded-lg p-4">
+                    <div class="mb-4 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="text-lg text-green-900 font-bold">
+                          发送环节流转
+                          {{ order.transfers_Delivery.length > 1 ? `（第${order.transfers_Delivery.length - idx}次）` : '' }}
+                        </span>
                       </div>
-                    </template>
+                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                        <span>流转时间：{{ transfer.transferTime }}</span>
+                      </div>
+                    </div>
                     <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-green-50 px-6 py-4">
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工作记录：</span>
                         <textarea
-                          class="flex-1 resize-none border border-gray-200 rounded bg-green-50 px-3 py-2 text-sm text-black"
+                          class="flex-1 resize-none border border-gray-200 rounded bg-green-50 px-3 py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                           :value="transfer.transferReason"
                           rows="2"
                           readonly
                         />
                       </div>
                     </div>
-                  </FaPageMain>
-                </template>
-              </template>
+                  </div>
+                </div>
+              </div>
 
-              <!-- 交付发送类工单-加密（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <!-- 加密工单 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'encrypt' && ['进行中', '已完成'].includes(order.status) && order.type === '交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">加密工单</span>
+                <div class="mb-4 flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span
-                        v-if="order.status === '进行中' && order.statusTodo === '待加密'"
+                        v-if="order.status === '待审批'"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
-                        v-else-if="order.status === '已完成'"
+                        v-else-if="['待分发', '进行中', '已完成'].includes(order.status)"
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
-                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.encryptedExecutorID }}</span>
-                      <span>完成时间：{{ order.encryptedAt }}</span>
-                    </div>
+                    <span>完成时间：{{ order.encryptedAt }}</span>
                   </div>
-                </template>
+                </div>
                 <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
-                  <!-- 是否加密（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">是否加密：</span>
-                    <input
-                      :value="order.isEncrypted"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
-                      readonly
-                    >
-                  </div>
                   <!-- 授权ID（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">授权ID：</span>
                     <input
                       :value="order.finishAuthId"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 加密备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">加密备注：</span>
+                  <div class="col-span-2 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">加密备注：</span>
                     <textarea
                       :value="order.encryptedRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       rows="2"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
 
-              <!-- 版本迭代+交付发送类工单-加密（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <!-- 版本迭代+交付发送类工单-加密 Tab面板 -->
+              <div
+                v-if="getActiveTab(order.orderID) === 'encrypt' && ['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待加密', '待发送'].includes(order.statusTodo ?? '')"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">加密工单</span>
+                <div class="mb-4 flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                      <!-- <span class="text-lg text-blue-900 font-bold">加密工单</span> -->
                       <span
                         v-if="order.status === '进行中' && order.statusTodo === '待加密'"
                         class="ml-2 inline-block align-middle"
-                        style="width: 12px;height: 12px;background: #f59e42;border-radius: 50%;"
+                        style="width: 12px;height: 12px;background: #f59e0b;border-radius: 50%;"
                         title="进行中"
                       />
                       <span
@@ -1423,104 +1566,109 @@ function handleCopyOrder(order: OrderItem) {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
-                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.encryptedExecutorID }}</span>
+                  <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                       <span>完成时间：{{ order.encryptedAt }}</span>
-                    </div>
                   </div>
-                </template>
+                  </div>                  
+                </div>
                 <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
                   <!-- 是否加密（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">是否加密：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">是否加密：</span>
                     <input
                       :value="order.isEncrypted"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 授权ID（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">授权ID：</span>
                     <input
                       :value="order.finishAuthId"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 加密备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">加密备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">加密备注：</span>
                     <textarea
                       :value="order.encryptedRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
-                      rows="2"
+                      class="resize-none border-0 border-b border-gray-300 bg-transparent py-2 text-sm text-black focus:outline-none focus:border-blue-500"
+                      rows="1"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
+                
+                <!-- 是否加密信息显示
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-800 font-semibold">是否加密：</span>
+                    <span class="text-blue-900 font-bold">{{ order.isEncrypted }}</span>
+                  </div>
+                </div> -->
+              </div>
 
               <!-- 加密环节流转内容块 -->
               <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length">
                 <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
-                  <FaPageMain
-                    title=""
-                    :collaspe="!expandedMap[order.orderID]"
-                    height="auto"
-                    class="w-full"
+                  <div
+                    v-if="getActiveTab(order.orderID) === 'encrypted'"
+                    class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
                   >
-                    <template #title>
-                      <div class="w-full flex items-center justify-between">
-                        <div class="flex items-center">
-                          <span class="text-lg text-purple-900 font-bold">
-                            加密环节流转
-                            {{ order.transfers_Encrypted.length > 1 ? `（第${order.transfers_Encrypted.length - idx}次）` : '' }}
-                          </span>
-                          <span
-                            class="ml-2 inline-block align-middle"
-                            style="width: 12px;height: 12px;background: #a855f7 ;border-radius: 50%;"
-                            title="加密流转"
-                          />
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                          <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                          <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                          <span>流转时间：{{ transfer.transferTime }}</span>
-                        </div>
+                    <div class="flex items-center justify-between mb-4">
+                      <!-- <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>负责人：{{ transfer.executorID }}</span>
+                        <span>完成时间：{{ transfer.finishedAt }}</span>
+                      </div> -->
+                    </div>
+                    <div class="w-full flex items-center justify-between mb-4">
+                      <div class="flex items-center">
+                        <span class="text-lg text-purple-900 font-bold">
+                          加密环节流转
+                          {{ order.transfers_Encrypted.length > 1 ? `（第${order.transfers_Encrypted.length - idx}次）` : '' }}
+                        </span>
+                        <span
+                          class="ml-2 inline-block align-middle"
+                          style="width: 12px;height: 12px;background: #a855f7 ;border-radius: 50%;"
+                          title="加密流转"
+                        />
                       </div>
-                    </template>
+                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                        <span>流转时间：{{ transfer.transferTime }}</span>
+                      </div>
+                    </div>
                     <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-purple-50 px-6 py-4">
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工作记录：</span>
                         <textarea
-                          class="flex-1 resize-none border border-gray-200 rounded bg-purple-50 px-3 py-2 text-sm text-black"
+                          class="flex-1 resize-none border border-gray-300 bg-purple-50 px-3 py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                           :value="transfer.transferReason"
                           rows="2"
                           readonly
                         />
                       </div>
                     </div>
-                  </FaPageMain>
+                  </div>
                 </template>
               </template>
 
               <!-- 版本迭代+交付发送类工单-封装（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待封装', '待加密', '待发送'].includes(order.statusTodo ?? '')"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <div
+                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代+交付发送' && ['待封装', '待加密', '待发送'].includes(order.statusTodo ?? '') && getActiveTab(order.orderID) === 'package'"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">封装工单</span>
+                <div class="w-full flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-4">
+                      <!-- <span class="text-lg text-blue-900 font-bold">封装工单</span> -->
                       <span
                         v-if="order.status === '进行中' && order.statusTodo === '待封装'"
                         class="ml-2 inline-block align-middle"
@@ -1533,59 +1681,53 @@ function handleCopyOrder(order: OrderItem) {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.packageExecutorID }}</span>
                       <span>完成时间：{{ order.packageAt }}</span>
                     </div>
+                    </div>
                   </div>
-                </template>
-                <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                      :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'">
                   <!-- 升级后模型版本（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-40 text-black font-semibold">
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">
                       升级后版本：</span>
                     <input
                       :value="order.finishModelVersion"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 加密人（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">加密人：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">加密人：</span>
                     <input
                       :value="order.encryptedExecutorID"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 封装备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">封装备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">封装备注：</span>
                     <textarea
                       :value="order.packageRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       rows="2"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
 
               <!-- 版本迭代类工单-封装（只读展示，进行中/已完成） -->
-              <FaPageMain
-                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代'"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <div
+                v-if="['进行中', '已完成'].includes(order.status) && order.type === '版本迭代' && getActiveTab(order.orderID) === 'package'"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">封装工单</span>
+                <div class="w-full flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-4">
+                      <!-- <span class="text-lg text-blue-900 font-bold">封装工单</span> -->
                       <span
                         v-if="order.status === '进行中'"
                         class="ml-2 inline-block align-middle"
@@ -1598,139 +1740,125 @@ function handleCopyOrder(order: OrderItem) {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
-                    </div>
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.executorID }}</span>
                       <span>完成时间：{{ order.completedAt }}</span>
                     </div>
+                    </div>
                   </div>
-                </template>
                 <div
-                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4"
+                  class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2"
                   :class="order.status === '进行中' ? 'bg-green-50' : 'bg-gray-100 opacity-70'"
                 >
                   <!-- 升级后模型版本（只读） -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-40 text-black font-semibold">
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">
                       升级后版本：</span>
                     <input
                       :value="order.finishModelVersion"
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       readonly
                     >
                   </div>
                   <!-- 封装备注（只读） -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">封装备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">封装备注：</span>
                     <textarea
                       :value="order.finishRemark"
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       rows="2"
                       readonly
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
 
               <!-- 封装环节流转内容块 -->
               <template v-if="order.transfers_Version && order.transfers_Version.length">
                 <template v-for="(transfer, idx) in order.transfers_Version" :key="idx">
-                  <FaPageMain
-                    title=""
-                    :collaspe="!expandedMap[order.orderID]"
-                    height="auto"
-                    class="w-full"
+                  <div
+                    v-if="getActiveTab(order.orderID) === 'package'"
+                    class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
                   >
-                    <template #title>
-                      <div class="w-full flex items-center justify-between">
-                        <div class="flex items-center">
-                          <span class="text-lg text-blue-900 font-bold">
-                            封装环节流转
-                            {{ order.transfers_Version.length > 1 ? `（第${order.transfers_Version.length - idx}次）` : '' }}
-                          </span>
-                          <span
-                            class="ml-2 inline-block align-middle"
-                            style="width: 12px;height: 12px;background: #3b82f6 ;border-radius: 50%;"
-                            title="封装流转"
-                          />
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                          <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                          <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                          <span>流转时间：{{ transfer.transferTime }}</span>
-                        </div>
+                    <div class="w-full flex items-center justify-between mb-4">
+                      <div class="flex items-center">
+                        <span class="text-lg text-blue-900 font-bold">
+                          封装环节流转
+                          {{ order.transfers_Version.length > 1 ? `（第${order.transfers_Version.length - idx}次）` : '' }}
+                        </span>
+                        <span
+                          class="ml-2 inline-block align-middle"
+                          style="width: 12px;height: 12px;background: #3b82f6 ;border-radius: 50%;"
+                          title="封装流转"
+                        />
                       </div>
-                    </template>
+                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                        <span>流转时间：{{ transfer.transferTime }}</span>
+                      </div>
+                    </div>
                     <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-blue-50 px-6 py-4">
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工作记录：</span>
                         <textarea
-                          class="flex-1 resize-none border border-gray-200 rounded bg-blue-50 px-3 py-2 text-sm text-black"
+                          class="flex-1 resize-none border border-gray-200 rounded bg-blue-50 px-3 py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                           :value="transfer.transferReason"
                           rows="2"
                           readonly
                         />
                       </div>
                     </div>
-                  </FaPageMain>
+                  </div>
                 </template>
               </template>
 
               <!-- 多次流转内容块，循环显示每一次流转（紧跟在任务分发后面），倒序显示 -->
               <template v-if="order.status === '已完成' || order.status === '进行中'">
                 <template v-for="(transfer, idx) in (order.transfers ? [...order.transfers].reverse() : [])" :key="idx">
-                  <FaPageMain
-                    title=""
-                    :collaspe="!expandedMap[order.orderID]"
-                    height="auto"
-                    class="w-full"
+                  <div
+                    v-if="getActiveTab(order.orderID) === 'transfer'"
+                    class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
                   >
-                    <template #title>
-                      <div class="w-full flex items-center justify-between">
-                        <div class="flex items-center">
-                          <span class="text-lg text-blue-900 font-bold">
-                            工单流转
-                            {{ Array.isArray(order.transfers) && order.transfers.length > 1 ? `（第${order.transfers.length - idx}次）` : '' }}
-                          </span>
-                          <span
-                            class="ml-2 inline-block align-middle"
-                            style="width: 12px;height: 12px;background: #22c55e ;border-radius: 50%;"
-                            title="流转"
-                          />
-                        </div>
-                        <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                          <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                          <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                          <span>流转时间：{{ transfer.transferTime }}</span>
-                        </div>
+                    <div class="w-full flex items-center justify-between mb-4">
+                      <div class="flex items-center">
+                        <span class="text-lg text-blue-900 font-bold">
+                          工单流转
+                          {{ Array.isArray(order.transfers) && order.transfers.length > 1 ? `（第${order.transfers.length - idx}次）` : '' }}
+                        </span>
+                        <span
+                          class="ml-2 inline-block align-middle"
+                          style="width: 12px;height: 12px;background: #22c55e ;border-radius: 50%;"
+                          title="流转"
+                        />
                       </div>
-                    </template>
-                    <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4">
+                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                        <span>流转时间：{{ transfer.transferTime }}</span>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2">
                       <div class="col-span-2 w-full flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">流转原因：</span>
                         <textarea
-                          class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                          class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                           :value="transfer.transferReason"
                           rows="2"
                           readonly
                         />
                       </div>
                     </div>
-                  </FaPageMain>
+                  </div>
                 </template>
               </template>
               <!-- 任务分发 -->
-              <FaPageMain
-                v-if="['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== ''"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <div
+                v-if="['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== '' && getActiveTab(order.orderID) === 'dispatch'"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between pr-4">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">任务分发</span>
+                <div class="w-full flex items-center justify-between pr-4 mb-4">
+                  <div class="flex items-center gap-4">
+                      <!-- <span class="text-lg text-blue-900 font-bold">任务分发</span> -->
                       <!-- 只有“待分发”时橙点，“进行中”或“已完成”时绿点 -->
                       <span
                         v-if="order.status === '待分发'"
@@ -1756,33 +1884,31 @@ function handleCopyOrder(order: OrderItem) {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
-                    </div>
-                    <!-- 负责人和完成时间（分发人ID和分发时间） -->
+                    <!-- 完成时间 -->
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.distributorID }}</span>
                       <span>完成时间：{{ order.distributeTime }}</span>
                     </div>
+                    </div>
                   </div>
-                </template>
                 <div
                   class="rounded px-6 py-4"
                   :class="order.status === '待分发' ? 'bg-gray-50' : 'bg-gray-50 opacity-70'"
                 >
                   <!-- 第一行：任务优先级和下一流程负责人（内容占满整行，保持在同一行） -->
                   <div class="mb-2 w-full flex flex-row gap-6">
-                    <div class="flex flex-1 items-center gap-2">
-                      <span class="w-32 text-black font-semibold">任务优先级：</span>
+                    <div class="flex flex-1 flex-col gap-2">
+                      <span class="text-black font-semibold">任务优先级：</span>
                       <input
                         :value="order.taskPriority"
-                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
-                    <div class="flex flex-1 items-center gap-2">
-                      <span class="w-50 text-black font-semibold">下一流程负责人：</span>
+                    <div class="flex flex-1 flex-col gap-2">
+                      <span class="text-black font-semibold">下一流程负责人：</span>
                       <input
                         :value="order.toDispatcherName"
-                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
@@ -1799,19 +1925,15 @@ function handleCopyOrder(order: OrderItem) {
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
               <!-- 任务审批 -->
-              <FaPageMain
-                v-if="['待审批', '待分发', '进行中', '已完成', '已退回'].includes(order.status)"
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <div
+                v-if="['待审批', '待分发', '进行中', '已完成', '已退回'].includes(order.status) && getActiveTab(order.orderID) === 'approve'"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between pr-4">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">任务审批</span>
+                <div class="w-full flex items-center justify-between pr-4 mb-4">
+                  <div class="flex items-center gap-4">
+                      <!-- <span class="text-lg text-blue-900 font-bold">任务审批</span> -->
                       <!-- 状态点 -->
                       <span
                         v-if="order.status === '待审批'"
@@ -1837,45 +1959,43 @@ function handleCopyOrder(order: OrderItem) {
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已退回"
                       />
-                    </div>
-                    <!-- 负责人和完成时间（审批人ID和审批时间） -->
+                    <!-- 完成时间 -->
                     <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.approverID }}</span>
                       <span>完成时间：{{ order.approveTime }}</span>
                     </div>
+                    </div>
                   </div>
-                </template>
                 <div
                   class="rounded px-6 py-4"
                   :class="order.status === '待审批' ? 'bg-gray-50' : 'bg-gray-50 opacity-70'"
                 >
                   <!-- 第一行：参考优先级和下一流程负责人（内容占满整行，保持在同一行） -->
                   <div class="mb-2 w-full flex flex-row gap-6">
-                    <div class="flex flex-1 items-center gap-2">
-                      <span class="w-32 text-black font-semibold">参考优先级：</span>
+                    <div class="flex flex-1 flex-col gap-2">
+                      <span class="text-black font-semibold">参考优先级：</span>
                       <input
                         :value="order.referencePriority"
-                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
-                    <div class="flex flex-1 items-center gap-2">
-                      <span class="w-50 text-black font-semibold">下一流程负责人：</span>
+                    <div class="flex flex-1 flex-col gap-2">
+                      <span class="text-black font-semibold">下一流程负责人：</span>
                       <input
                         :value="order.distributorID"
-                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
                     <!-- 新增：预计交付时间，仅交付发送和版本迭代+交付发送类工单显示 -->
                     <div
                       v-if="['交付发送', '版本迭代+交付发送'].includes(order.type)"
-                      class="flex flex-1 items-center gap-2"
+                      class="flex flex-1 flex-col gap-2"
                     >
-                      <span class="w-40 text-black font-semibold">预计交付时间：</span>
+                      <span class="text-black font-semibold">预计交付时间：</span>
                       <input
                         :value="order.targetDeliveryTime || '未填写'"
-                        class="w-full border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         readonly
                       >
                     </div>
@@ -1892,68 +2012,63 @@ function handleCopyOrder(order: OrderItem) {
                     />
                   </div>
                 </div>
-              </FaPageMain>
+              </div>
               <!-- 任务发起（始终显示在最下方） -->
-              <FaPageMain
-                title=""
-                :collaspe="!expandedMap[order.orderID]"
-                height="auto"
-                class="w-full"
+              <div
+                v-if="getActiveTab(order.orderID) === 'initiate'"
+                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
               >
-                <template #title>
-                  <div class="w-full flex items-center justify-between pr-4">
-                    <div class="flex items-center">
-                      <span class="text-lg text-blue-900 font-bold">任务发起</span>
+                <div class="w-full flex items-center justify-between pr-4 mb-4">
+                  <div class="flex items-center gap-4">
+                      <!-- <span class="text-lg text-blue-900 font-bold">任务发起</span> -->
                       <span
                         class="ml-2 inline-block align-middle"
                         style="width: 12px;height: 12px;background: #22c55e;border-radius: 50%;"
                         title="已完成"
                       />
+                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                      <span>发起时间：{{ order.startTime }}</span>
+                    </div>
                       <!-- 标签和内容分开显示，标签小且不加粗，内容正常 -->
-                      <span class="ml-3 text-sm text-gray-500">模型：</span>
-                      <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span>
-                      <span class="ml-3 text-sm text-gray-500">
+                      <!-- <span class="ml-3 text-sm text-gray-500">模型：</span> -->
+                      <!-- <span class="ml-1 text-black font-semibold">{{ order.modelID }}</span> -->
+                      <!-- <span class="ml-3 text-sm text-gray-500">
                         {{ order.type === '交付发送' ? '发送版本：' : '基准版本：' }}
                       </span>
-                      <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span>
-                    </div>
-                    <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                      <span>负责人：{{ order.promoterID }}</span>
-                      <span>完成时间：{{ order.startTime }}</span>
+                      <span class="ml-1 text-black font-semibold">{{ order.modelVersionID }}</span> -->
                     </div>
                   </div>
-                </template>
-                <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4">
+                <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2">
                   <!-- 基础信息 -->
-                  <div class="flex items-center gap-2">
+                  <!-- <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">工单：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.orderID" readonly>
+                    <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="order.orderID" readonly>
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">工单类型：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.type" readonly>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发起人：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
+                    <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="order.type" readonly>
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">发起时间：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="order.startTime" readonly>
+                    <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="order.startTime" readonly>
                   </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">发起人：</span>
+                    <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="order.promoterID" readonly>
+                  </div> -->
 
                   <!-- 问题复现类 -->
                   <template v-if="order.type === '问题复现'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">对应协调单：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">对应协调单：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.coordinationID || 'NA'" readonly>
                     </div>
-                    <div class="col-span-2 flex items-start gap-2">
-                      <span class="w-32 text-black font-semibold">复现内容：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.description" rows="2" readonly />
+                    <div class="col-span-2 flex flex-col gap-2">
+                      <span class="text-black font-semibold">复现内容：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.description" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">复现参考文件：</span>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">复现参考文件：</span>
                       <template v-if="order.files && order.files.length">
                         <div class="flex flex-wrap gap-2">
                           <span
@@ -1969,129 +2084,135 @@ function handleCopyOrder(order: OrderItem) {
                       </template>
                       <span v-else class="text-gray-400">无</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
 
                   <!-- 版本迭代类 -->
                   <template v-else-if="order.type === '版本迭代'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">对应协调单：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">对应协调单：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.coordinationID || 'NA'" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">更新内容：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.updateNotes" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">更新内容：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.updateNotes" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">封装要求：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">封装要求：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.packageRequirement" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">
                         接口与{{ order.modelVersionID || '基准版本' }}是否变化：
                       </span>
                       <input
-                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         :value="order.apiChanged"
                         readonly
                       >
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
 
                   <!-- 交付发送类 -->
                   <template v-else-if="order.type === '交付发送'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">目标客户：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">目标客户：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.targetCustomer" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">CAE-IPT平台验证：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.isCAEChecked" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">包含敏感信息：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">包含敏感信息：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.hasSensitiveInfo" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
 
                   <!-- 版本迭代+交付发送类 -->
                   <template v-else-if="order.type === '版本迭代+交付发送'">
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">对应协调单：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.coordinationID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">对应协调单：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.coordinationID || 'NA'" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">更新内容：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.updateNotes" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">更新内容：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.updateNotes" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">封装要求：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.packageRequirement" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">封装要求：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.packageRequirement" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">
                         接口与{{ order.modelVersionID || '基准版本' }}是否变化：
                       </span>
                       <input
-                        class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                        class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         :value="order.apiChanged"
                         readonly
                       >
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">目标客户：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.targetCustomer" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">目标客户：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.targetCustomer" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.isCAEChecked" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">CAE-IPT平台验证：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.isCAEChecked" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">包含敏感信息：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">包含敏感信息：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.hasSensitiveInfo" readonly>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
 
                   <!-- 功能开发类 -->
                   <template v-else-if="order.type === '功能开发'">
-                    <div class="flex items-start gap-2">
-                      <span class="w-32 text-black font-semibold">功能描述：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">功能描述：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.featureDesc" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
 
                   <!-- 其他类 -->
                   <template v-else-if="order.type === '其他'">
-                    <div class="flex items-start gap-2">
-                      <span class="w-32 text-black font-semibold">内容描述：</span>
-                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">内容描述：</span>
+                      <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.contentDesc" rows="2" readonly />
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-32 text-black font-semibold">审批人：</span>
-                      <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">审批人：</span>
+                      <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.approverID || 'NA'" readonly>
                     </div>
                   </template>
+                  
+                  <!-- 备注 -->
+                  <div class="flex flex-col gap-2 w-full">
+                    <span class="text-black font-semibold">创建工单备注：</span>
+                    <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.createRemark" rows="2" readonly />
+                  </div>
                 </div>
-              </FaPageMain>
+              </div>
             </div>
             <div class="mt-6" />
           </FaPageMain>
@@ -2115,52 +2236,56 @@ function handleCopyOrder(order: OrderItem) {
           @close="closeDialog"
         >
           <template #title>
-            <span class="text-lg font-bold">工单详细信息</span>
+            <span v-if="currentOrder" class="text-lg font-bold">工单#{{ currentOrder.orderID }}详细信息-{{ currentOrder.type }}</span>
           </template>
           <div v-if="currentOrder">
             <div class="grid grid-cols-2 gap-x-8 gap-y-4">
-              <!-- 基础信息 -->
+              <!-- 基础信息 
               <div class="flex items-center gap-2">
                 <span class="w-32 text-black font-semibold">工单：</span>
-                <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.orderID" readonly>
+                <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="currentOrder.orderID" readonly>
               </div>
               <div class="flex items-center gap-2">
                 <span class="w-32 text-black font-semibold">工单类型：</span>
-                <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.type" readonly>
+                <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="currentOrder.type" readonly>
+              </div>-->
+              <div class="flex flex-col gap-2">
+                <span class="text-black font-semibold">发起人：</span>
+                <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500" :value="currentOrder.promoterID" readonly>
               </div>
-              <div class="flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">发起人：</span>
-                <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.promoterID" readonly>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">发起时间：</span>
-                <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold" :value="currentOrder.startTime" readonly>
+              <div class="flex flex-col gap-2">
+                <span class="text-black font-semibold">发起时间：</span>
+                <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500" :value="currentOrder.startTime" readonly>
               </div>
 
               <!-- 问题复现类 -->
               <template v-if="currentOrder.type === '问题复现'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">基准版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">对应协调单：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.coordinationID || 'NA'" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">对应协调单：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.coordinationID || 'NA'" readonly>
                 </div>
-                <div class="col-span-2 flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">复现内容：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.description" rows="2" readonly />
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">复现内容：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.description" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">复现参考文件：</span>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">复现参考文件：</span>
                   <span v-if="currentOrder.files?.length" class="cursor-pointer text-blue-600 underline">已上传</span>
                   <span v-else class="text-gray-400">无</span>
                 </div>
@@ -2168,194 +2293,214 @@ function handleCopyOrder(order: OrderItem) {
 
               <!-- 版本迭代类 -->
               <template v-else-if="currentOrder.type === '版本迭代'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">基准版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">对应协调单：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.coordinationID || 'NA'" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">对应协调单：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.coordinationID || 'NA'" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">更新内容：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.updateNotes" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">更新内容：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.updateNotes" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">封装要求：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">封装要求：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">
                     接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
                   </span>
                   <input
-                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                     :value="currentOrder.apiChanged"
                     readonly
                   >
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
 
               <!-- 交付发送类 -->
               <template v-else-if="currentOrder.type === '交付发送'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">发送版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">发送版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">目标客户：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">目标客户：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.targetCustomer" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">CAE-IPT平台验证：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.isCAEChecked" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">包含敏感信息：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">包含敏感信息：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.hasSensitiveInfo" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
 
               <!-- 版本迭代+交付发送类 -->
               <template v-else-if="currentOrder.type === '版本迭代+交付发送'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">基准版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">对应协调单：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.coordinationID || 'NA'" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">对应协调单：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.coordinationID || 'NA'" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">更新内容：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.updateNotes" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">更新内容：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.updateNotes" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">封装要求：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.packageRequirement" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">封装要求：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.packageRequirement" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">
                     接口与{{ currentOrder.modelVersionID || '基准版本' }}是否变化：
                   </span>
                   <input
-                    class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                    class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                     :value="currentOrder.apiChanged"
                     readonly
                   >
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">目标客户：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.targetCustomer" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">目标客户：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.targetCustomer" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">CAE-IPT平台验证：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.isCAEChecked" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">CAE-IPT平台验证：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.isCAEChecked" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">包含敏感信息：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.hasSensitiveInfo" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">包含敏感信息：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.hasSensitiveInfo" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
 
               <!-- 功能开发类 -->
               <template v-else-if="currentOrder.type === '功能开发'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">基准版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">功能描述：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.featureDesc" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">功能描述：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.featureDesc" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
 
               <!-- 其他类 -->
               <template v-else-if="currentOrder.type === '其他'">
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">模型：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">模型：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelID" readonly>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">基准版本：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.modelVersionID" readonly>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">基准版本：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.modelVersionID" readonly>
                 </div>
-                <div class="flex items-start gap-2">
-                  <span class="w-32 text-black font-semibold">内容描述：</span>
-                  <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.contentDesc" rows="2" readonly />
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">内容描述：</span>
+                  <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.contentDesc" rows="2" readonly />
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-32 text-black font-semibold">审批人：</span>
-                  <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.approverID || 'NA'" readonly>
+                <div class="col-span-2 flex flex-col gap-2">
+                  <span class="text-black font-semibold">创建备注：</span>
+                  <textarea class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <span class="text-black font-semibold">审批人：</span>
+                  <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.approverID || 'NA'" readonly>
                 </div>
               </template>
 
               <hr class="col-span-2 my-4 border-t border-gray-300">
 
               <!-- 通用流程信息 -->
-              <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">审批人：</span>
+              <div class="col-span-1 w-full flex flex-col gap-2">
+                <span class="text-black font-semibold">审批人：</span>
                 <input
-                  class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
+                  class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 font-bold focus:outline-none focus:border-blue-500"
                   :class="['待分发', '进行中', '已完成', '已退回'].includes(currentOrder.status) && currentOrder.approverID ? 'text-blue-700' : 'text-gray-400'"
                   :value="['待分发', '进行中', '已完成', '已退回'].includes(currentOrder.status) ? (currentOrder.approverID || '无') : '未到此环节'"
                   readonly
                 >
               </div>
-              <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">审批时间：</span>
+              <div class="col-span-1 w-full flex flex-col gap-2">
+                <span class="text-black font-semibold">审批时间：</span>
                 <input
-                  class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
+                  class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 font-bold focus:outline-none focus:border-blue-500"
                   :class="['待分发', '进行中', '已完成', '已退回'].includes(currentOrder.status) && currentOrder.approveTime ? 'text-blue-700' : 'text-gray-400'"
                   :value="['待分发', '进行中', '已完成', '已退回'].includes(currentOrder.status) ? (currentOrder.approveTime || '无') : '未到此环节'"
                   readonly
                 >
               </div>
-              <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">分发人：</span>
+              <div class="col-span-1 w-full flex flex-col gap-2">
+                <span class="text-black font-semibold">分发人：</span>
                 <input
-                  class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
+                  class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 font-bold focus:outline-none focus:border-blue-500"
                   :class="['进行中', '已完成', '已退回'].includes(currentOrder.status) && currentOrder.distributorID ? 'text-blue-700' : 'text-gray-400'"
                   :value="['进行中', '已完成', '已退回'].includes(currentOrder.status) ? (currentOrder.distributorID || '无') : '未到此环节'"
                   readonly
                 >
               </div>
-              <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">分发时间：</span>
+              <div class="col-span-1 w-full flex flex-col gap-2">
+                <span class="text-black font-semibold">分发时间：</span>
                 <input
-                  class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
+                  class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 font-bold focus:outline-none focus:border-blue-500"
                   :class="['进行中', '已完成', '已退回'].includes(currentOrder.status) && currentOrder.distributeTime ? 'text-blue-700' : 'text-gray-400'"
                   :value="['进行中', '已完成', '已退回'].includes(currentOrder.status) ? (currentOrder.distributeTime || '无') : '未到此环节'"
                   readonly
@@ -2366,17 +2511,17 @@ function handleCopyOrder(order: OrderItem) {
               <template v-if="currentOrder.status === '已完成'">
                 <template v-if="currentOrder.type === '问题复现'">
                   <!-- 问题复现类工单 -->
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">复现现象：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">复现现象：</span>
                     <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishPhenomenon" rows="2" readonly
                     />
                   </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">备注：</span>
                     <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishRemark" rows="2" readonly
                     />
                   </div>
@@ -2384,17 +2529,17 @@ function handleCopyOrder(order: OrderItem) {
 
                 <!-- 版本迭代类工单 -->
                 <template v-else-if="currentOrder.type === '版本迭代'">
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">升级后模型版本：</span>
                     <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishModelVersion" readonly
                     >
                   </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">备注：</span>
                     <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishRemark" rows="2" readonly
                     />
                   </div>
@@ -2402,18 +2547,18 @@ function handleCopyOrder(order: OrderItem) {
 
                 <!-- 交付发送类工单 -->
                 <template v-else-if="currentOrder.type === '交付发送'">
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">是否加密：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">是否加密：</span>
                     <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="currentOrder.isEncrypted"
                       readonly
                     >
                   </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">授权ID：</span>
                     <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishAuthId"
                       readonly
                     >
@@ -2424,35 +2569,42 @@ function handleCopyOrder(order: OrderItem) {
                 <template v-if="currentOrder.type === '版本迭代+交付发送'">
                   <div class="flex items-center gap-2">
                     <span class="w-32 text-black font-semibold">升级后模型版本：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.finishModelVersion" readonly>
+                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="currentOrder.finishModelVersion" readonly>
                   </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">是否加密：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">是否加密：</span>
                     <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="currentOrder.isEncrypted"
                       readonly
                     >
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">授权ID：</span>
-                    <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="currentOrder.finishAuthId" readonly>
+                  <div class="flex flex-col gap-2">
+                    <span class="text-black font-semibold">授权ID：</span>
+                    <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="currentOrder.finishAuthId" readonly>
                   </div>
                 </template>
 
                 <!-- 功能开发类工单 -->
                 <template v-else-if="currentOrder.type === '功能开发'">
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">升级后模型版本：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">升级后模型版本：</span>
                     <input
-                      class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishModelVersion" readonly
                     >
                   </div>
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">完成功能描述：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">目标平台：</span>
+                    <input
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
+                      :value="currentOrder.targetPlatform" readonly
+                    >
+                  </div>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">完成功能描述：</span>
                     <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishFeatureDesc" rows="2" readonly
                     />
                   </div>
@@ -2460,20 +2612,20 @@ function handleCopyOrder(order: OrderItem) {
 
                 <!-- 其他类工单 -->
                 <template v-else-if="currentOrder.type === '其他'">
-                  <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">备注：</span>
+                  <div class="col-span-1 w-full flex flex-col gap-2">
+                    <span class="text-black font-semibold">备注：</span>
                     <textarea
-                      class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black"
+                      class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
                       :value="currentOrder.finishRemarkOther" rows="2" readonly
                     />
                   </div>
                 </template>
               </template>
 
-              <div class="col-span-1 w-full flex items-center gap-2">
-                <span class="w-32 text-black font-semibold">完成时间：</span>
+              <div class="col-span-1 w-full flex flex-col gap-2">
+                <span class="text-black font-semibold">完成时间：</span>
                 <input
-                  class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 font-bold"
+                  class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 font-bold focus:outline-none focus:border-blue-500"
                   :class="currentOrder.status === '已完成' && currentOrder.completedAt ? 'text-blue-700' : 'text-gray-400'"
                   :value="currentOrder.status === '已完成' ? (currentOrder.completedAt || '无') : '未到此环节'"
                   readonly
@@ -2486,3 +2638,135 @@ function handleCopyOrder(order: OrderItem) {
     </el-skeleton>
   </div>
 </template>
+
+<style scoped>
+/* Tab导航样式 */
+.tab-nav {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.tab-nav-item {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.tab-nav-item:hover {
+  color: #3b82f6;
+  background-color: #f8fafc;
+}
+
+.tab-nav-item.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background-color: #f8fafc;
+}
+
+/* Tab内容面板样式 */
+.bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4 {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+/* 工单卡片样式优化 */
+.order-card {
+  transition: all 0.3s ease;
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 底部延伸线条动画效果 */
+.tab-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-button::before,
+.tab-button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #3b82f6;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scaleX(0);
+  transform-origin: center;
+}
+
+.tab-button::before {
+  left: 0;
+  right: 50%;
+  transform-origin: right;
+}
+
+.tab-button::after {
+  left: 50%;
+  right: 0;
+  transform-origin: left;
+}
+
+.tab-button.tab-active::before,
+.tab-button.tab-active::after {
+  transform: scaleX(1);
+}
+
+/* 延伸线条的延迟动画效果 */
+.tab-button.tab-active::before {
+  transition-delay: 0.1s;
+}
+
+.tab-button.tab-active::after {
+  transition-delay: 0.2s;
+}
+
+/* 替代方案：使用单个伪元素实现从中心向两边延伸 */
+.extending-line {
+  position: relative;
+  overflow: hidden;
+}
+
+.extending-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  right: 50%;
+  height: 100%;
+  background: inherit;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: extendLine 0.6s ease-out forwards;
+}
+
+@keyframes extendLine {
+  0% {
+    left: 50%;
+    right: 50%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    left: 0;
+    right: 0;
+    opacity: 1;
+  }
+}
+
+/* 鼠标悬停时的预览效果 */
+.tab-button:not(.tab-active):hover::before,
+.tab-button:not(.tab-active):hover::after {
+  transform: scaleX(0.3);
+  opacity: 0.5;
+}
+</style>

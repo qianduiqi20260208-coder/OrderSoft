@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useSlots } from '@/slots'
 import eventBus from '@/utils/eventBus'
+import { useWebSocket } from '@/utils/websocket'
 import AppSetting from './components/AppSetting/index.vue'
 import Header from './components/Header/index.vue'
 import HotkeysIntro from './components/HotkeysIntro/index.vue'
@@ -73,6 +74,19 @@ watch(() => routeInfo.path, () => {
 })
 
 const enableAppSetting = import.meta.env.VITE_APP_SETTING
+
+// 初始化WebSocket服务
+const { connect, disconnect } = useWebSocket()
+
+// 组件挂载时连接WebSocket
+onMounted(() => {
+  connect()
+})
+
+// 组件卸载时断开WebSocket连接
+onUnmounted(() => {
+  disconnect()
+})
 </script>
 
 <template>

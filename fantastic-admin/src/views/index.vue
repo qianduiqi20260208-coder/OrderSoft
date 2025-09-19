@@ -11,6 +11,8 @@ import { useUserStore } from '@/store/modules/user'
 const router = useRouter()
 const loading = ref(false)
 const userOrders = ref<OrderItem[]>([])
+const myRelatedOrders = ref<OrderItem[]>([]) // 与我相关的工单
+const myRelatedOrdersLoading = ref(false) // 与我相关的工单加载状态
 const totalPendingCount = ref(0)
 const recentOrders = ref<OrderItem[]>([])
 const recentOrdersLoading = ref(false)
@@ -51,6 +53,11 @@ interface OrderItem {
   promoterID: string // 发起人ID
   startTime: string // 发起时间
   statusTodo?: string // 流程状态
+  finishModelVersion?: string // 完成模型版本
+  completeModelVersion?: string // matlab模型版本
+  targetCustomer?: string // 目标客户
+  targetDeliveryTime?: string // 预计发送时间
+  targetPlatform?: string // 目标平台
 }
 
 // 定义客户信息数据结构
@@ -143,6 +150,18 @@ async function apiFetchUserOrders() {
         promoterID: order.creatorName || '',
         startTime: order.createdAt || '',
         statusTodo: order.statusTodo || '',
+        finishModelVersion: order.versionIteration?.newModelVersion || order.packageSend?.newModelVersion || order.functionDevelopment?.newModelVersion || '', // 升级后模型版本
+        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '', // matlab版本号
+        targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || '', // 目标平台
+        targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称
+        // 预计发送时间
+        targetDeliveryTime: (
+          order.deliverySend?.targetDeliveryTime
+            ? order.deliverySend.targetDeliveryTime.split(' ')[0]
+            : (order.packageSend?.targetDeliveryTime
+                ? order.packageSend.targetDeliveryTime.split(' ')[0]
+                : '')
+        ),
       }
       return mappedOrder
     })
@@ -172,7 +191,7 @@ async function apiFetchRecentOrders() {
     return sortedOrders.map((order: any) => {
       const mappedOrder: OrderItem = {
         orderID: order.workOrderId || '',
-        type: order.workOrderType || '其他',
+        type: order.workOrderType === '直接封装+发送' ? '版本迭代+交付发送' : order.workOrderType || '其他',
         status: order.workOrderStatus || '草稿',
         referencePriority: order.priority || '',
         taskPriority: order.taskPriority || '',
@@ -180,12 +199,70 @@ async function apiFetchRecentOrders() {
         modelVersionID: order.modelVersion || '',
         promoterID: order.creatorName || '',
         startTime: order.createdAt || '',
+        statusTodo: order.statusTodo || '',
+        finishModelVersion: order.versionIteration?.newModelVersion || order.packageSend?.newModelVersion || order.functionDevelopment?.newModelVersion || '', // 升级后模型版本
+        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '', // matlab版本号
+        targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称
+        // 预计发送时间
+        targetDeliveryTime: (
+          order.deliverySend?.targetDeliveryTime
+            ? order.deliverySend.targetDeliveryTime.split(' ')[0]
+            : (order.packageSend?.targetDeliveryTime
+                ? order.packageSend.targetDeliveryTime.split(' ')[0]
+                : '')
+        ),
       }
       return mappedOrder
     })
   }
   catch (error) {
     console.error('获取用户近期发送工单失败:', error)
+    return []
+  }
+}
+
+// 获取与我相关的工单
+async function apiFetchMyRelatedOrders() {
+  try {
+    const params = {
+      page: 1,
+      pageSize: 3,
+      userId: userStore.account || '',
+      filterMineFlag: true,
+    }
+
+    const res = await orderApi.fetchOrderPage(params)
+    const orders = res.data.list || []
+
+    return orders.map((order: any) => {
+      const mappedOrder: OrderItem = {
+        orderID: order.workOrderId || '',
+        type: order.workOrderType === '直接封装+发送' ? '版本迭代+交付发送' : order.workOrderType || '其他',
+        status: order.workOrderStatus || '草稿',
+        referencePriority: order.priority || '',
+        taskPriority: order.taskPriority || '',
+        modelID: order.model || '',
+        modelVersionID: order.modelVersion || '',
+        promoterID: order.creatorName || '',
+        startTime: order.createdAt || '',
+        statusTodo: order.statusTodo || '',
+        finishModelVersion: order.versionIteration?.newModelVersion || order.packageSend?.newModelVersion || order.functionDevelopment?.newModelVersion || '', // 升级后模型版本
+        completeModelVersion: order.versionIteration?.matlabVersion || order.packageSend?.matlabVersion || order.functionDevelopment?.matlabVersion || '', // matlab版本号
+        targetCustomer: order.deliverySend?.targetCustomer || order.packageSend?.targetCustomer || '', // 目标客户名称
+        // 预计发送时间
+        targetDeliveryTime: (
+          order.deliverySend?.targetDeliveryTime
+            ? order.deliverySend.targetDeliveryTime.split(' ')[0]
+            : (order.packageSend?.targetDeliveryTime
+                ? order.packageSend.targetDeliveryTime.split(' ')[0]
+                : '')
+        ),
+      }
+      return mappedOrder
+    })
+  }
+  catch (error) {
+    console.error('获取与我相关的工单失败:', error)
     return []
   }
 }
@@ -235,7 +312,7 @@ async function fetchChartData() {
         weekly: mappedWeekly,
         monthly: mappedMonthly,
       }
-      console.warn('图表数据加载成功:', chartStatistics.value)
+      console.log('图表数据加载成功:', chartStatistics.value)
     }
     else {
       throw new Error('响应数据为空')
@@ -683,6 +760,13 @@ function toggleClient(clientName: string) {
   renderChart() // 直接重新渲染，不需要重新获取数据
 }
 
+function isCurrentStep(order: OrderItem, step: string): boolean {
+  if (['待封装', '待加密', '待发送'].includes(step)) {
+    return order.status === '进行中' && order.statusTodo === step
+  }
+  return order.status === step
+}
+
 function getOrderSteps(type: string): string[] {
   if (type === '版本迭代') {
     return ['待审批', '待分发', '待封装', '已完成']
@@ -697,27 +781,62 @@ function getOrderSteps(type: string): string[] {
   return ['待审批', '待分发', '进行中', '已完成']
 }
 
-function getStepColor(currentStatus: string, step: string): string {
-  if (currentStatus === step) {
-    return '#409eff'
-  }
-  // 已完成的步骤用绿色
-  const steps = ['待审批', '待分发', '待封装', '待加密', '待发送', '进行中', '已完成']
-  const currentIdx = steps.indexOf(currentStatus)
+function getStepColor(order: OrderItem, step: string): string {
+  const steps = getOrderSteps(order.type)
   const stepIdx = steps.indexOf(step)
+
+  // 当前流程索引
+  let currentIdx = -1
+
+  // 1. 如果流程已到“进行中”及之后（即 status 为“进行中”或“已完成”），
+  //    则用 statusTodo 判断“待封装/待加密/待发送”，用 status 判断其他
+  if (order.status === '进行中') {
+    // statusTodo 只可能是“待封装/待加密/待发送”
+    currentIdx = steps.indexOf(order.statusTodo ?? '')
+    // 如果 statusTodo 未进入流程，则 currentIdx 取 status
+    if (currentIdx === -1) {
+      currentIdx = steps.indexOf(order.status)
+    }
+  }
+  else {
+    // status 为“待审批/待分发/已完成”等
+    currentIdx = steps.indexOf(order.status)
+  }
+
+  // 已完成的步骤绿色
   if (stepIdx < currentIdx) {
     return '#67c23a'
   }
+  // 当前步骤蓝色
+  if (stepIdx === currentIdx) {
+    return '#409eff'
+  }
+  // 未到灰色
   return '#c0c4cc'
 }
 
 const pageLoading = ref(false)
+// 获取与我相关的工单
+async function fetchMyRelatedOrders() {
+  myRelatedOrdersLoading.value = true
+  try {
+    myRelatedOrders.value = await apiFetchMyRelatedOrders()
+  }
+  catch (error) {
+    console.error('获取与我相关的工单失败:', error)
+  }
+  finally {
+    myRelatedOrdersLoading.value = false
+  }
+}
+
 // 页面加载时获取数据
 onMounted(async () => {
   pageLoading.value = true
   try {
     await fetchUserOrders() // 获取待办工单
     await fetchRecentOrders() // 获取近期发送工单
+    await fetchMyRelatedOrders() // 获取与我相关的工单
     await fetchClients() // 获取客户列表
     await fetchChartData() // 获取图表数据
     renderChart() // 渲染图表
@@ -804,22 +923,314 @@ onUnmounted(() => {
                       'text-gray-700': order.type === '其他',
                     }">{{ order.type }}</span>
                   </div>
+                  <!-- 新增：工单详细信息 -->
+                  <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
+                    <!-- 版本迭代+交付发送类工单 -->
+                    <template v-if="order.type === '版本迭代+交付发送'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">发送版本：</span>
+                        <span class="text-black font-bold">{{ order.finishModelVersion }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.completeModelVersion }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                      </span>
+                    </template>
+                    <!-- 交付发送类工单 -->
+                    <template v-else-if="order.type === '交付发送'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">发送版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                    </template>
+                    <!-- 版本迭代类工单 -->
+                    <template v-else-if="order.type === '版本迭代'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.completeModelVersion}}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">升级后版本：</span>
+                        <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                    </template>
+                    <!-- 功能开发类工单 -->
+                    <template v-else-if="order.type === '功能开发'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform }}</span>
+                      </span>
+                    </template>
+                    <!-- 其他类型工单 -->
+                    <template v-else>
+                      <!-- 保持原有显示逻辑 -->
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                    </template>
+                  </div>
                   <!-- 横向时间轴 -->
                   <div class="flex items-center justify-start gap-8 px-2 py-4">
                     <template v-for="(step, idx) in getOrderSteps(order.type)" :key="step">
                       <div class="flex flex-col items-center">
                         <div
                           class="w-8 h-8 flex items-center justify-center rounded-full border-2"
-                          :class="order.status === step ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
-                            : getStepColor(order.status, step) === '#67c23a' ? 'bg-green-100 border-green-600 text-green-600'
+                          :class="isCurrentStep(order, step)
+                            ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'bg-green-100 border-green-600 text-green-600'
                               : 'bg-gray-100 border-gray-300 text-gray-400'"
                         >
-                          <span v-if="order.status === step">✔</span>
+                          <span v-if="isCurrentStep(order, step)">✔</span>
                           <span v-else>{{ idx + 1 }}</span>
                         </div>
                         <span
                           class="mt-2 text-sm"
-                          :class="order.status === step ? 'font-bold text-blue-600' : getStepColor(order.status, step) === '#67c23a' ? 'text-green-600' : 'text-gray-500'"
+                          :class="isCurrentStep(order, step)
+                            ? 'font-bold text-blue-600'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'text-green-600'
+                              : 'text-gray-500'"
+                        >
+                          {{ step }}
+                        </span>
+                      </div>
+                      <div v-if="idx < getOrderSteps(order.type).length - 1" class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                    </template>
+                  </div>
+                </div>
+              </FaPageMain>
+            </div>
+          </template>
+        </el-skeleton>
+      </FaPageMain>
+
+      <!-- 与我相关的工单模块 -->
+      <FaPageMain class="mb-6">
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="i-mdi-account-outline text-2xl text-green-500" />
+            <span class="text-xl font-bold">与我相关的工单</span>
+            <span class="flex items-center gap-1 text-base text-gray-500 font-medium">
+              <i class="i-mdi-information-outline text-green-500" />
+              (当前显示前{{ Math.min(3, myRelatedOrders.length) }}条与我相关的工单，共{{ myRelatedOrders.length }}条)
+            </span>
+          </div>
+        </template>
+
+        <el-skeleton :loading="myRelatedOrdersLoading" animated>
+          <template #template>
+            <div class="space-y-4">
+              <div v-for="i in 3" :key="i" class="border rounded-lg p-4">
+                <el-skeleton-item variant="text" style="width: 60%;" />
+                <div class="mt-2 space-y-2">
+                  <el-skeleton-item variant="text" style="width: 80%;" />
+                  <el-skeleton-item variant="text" style="width: 70%;" />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template #default>
+            <div v-if="myRelatedOrders.length === 0" class="py-8 text-center text-gray-500">
+              <i class="i-mdi-clipboard-outline mb-2 text-4xl" />
+              <p>暂无与我相关的工单</p>
+            </div>
+
+            <div v-else class="space-y-4">
+              <FaPageMain
+                v-for="order in myRelatedOrders"
+                :key="order.orderID"
+                class="border border-gray-200"
+              >
+                <div class="px-4 py-2">
+                  <div class="mb-2 text-lg font-bold text-black">
+                    工单#{{ order.orderID }}
+                    <span class="ml-2 text-base font-semibold" :class="{
+                      'text-blue-700': order.type === '问题复现',
+                      'text-green-700': order.type === '版本迭代',
+                      'text-yellow-700': order.type === '交付发送',
+                      'text-purple-700': order.type === '版本迭代+交付发送',
+                      'text-pink-700': order.type === '功能开发',
+                      'text-gray-700': order.type === '其他',
+                    }">{{ order.type }}</span>
+                  </div>
+                  <!-- 新增：工单详细信息 -->
+                  <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
+                    <!-- 版本迭代+交付发送类工单 -->
+                    <template v-if="order.type === '版本迭代+交付发送'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">发送版本：</span>
+                        <span class="text-black font-bold">{{ order.finishModelVersion }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.completeModelVersion }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                      </span>
+                    </template>
+                    <!-- 交付发送类工单 -->
+                    <template v-else-if="order.type === '交付发送'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">发送版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">目标客户：</span>
+                        <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">预计发送时间：</span>
+                        <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                    </template>
+                    <!-- 版本迭代类工单 -->
+                    <template v-else-if="order.type === '版本迭代'">
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">Matlab版本：</span>
+                        <span class="text-black font-bold">{{ order.completeModelVersion}}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">升级后版本：</span>
+                        <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">任务优先级：</span>
+                        <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                      </span>
+                    </template>
+                    <!-- 其他类型工单 -->
+                    <template v-else>
+                      <!-- 保持原有显示逻辑 -->
+                      <span>
+                        <i class="i-mdi-cube mr-1 text-blue-400" />
+                        <span class="text-gray-600">模型：</span>
+                        <span class="text-black font-bold">{{ order.modelID }}</span>
+                      </span>
+                      <span>
+                        <span class="text-gray-600">基准版本：</span>
+                        <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                    </template>
+                  </div>
+                  <!-- 横向时间轴 -->
+                  <div class="flex items-center justify-start gap-8 px-2 py-4">
+                    <template v-for="(step, idx) in getOrderSteps(order.type)" :key="step">
+                      <div class="flex flex-col items-center">
+                        <div
+                          class="w-8 h-8 flex items-center justify-center rounded-full border-2"
+                          :class="isCurrentStep(order, step)
+                            ? 'bg-blue-100 border-blue-600 text-blue-600 font-bold'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'bg-green-100 border-green-600 text-green-600'
+                              : 'bg-gray-100 border-gray-300 text-gray-400'"
+                        >
+                          <span v-if="isCurrentStep(order, step)">✔</span>
+                          <span v-else>{{ idx + 1 }}</span>
+                        </div>
+                        <span
+                          class="mt-2 text-sm"
+                          :class="isCurrentStep(order, step)
+                            ? 'font-bold text-blue-600'
+                            : getStepColor(order, step) === '#67c23a'
+                              ? 'text-green-600'
+                              : 'text-gray-500'"
                         >
                           {{ step }}
                         </span>
@@ -981,48 +1392,157 @@ onUnmounted(() => {
                         </span>
                       </span>
                       <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
-                        <span>
-                          <i class="i-mdi-cube mr-1 text-blue-400" />
-                          <span class="text-gray-600">模型：</span>
-                          <span class="text-black font-bold">{{ order.modelID }}</span>
-                        </span>
-                        <span>
-                          <i class="i-mdi-account mr-1 text-blue-400" />
-                          <span class="text-gray-600">发起人ID：</span>
-                          <span class="text-black font-bold">{{ order.promoterID }}</span>
-                        </span>
-                        <span>
-                          <i class="i-mdi-calendar-clock mr-1 text-blue-400" />
-                          <span class="text-gray-600">发起时间：</span>
-                          <span class="text-black font-bold">{{ order.startTime }}</span>
-                        </span>
-                        <span>
-                          <i class="i-mdi-flag mr-1 text-blue-400" />
-                          <span class="text-gray-600">参考优先级：</span>
-                          <span class="text-black font-bold">{{ order.referencePriority || '无' }}</span>
-                        </span>
-                        <span>
-                          <i class="i-mdi-alert mr-1 text-blue-400" />
-                          <span class="text-gray-600">任务优先级：</span>
-                          <span class="text-black font-bold">{{ order.taskPriority || '无' }}</span>
-                        </span>
-                        <span>
-                          <i class="i-mdi-progress-clock mr-1 text-blue-400" />
-                          <span class="text-gray-600">当前状态：</span>
-                          <span
-                            class="ml-2 rounded-full px-3 py-1 font-bold"
-                            :class="{
-                              'bg-yellow-100 text-yellow-700': order.status === '草稿',
-                              'bg-orange-100 text-orange-700': order.status === '待审批',
-                              'bg-purple-100 text-purple-700': order.status === '待分发',
-                              'bg-blue-100 text-blue-700': order.status === '进行中',
-                              'bg-green-100 text-green-700': order.status === '已完成',
-                              'bg-red-100 text-red-700': order.status === '已退回',
-                            }"
-                          >
-                            {{ order.status }}
-                          </span>
-                        </span>
+                        <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
+                          <!-- 版本迭代+交付发送类工单 -->
+                          <template v-if="order.type === '版本迭代+交付发送'">
+                            <span>
+                              <i class="i-mdi-cube mr-1 text-blue-400" />
+                              <span class="text-gray-600">模型：</span>
+                              <span class="text-black font-bold">{{ order.modelID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">发送版本：</span>
+                              <span class="text-black font-bold">{{ order.finishModelVersion }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">Matlab版本：</span>
+                              <span class="text-black font-bold">{{ order.completeModelVersion }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">目标客户：</span>
+                              <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">预计发送时间：</span>
+                              <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">当前状态：</span>
+                              <span
+                                class="ml-2 rounded-full px-3 py-1 font-bold"
+                                :class="{
+                                  'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                                  'bg-orange-100 text-orange-700': order.status === '待审批',
+                                  'bg-purple-100 text-purple-700': order.status === '待分发',
+                                  'bg-blue-100 text-blue-700': order.status === '进行中',
+                                  'bg-green-100 text-green-700': order.status === '已完成',
+                                  'bg-red-100 text-red-700': order.status === '已退回',
+                                }"
+                              >
+                                {{ order.status }}
+                              </span>
+                            </span>
+                          </template>
+                          <!-- 交付发送类工单 -->
+                          <template v-else-if="order.type === '交付发送'">
+                            <span>
+                              <i class="i-mdi-cube mr-1 text-blue-400" />
+                              <span class="text-gray-600">模型：</span>
+                              <span class="text-black font-bold">{{ order.modelID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">发送版本：</span>
+                              <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">目标客户：</span>
+                              <span class="text-black font-bold">{{ order.targetCustomer }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">预计发送时间：</span>
+                              <span class="text-black font-bold">{{ order.targetDeliveryTime }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">任务优先级：</span>
+                              <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">当前状态：</span>
+                              <span
+                                class="ml-2 rounded-full px-3 py-1 font-bold"
+                                :class="{
+                                  'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                                  'bg-orange-100 text-orange-700': order.status === '待审批',
+                                  'bg-purple-100 text-purple-700': order.status === '待分发',
+                                  'bg-blue-100 text-blue-700': order.status === '进行中',
+                                  'bg-green-100 text-green-700': order.status === '已完成',
+                                  'bg-red-100 text-red-700': order.status === '已退回',
+                                }"
+                              >
+                                {{ order.status }}
+                              </span>
+                            </span>
+                          </template>
+                          <!-- 版本迭代类工单 -->
+                          <template v-else-if="order.type === '版本迭代'">
+                            <span>
+                              <i class="i-mdi-cube mr-1 text-blue-400" />
+                              <span class="text-gray-600">模型：</span>
+                              <span class="text-black font-bold">{{ order.modelID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">基准版本：</span>
+                              <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">Matlab版本：</span>
+                              <span class="text-black font-bold">{{ order.completeModelVersion}}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">升级后版本：</span>
+                              <span class="text-black font-bold">{{ order.finishModelVersion}}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">任务优先级：</span>
+                              <span class="text-black font-bold">{{ order.taskPriority }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">当前状态：</span>
+                              <span
+                                class="ml-2 rounded-full px-3 py-1 font-bold"
+                                :class="{
+                                  'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                                  'bg-orange-100 text-orange-700': order.status === '待审批',
+                                  'bg-purple-100 text-purple-700': order.status === '待分发',
+                                  'bg-blue-100 text-blue-700': order.status === '进行中',
+                                  'bg-green-100 text-green-700': order.status === '已完成',
+                                  'bg-red-100 text-red-700': order.status === '已退回',
+                                }"
+                              >
+                                {{ order.status }}
+                              </span>
+                            </span>
+                          </template>
+                          <!-- 其他类型工单 -->
+                          <template v-else>
+                            <!-- 保持原有显示逻辑 -->
+                            <span>
+                              <i class="i-mdi-cube mr-1 text-blue-400" />
+                              <span class="text-gray-600">模型：</span>
+                              <span class="text-black font-bold">{{ order.modelID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">基准版本：</span>
+                              <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                            </span>
+                            <span>
+                              <span class="text-gray-600">当前状态：</span>
+                              <span
+                                class="ml-2 rounded-full px-3 py-1 font-bold"
+                                :class="{
+                                  'bg-yellow-100 text-yellow-700': order.status === '草稿',
+                                  'bg-orange-100 text-orange-700': order.status === '待审批',
+                                  'bg-purple-100 text-purple-700': order.status === '待分发',
+                                  'bg-blue-100 text-blue-700': order.status === '进行中',
+                                  'bg-green-100 text-green-700': order.status === '已完成',
+                                  'bg-red-100 text-red-700': order.status === '已退回',
+                                }"
+                              >
+                                {{ order.status }}
+                              </span>
+                            </span>
+                          </template>
+                        </div>
                       </div>
                     </div>
                   </div>

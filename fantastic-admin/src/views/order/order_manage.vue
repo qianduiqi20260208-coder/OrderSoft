@@ -174,6 +174,8 @@ interface OrderItem {
 
   finishModelVersionNumber?: string
   finishModelVersionLetter?: string
+  createRemark?: string
+  targetPlatform?: string
 }
 
 const leaderPriority = ref<'' | '紧急' | '一般'>('')
@@ -666,7 +668,8 @@ async function fetchUserOrders() {
 
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
-
+        createRemark: order.createRemark || '', // 创建备注 
+        targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || '',
       }
 
       // 处理文件信息，转换为 files 数组格式
@@ -1363,7 +1366,7 @@ onMounted(() => {
                     />
                     <!-- 工单类型在前，字号加大加粗 -->
                     <span
-                      class="mr-4 text-xl font-black"
+                      class="mr-4 text-xl font-black flex items-end"
                       :class="{
                         'text-blue-700': order.type === '问题复现',
                         'text-green-700': order.type === '版本迭代',
@@ -1374,10 +1377,18 @@ onMounted(() => {
                       }"
                     >
                       {{ order.type }}
-                    </span>
-                    <!-- 工单号在后，字号较小 -->
-                    <span class="text-lg text-gray-600 font-bold">
-                      工单#{{ order.orderID }}
+                      <!-- 工单号作为右下角小字体 -->
+                      <span class="ml-2 text-sm text-gray-500">
+                        工单#{{ order.orderID }}
+                      </span>
+                      <!-- CAE图标 -->
+                        <span v-if="order.targetPlatform === 'CAE'" class="ml-4 flex items-end" >
+                          <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
+                        </span>
+                        <!-- 接口变更图标 -->
+                        <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2': 'ml-4'" class="flex items-end">
+                          <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
+                        </span>
                     </span>
                   </span>
                   <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
@@ -1482,6 +1493,10 @@ onMounted(() => {
                         <span class="text-black font-bold">{{ order.completeModelVersion || 'NA' }}</span>
                       </span>
                       <span>
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
+                      </span>
+                      <span>
                         <span class="text-gray-600">任务优先级：</span>
                         <span class="text-black font-bold">{{ order.taskPriority }}</span>
                       </span>
@@ -1512,6 +1527,10 @@ onMounted(() => {
                       <span>
                         <span class="text-gray-600">基准版本：</span>
                         <span class="text-black font-bold">{{ order.modelVersionID }}</span>
+                      </span>
+                      <span v-if="order.type == '功能开发'" >
+                        <span class="text-gray-600">目标平台：</span>
+                        <span class="text-black font-bold">{{ order.targetPlatform || 'NA' }}</span>
                       </span>
                       <span>
                         <span class="text-gray-600">当前状态：</span>
@@ -1572,6 +1591,18 @@ onMounted(() => {
                 >
                   <!-- 问题复现类工单 -->
                   <template v-if="order.type === '问题复现'">
+                    
+
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-1 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
@@ -1640,7 +1671,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="1"
+                              maxlength="4"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -1711,8 +1742,18 @@ onMounted(() => {
                       </div>
                     </div>
 
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-2 w-full flex items-center gap-2">
-                      <span class="w-40 text-black font-semibold">完成功能描述：</span>
+                      <span class="w-32 text-black font-semibold">完成功能描述：</span>
                       <textarea
                         v-model="order.finishFeatureDesc"
                         class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -1724,6 +1765,18 @@ onMounted(() => {
 
                   <!-- 其他类工单 -->
                   <template v-else-if="order.type === '其他'">
+                    
+
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
@@ -1996,7 +2049,17 @@ onMounted(() => {
                   </div>
                   <!-- 发送备注 -->
                   <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">发送备注：</span>
+                    <span class="w-27 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
+                  <!-- 发送备注 -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-27 text-black font-semibold">发送备注：</span>
                     <textarea
                       v-model="order.sendRemark"
                       class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
@@ -2150,6 +2213,18 @@ onMounted(() => {
                 >
                   <!-- 编辑区，仅待加密时可填写 -->
                   <template v-if="order.statusTodo === '待加密'">
+                    
+
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
@@ -2335,6 +2410,18 @@ onMounted(() => {
                 >
                   <!-- 编辑区，仅待加密时可填写 -->
                   <template v-if="order.statusTodo === '待加密'">
+                    
+
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-2 w-full flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
@@ -2564,6 +2651,18 @@ onMounted(() => {
                 >
                   <!-- 第一行：升级后模型版本 -->
                   <template v-if="order.statusTodo === '待封装'">
+                    
+
+                  <!-- 创建工单备注： -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">创建工单备注：</span>
+                    <textarea
+                      v-model="order.createRemark"
+                      class="flex-1 resize-none border border-gray-200 rounded bg-white px-3 py-2 text-sm text-black"
+                      rows="2"
+                      readonly
+                    />
+                  </div>
                     <div class="col-span-1 w-full flex items-center gap-2">
                       <span class="w-40 text-black font-semibold">
                         <span class="mr-1 text-red-500">*</span>
@@ -2596,7 +2695,7 @@ onMounted(() => {
                             <el-input
                               v-model="order.finishModelVersionLetter"
                               placeholder="A"
-                              maxlength="1"
+                              maxlength="4"
                               class="version-input"
                               @input="value => handleFinishVersionInput(order, 'letter', value)"
                             />
@@ -2696,7 +2795,7 @@ onMounted(() => {
                       <el-button
                         type="primary"
                         size="large"
-                        :disabled="order.status === '已完成' || !order.encryptedExecutorIDEdit || !order.completeModelVersion"
+                        :disabled="order.status === '已完成' || !order.encryptedExecutorIDEdit || !order.completeModelVersion || !order.finishModelVersionLetter || !order.finishModelVersionNumber"
                         @click="handleFinishOrderClick(order)"
                       >
                         提交封装工单
@@ -2848,7 +2947,7 @@ onMounted(() => {
                           <el-input
                             v-model="order.finishModelVersionLetter"
                             placeholder="A"
-                            maxlength="1"
+                            maxlength="4"
                             class="version-input"
                             @input="value => handleFinishVersionInput(order, 'letter', value)"
                           />
@@ -3386,6 +3485,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">复现内容：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.description" rows="2" readonly />
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">复现参考文件：</span>
                       <template v-if="order.files && order.files.length">
@@ -3402,6 +3505,10 @@ onMounted(() => {
                         </div>
                       </template>
                       <span v-else class="text-gray-400">无</span>
+                    </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
@@ -3457,6 +3564,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3503,6 +3614,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">包含敏感信息：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.hasSensitiveInfo" readonly>
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3519,6 +3634,10 @@ onMounted(() => {
                       <span class="w-32 text-black font-semibold">功能描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.featureDesc" rows="2" readonly />
                     </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
+                    </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>
                       <input class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.approverID || 'NA'" readonly>
@@ -3530,6 +3649,10 @@ onMounted(() => {
                     <div class="flex items-start gap-2">
                       <span class="w-32 text-black font-semibold">内容描述：</span>
                       <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.contentDesc" rows="2" readonly />
+                    </div>
+                    <div class="col-span-2 flex items-start gap-2">
+                      <span class="w-32 text-black font-semibold">创建备注：</span>
+                      <textarea class="flex-1 resize-none border border-gray-200 rounded bg-gray-50 px-3 py-2 text-sm text-black" :value="order.createRemark || '无'" rows="2" readonly />
                     </div>
                     <div class="flex items-center gap-2">
                       <span class="w-32 text-black font-semibold">审批人：</span>

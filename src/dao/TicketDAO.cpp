@@ -244,8 +244,8 @@ bool TicketDAO::createTicket(Ticket &ticket)
 	mysql_free_result(local_res);
 
     //往工单表中插入数据
-	snprintf(local_sql, SQL_MAX, "INSERT INTO work_order(id,creator_id,type,model,model_version_id,approver_id) "
-        "VALUES(NULL,'%s', '%s', '%s', %d, '%s');", ticket.creatorId.c_str(), ticket.ticketType.c_str(),ticket.model.c_str(),stoi(ticket.modelVersion), ticket.approverId.c_str());	
+	snprintf(local_sql, SQL_MAX, "INSERT INTO work_order(id,creator_id,type,model,model_version_id,approver_id,create_remark) "
+        "VALUES(NULL,'%s', '%s', '%s', %d, '%s', '%s');", ticket.creatorId.c_str(), ticket.ticketType.c_str(),ticket.model.c_str(),stoi(ticket.modelVersion), ticket.approverId.c_str(), ticket.createRemark.c_str());	
 	local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
     printf("sql:%s\n",local_sql);
 	if (local_ret) {
@@ -288,8 +288,8 @@ bool TicketDAO::createTicket(Ticket &ticket)
     {
         //借用一个具体工单表里的remark字段 暂时保存前三位的版本号
         TicketVersion& tv = dynamic_cast<TicketVersion&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,matlab_version) "
-        "VALUES(%d,'%s','%s', '%s',%d,'%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.matlab_version.c_str());
+        snprintf(local_sql, SQL_MAX, "INSERT INTO version_iteration(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,matlab_version,target_platform) "
+        "VALUES(%d,'%s','%s', '%s',%d,'%s','%s');",ticket.Ticket::id,tv.coordinationId.c_str(), tv.updateNote.c_str(),tv.packRequirement.c_str(),tv.interfaceChanged,tv.matlab_version.c_str(),tv.targetPlatform.c_str());
     }else if(ticket.ticketType == "交付发送")
     {
         TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
@@ -303,8 +303,8 @@ bool TicketDAO::createTicket(Ticket &ticket)
     }else if(ticket.ticketType == "功能开发")
     {
         TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);
-        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create,matlab_version) "
-        "VALUES(%d,'%s','%s');", ticket.Ticket::id,tf.featureInit.c_str(),tf.matlab_version.c_str());
+        snprintf(local_sql, SQL_MAX, "INSERT INTO function_development(work_order_id,description_create,matlab_version,target_platform) "
+        "VALUES(%d,'%s','%s','%s');", ticket.Ticket::id,tf.featureInit.c_str(),tf.matlab_version.c_str(),tf.targetPlatform.c_str());
     }else if(ticket.ticketType == "其他")
     {
         TicketOther& to = dynamic_cast<TicketOther&>(ticket);
@@ -831,6 +831,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             tmp->interfaceChanged = atoi((row[5]?row[5]:"-1"));
             tmp->newModelVersion = row[6]?row[6]:"";
             tmp->remark = (row[7]?row[7]:"");
+            tmp->targetPlatform = (row[9]?row[9]:""); // 目标平台字段
         }
         mysql_free_result(res);
         // todo
@@ -936,6 +937,7 @@ void TicketDAO::concreteTicketList(int work_order_id, std::shared_ptr<Ticket> ve
             tmp->featureInit = (row[2]?row[2]:"");
             tmp->featureFinal = (row[3]?row[3]:"");
             tmp->newModelVersion = ((row[5])?row[5]:"");
+            tmp->targetPlatform = (row[7]?row[7]:""); // 目标平台字段
         }
         //查询模型版本
         if(tmp->newModelVersion !="")
@@ -1741,6 +1743,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         << "    woe_latest.transfer_type AS executor_status, "
         << "    woe_latest.encryption_status, "
         << "    umr.flow_role, "
+        << "    wo.create_remark, "
         << "    ir.coordination_id AS issue_coordination_id, "
         << "    ir.description AS issue_description, "
         << "    ir.reference_file AS issue_reference_file, "
@@ -1754,6 +1757,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         << "    vi.new_model_version_id AS version_new_model_version_id, "
         << "    vi.remarks AS version_remarks, "
         << "    vi.matlab_version AS version_matlab_version, "
+        << "    vi.target_platform AS version_target_platform, "
         << "    ds.target_customer AS delivery_target_customer, "
         << "    ds.validated_by_cae AS delivery_validated_by_cae, "
         << "    ds.sensitive_info AS delivery_sensitive_info, "
@@ -1786,6 +1790,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         << "    fd.model_id AS function_model_id, "
         << "    fd.new_model_version_id AS function_new_model_version_id, "
         << "    fd.matlab_version AS function_matlab_version, "
+        << "    fd.target_platform AS function_target_platform, "
         << "    owo.description AS other_description, "
         << "    owo.remarks AS other_remarks, "
         << "    wo.to_dispatcher_id, "
@@ -1911,21 +1916,22 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         workOrder["executorStatus"] = row[16] ? row[16] : "";
         workOrder["encryptionStatus"] = row[17] ? row[17] : "";
         workOrder["flowRole"] = row[18] ? row[18] : "";
+        workOrder["createRemark"] = row[19] ? row[19] : ""; // 创建备注
         
         // 工单执行人信息
         nlohmann::json executorInfo;
-        executorInfo["encryptorName"] = row[40] ? row[40] : "";
-        executorInfo["senderName"] = row[41] ? row[41] : "";
-        executorInfo["encryptorTime"] = row[42] ? row[42] : "";
-        executorInfo["senderTime"] = row[43] ? row[43] : "";
-        executorInfo["packageUpdateVersion"] = row[58] ? row[58] : "";
-        executorInfo["packageExecutorId"] = row[67] ? row[67] : "";
-        executorInfo["packageCreateAt"] = row[73] ? row[73] : "";
-        executorInfo["packageCreateName"] = row[74] ? row[74] : "";
+        executorInfo["encryptorName"] = row[42] ? row[42] : "";
+        executorInfo["senderName"] = row[43] ? row[43] : "";
+        executorInfo["encryptorTime"] = row[44] ? row[44] : "";
+        executorInfo["senderTime"] = row[45] ? row[45] : "";
+        executorInfo["packageUpdateVersion"] = row[60] ? row[60] : "";
+        executorInfo["packageExecutorId"] = row[70] ? row[70] : "";
+        executorInfo["packageCreateAt"] = row[76] ? row[76] : "";
+        executorInfo["packageCreateName"] = row[77] ? row[77] : "";
         
         // 获取to_dispatcher_name、encrypted_executor_name、encrypted_remark、send_remark和package_remark字段
         unsigned int num_fields = mysql_num_fields(res);
-        if (num_fields > 19) {
+        if (num_fields > 20) {
             workOrder["toDispatcherName"] = row[num_fields - 8] ? row[num_fields - 8] : "";
             executorInfo["encryptedExecutorName"] = row[num_fields - 6] ? row[num_fields - 6] : "";
             workOrder["encryptedRemark"] = row[num_fields - 5] ? row[num_fields - 5] : "";
@@ -1941,11 +1947,11 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         
         if (workOrderType == "问题复现") {
             nlohmann::json issueInfo;
-            issueInfo["coordinationId"] = row[19] ? row[19] : "";
-            issueInfo["description"] = row[20] ? row[20] : "";
+            issueInfo["coordinationId"] = row[20] ? row[20] : "";
+            issueInfo["description"] = row[21] ? row[21] : "";
             
             // 处理附件文件路径
-            std::string fileName = row[22] ? row[22] : "";
+            std::string fileName = row[23] ? row[23] : "";
             if (!fileName.empty()) {
                 issueInfo["referenceFile"] = "/files/ticket/" + workOrderId + "/" + fileName;
                 issueInfo["hasAttachment"] = true;
@@ -1953,65 +1959,67 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
                 issueInfo["referenceFile"] = "";
                 issueInfo["hasAttachment"] = false;
             }
-            issueInfo["fileName"] = row[22] ? row[22] : "";
-            issueInfo["phenomenon"] = row[23] ? row[23] : "";
-            issueInfo["remarks"] = row[24] ? row[24] : "";
+            issueInfo["fileName"] = row[23] ? row[23] : "";
+            issueInfo["phenomenon"] = row[24] ? row[24] : "";
+            issueInfo["remarks"] = row[25] ? row[25] : "";
             workOrder["issueReproduction"] = issueInfo;
         }
         else if (workOrderType == "版本迭代") {
             nlohmann::json versionInfo;
-            versionInfo["coordinationId"] = row[25] ? row[25] : "";
-            versionInfo["updateContent"] = row[26] ? row[26] : "";
-            versionInfo["packagingRequirements"] = row[27] ? row[27] : "";
-            versionInfo["interfaceChanged"] = row[28] ? (std::string(row[28]) == "1" ? "是" : "否") : "否";
-            versionInfo["newModelVersionId"] = row[29] ? row[29] : "";
-            versionInfo["remarks"] = row[30] ? row[30] : "";
-            versionInfo["matlabVersion"] = row[31] ? row[31] : "";
+            versionInfo["coordinationId"] = row[26] ? row[26] : "";
+            versionInfo["updateContent"] = row[27] ? row[27] : "";
+            versionInfo["packagingRequirements"] = row[28] ? row[28] : "";
+            versionInfo["interfaceChanged"] = row[29] ? (std::string(row[29]) == "1" ? "是" : "否") : "否";
+            versionInfo["newModelVersionId"] = row[30] ? row[30] : "";
+            versionInfo["remarks"] = row[31] ? row[31] : "";
+            versionInfo["matlabVersion"] = row[32] ? row[32] : "";
+            versionInfo["targetPlatform"] = row[33] ? row[33] : "";
             workOrder["versionIteration"] = versionInfo;
         }
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
-            deliveryInfo["targetCustomer"] = row[32] ? row[32] : "";
-            deliveryInfo["validatedByCae"] = row[33] ? (std::string(row[33]) == "1" ? "是" : "否") : "否";
-            deliveryInfo["sensitiveInfo"] = row[34] ? row[34] : "";
-            deliveryInfo["isEncrypted"] = row[35] ? (std::string(row[35]) == "1" ? "是" : "否") : "否";
-            deliveryInfo["shellCode"] = row[36] ? row[36] : "";
-            deliveryInfo["authorizationId"] = row[37] ? row[37] : "";
-            deliveryInfo["remarks"] = row[38] ? row[38] : "";
-            deliveryInfo["targetDeliveryTime"] = row[39] ? row[39] : "";
+            deliveryInfo["targetCustomer"] = row[34] ? row[34] : "";
+            deliveryInfo["validatedByCae"] = row[35] ? (std::string(row[35]) == "1" ? "是" : "否") : "否";
+            deliveryInfo["sensitiveInfo"] = row[36] ? row[36] : "";
+            deliveryInfo["isEncrypted"] = row[37] ? (std::string(row[37]) == "1" ? "是" : "否") : "否";
+            deliveryInfo["shellCode"] = row[38] ? row[38] : "";
+            deliveryInfo["authorizationId"] = row[39] ? row[39] : "";
+            deliveryInfo["remarks"] = row[40] ? row[40] : "";
+            deliveryInfo["targetDeliveryTime"] = row[41] ? row[41] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
             nlohmann::json packageInfo;
-            packageInfo["coordinationId"] = row[44] ? row[44] : "";
-            packageInfo["updateContent"] = row[45] ? row[45] : "";
-            packageInfo["packagingRequirements"] = row[46] ? row[46] : "";
-            packageInfo["interfaceChanged"] = row[47] ? (std::string(row[47]) == "1" ? "是" : "否") : "否";
-            packageInfo["targetCustomer"] = row[48] ? row[48] : "";
-            packageInfo["validatedByCae"] = row[49] ? (std::string(row[49]) == "1" ? "是" : "否") : "否";
-            packageInfo["sensitiveInfo"] = row[50] ? row[50] : "";
-            packageInfo["newModelVersionId"] = row[51] ? row[51] : "";
-            packageInfo["isEncrypted"] = row[52] ? (std::string(row[52]) == "1" ? "是" : "否") : "否";
-            packageInfo["encryptionKey"] = row[53] ? row[53] : "";
-            packageInfo["productAuthorizationId"] = row[54] ? row[54] : "";
-            packageInfo["remarks"] = row[55] ? row[55] : "";
-            packageInfo["matlabVersion"] = row[56] ? row[56] : "";
-            packageInfo["targetDeliveryTime"] = row[57] ? row[57] : "";
+            packageInfo["coordinationId"] = row[46] ? row[46] : "";
+            packageInfo["updateContent"] = row[47] ? row[47] : "";
+            packageInfo["packagingRequirements"] = row[48] ? row[48] : "";
+            packageInfo["interfaceChanged"] = row[49] ? (std::string(row[49]) == "1" ? "是" : "否") : "否";
+            packageInfo["targetCustomer"] = row[50] ? row[50] : "";
+            packageInfo["validatedByCae"] = row[51] ? (std::string(row[51]) == "1" ? "是" : "否") : "否";
+            packageInfo["sensitiveInfo"] = row[52] ? row[52] : "";
+            packageInfo["newModelVersionId"] = row[53] ? row[53] : "";
+            packageInfo["isEncrypted"] = row[54] ? (std::string(row[54]) == "1" ? "是" : "否") : "否";
+            packageInfo["encryptionKey"] = row[55] ? row[55] : "";
+            packageInfo["productAuthorizationId"] = row[56] ? row[56] : "";
+            packageInfo["remarks"] = row[57] ? row[57] : "";
+            packageInfo["matlabVersion"] = row[58] ? row[58] : "";
+            packageInfo["targetDeliveryTime"] = row[59] ? row[59] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[59] ? row[59] : "";
-            functionInfo["descriptionCompleted"] = row[60] ? row[60] : "";
-            functionInfo["modelId"] = row[61] ? row[61] : "";
-            functionInfo["newModelVersionId"] = row[62] ? row[62] : "";
-            functionInfo["matlabVersion"] = row[63] ? row[63] : "";
+            functionInfo["descriptionCreate"] = row[61] ? row[61] : "";
+            functionInfo["descriptionCompleted"] = row[62] ? row[62] : "";
+            functionInfo["modelId"] = row[63] ? row[63] : "";
+            functionInfo["newModelVersionId"] = row[64] ? row[64] : "";
+            functionInfo["matlabVersion"] = row[65] ? row[65] : "";
+            functionInfo["targetPlatform"] = row[66] ? row[66] : "";
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[64] ? row[64] : "";
-            otherInfo["remarks"] = row[65] ? row[65] : "";
+            otherInfo["description"] = row[67] ? row[67] : "";
+            otherInfo["remarks"] = row[68] ? row[68] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
@@ -2138,6 +2146,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    wo.encrypted_remark, "
        << "    wo.send_remark, "
        << "    wo.package_remark, "
+       << "    wo.create_remark, "
        << "    woe_latest.executor_id, "
        << "    u_executor.real_name AS executor_name, "
        << "    woe_latest.transfer_type AS executor_status, "
@@ -2167,6 +2176,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    vi.new_model_version_id AS version_new_model_version_id, "
        << "    vi.remarks AS version_remarks, "
        << "    vi.matlab_version AS version_matlab_version, "
+       << "    vi.target_platform AS version_target_platform, "
        << "    ds.target_customer AS delivery_target_customer, "
        << "    ds.validated_by_cae AS delivery_validated_by_cae, "
        << "    ds.sensitive_info AS delivery_sensitive_info, "
@@ -2194,6 +2204,7 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "    fd.model_id AS function_model_id, "
        << "    fd.new_model_version_id AS function_new_model_version_id, "
        << "    fd.matlab_version AS function_matlab_version, "
+       << "    fd.target_platform AS function_target_platform, "
        << "    owo.description AS other_description, "
        << "    owo.remarks AS other_remarks, "
        << "    woe_encryptor.executor_id AS delivery_encryptor_name, "
@@ -2408,24 +2419,25 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
         workOrder["encryptedRemark"] = row[16] ? row[16] : "";
         workOrder["sendRemark"] = row[17] ? row[17] : "";
         workOrder["packageRemark"] = row[18] ? row[18] : "";
-        workOrder["executorId"] = row[19] ? row[19] : "";
-        workOrder["executorName"] = row[20] ? row[20] : "";
-        workOrder["executorStatus"] = row[21] ? row[21] : "";
-        workOrder["encryptionStatus"] = row[22] ? row[22] : "";
-        workOrder["flowRole"] = row[23] ? row[23] : "";
-        workOrder["completedAt"] = row[81] ? row[81] : "";
+        workOrder["createRemark"] = row[19] ? row[19] : ""; // 创建备注
+        workOrder["executorId"] = row[20] ? row[20] : "";
+        workOrder["executorName"] = row[21] ? row[21] : "";
+        workOrder["executorStatus"] = row[22] ? row[22] : "";
+        workOrder["encryptionStatus"] = row[23] ? row[23] : "";
+        workOrder["flowRole"] = row[24] ? row[24] : "";
+        workOrder["completedAt"] = row[84] ? row[84] : "";
         
         // 统一的执行人信息（参考getUserPendingWorkOrders的executorInfo结构）
         nlohmann::json executorInfo;
-        executorInfo["encryptedExecutorName"] = row[25] ? row[25] : "";
-        executorInfo["senderExecutorName"] = row[27] ? row[27] : "";
-        executorInfo["encryptedCreateAt"] = row[28] ? row[28] : "";
-        executorInfo["senderCreateAt"] = row[29] ? row[29] : "";
-        executorInfo["packageUpdateVersion"] = row[30] ? row[30] : "";
-        executorInfo["packageExecutorId"] = row[31] ? row[31] : "";
-        executorInfo["packageCreateAt"] = row[32] ? row[32] : "";
-        executorInfo["packageCreateName"] = row[33] ? row[33] : "";
-        executorInfo["encryptedExecutorNameDynamic"] = row[34] ? row[34] : "";
+        executorInfo["encryptedExecutorName"] = row[26] ? row[26] : "";
+        executorInfo["senderExecutorName"] = row[28] ? row[28] : "";
+        executorInfo["encryptedCreateAt"] = row[29] ? row[29] : "";
+        executorInfo["senderCreateAt"] = row[30] ? row[30] : "";
+        executorInfo["packageUpdateVersion"] = row[31] ? row[31] : "";
+        executorInfo["packageExecutorId"] = row[32] ? row[32] : "";
+        executorInfo["packageCreateAt"] = row[33] ? row[33] : "";
+        executorInfo["packageCreateName"] = row[34] ? row[34] : "";
+        executorInfo["encryptedExecutorNameDynamic"] = row[35] ? row[35] : "";
         workOrder["executorInfo"] = executorInfo;
         
         // 根据工单类型封装详细信息（与getUserPendingWorkOrders相同的逻辑）
@@ -2434,11 +2446,11 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
         
         if (workOrderType == "问题复现") {
             nlohmann::json issueInfo;
-            issueInfo["coordinationId"] = row[35] ? row[35] : "";
-            issueInfo["description"] = row[36] ? row[36] : "";
+            issueInfo["coordinationId"] = row[36] ? row[36] : "";
+            issueInfo["description"] = row[37] ? row[37] : "";
             
             // 处理附件文件路径
-            std::string fileName = row[38] ? row[38] : "";
+            std::string fileName = row[39] ? row[39] : "";
             if (!fileName.empty()) {
                 issueInfo["referenceFile"] = "/files/ticket/" + workOrderId + "/" + fileName;
                 issueInfo["hasAttachment"] = true;
@@ -2446,73 +2458,75 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                 issueInfo["referenceFile"] = "";
                 issueInfo["hasAttachment"] = false;
             }
-            issueInfo["fileName"] = row[38] ? row[38] : "";
-            issueInfo["phenomenon"] = row[39] ? row[39] : "";
-            issueInfo["remarks"] = row[40] ? row[40] : "";
+            issueInfo["fileName"] = row[39] ? row[39] : "";
+            issueInfo["phenomenon"] = row[40] ? row[40] : "";
+            issueInfo["remarks"] = row[41] ? row[41] : "";
             workOrder["issueReproduction"] = issueInfo;
         }
         else if (workOrderType == "版本迭代") {
             nlohmann::json versionInfo;
-            versionInfo["coordinationId"] = row[41] ? row[41] : "";
-            versionInfo["updateContent"] = row[42] ? row[42] : "";
-            versionInfo["packagingRequirements"] = row[43] ? row[43] : "";
-            versionInfo["interfaceChanged"] = row[44] ? (std::string(row[44]) == "1" ? true : false) : false;
-            versionInfo["newModelVersionId"] = row[45] ? row[45] : "";
-            versionInfo["remarks"] = row[46] ? row[46] : "";
-            versionInfo["matlabVersion"] = row[47] ? row[47] : "";
-            versionInfo["newModelVersion"] = row[83] ? row[83] : "";
+            versionInfo["coordinationId"] = row[42] ? row[42] : "";
+            versionInfo["updateContent"] = row[43] ? row[43] : "";
+            versionInfo["packagingRequirements"] = row[44] ? row[44] : "";
+            versionInfo["interfaceChanged"] = row[45] ? (std::string(row[45]) == "1" ? true : false) : false;
+            versionInfo["newModelVersionId"] = row[46] ? row[46] : "";
+            versionInfo["remarks"] = row[47] ? row[47] : "";
+            versionInfo["matlabVersion"] = row[48] ? row[48] : "";
+            versionInfo["targetPlatform"] = row[49] ? row[49] : "";
+            versionInfo["newModelVersion"] = row[86] ? row[86] : "";
             workOrder["versionIteration"] = versionInfo;
         }
         else if (workOrderType == "交付发送") {
             nlohmann::json deliveryInfo;
-            deliveryInfo["targetCustomer"] = row[48] ? row[48] : "";
-            deliveryInfo["validatedByCae"] = row[49] ? (std::string(row[49]) == "1" ? "是" : "否") : "否";
-            deliveryInfo["sensitiveInfo"] = row[50] ? row[50] : "";
-            deliveryInfo["isEncrypted"] = row[51] ? (std::string(row[51]) == "1" ? "是" : "否") : "否";
-            deliveryInfo["shellCode"] = row[52] ? row[52] : "";
-            deliveryInfo["authorizationId"] = row[53] ? row[53] : "";
-            deliveryInfo["remarks"] = row[54] ? row[54] : "";
-            deliveryInfo["targetDeliveryTime"] = row[55] ? row[55] : "";
-            deliveryInfo["encryptorName"] = row[25] ? row[25] : "";
-            deliveryInfo["senderName"] = row[27] ? row[27] : "";
-            deliveryInfo["encryptorTime"] = row[28] ? row[28] : "";
-            deliveryInfo["senderTime"] = row[29] ? row[29] : "";
+            deliveryInfo["targetCustomer"] = row[50] ? row[50] : "";
+            deliveryInfo["validatedByCae"] = row[51] ? (std::string(row[51]) == "1" ? "是" : "否") : "否";
+            deliveryInfo["sensitiveInfo"] = row[52] ? row[52] : "";
+            deliveryInfo["isEncrypted"] = row[53] ? (std::string(row[53]) == "1" ? "是" : "否") : "否";
+            deliveryInfo["shellCode"] = row[54] ? row[54] : "";
+            deliveryInfo["authorizationId"] = row[55] ? row[55] : "";
+            deliveryInfo["remarks"] = row[56] ? row[56] : "";
+            deliveryInfo["targetDeliveryTime"] = row[57] ? row[57] : "";
+            deliveryInfo["encryptorName"] = row[26] ? row[26] : "";
+            deliveryInfo["senderName"] = row[28] ? row[28] : "";
+            deliveryInfo["encryptorTime"] = row[29] ? row[29] : "";
+            deliveryInfo["senderTime"] = row[30] ? row[30] : "";
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
             nlohmann::json packageInfo;
-            packageInfo["coordinationId"] = row[56] ? row[56] : "";
-            packageInfo["updateContent"] = row[57] ? row[57] : "";
-            packageInfo["packagingRequirements"] = row[58] ? row[58] : "";
-            packageInfo["interfaceChanged"] = row[59] ? (std::string(row[59]) == "1" ? true : false) : false;
-            packageInfo["targetCustomer"] = row[60] ? row[60] : "";
-            packageInfo["validatedByCae"] = row[61] ? (std::string(row[61]) == "1" ? "是" : "否") : "否";
-            packageInfo["sensitiveInfo"] = row[62] ? row[62] : "";
-            packageInfo["newModelVersionId"] = row[63] ? row[63] : "";
-            packageInfo["isEncrypted"] = row[64] ? (std::string(row[64]) == "1" ? "是" : "否") : "否";
-            packageInfo["encryptionKey"] = row[65] ? row[65] : "";
-            packageInfo["productAuthorizationId"] = row[66] ? row[66] : "";
-            packageInfo["remarks"] = row[67] ? row[67] : "";
-            packageInfo["matlabVersion"] = row[68] ? row[68] : "";
-            packageInfo["targetDeliveryTime"] = row[69] ? row[69] : "";
-            packageInfo["newModelVersion"] = row[84] ? row[84] : "";
+            packageInfo["coordinationId"] = row[58] ? row[58] : "";
+            packageInfo["updateContent"] = row[59] ? row[59] : "";
+            packageInfo["packagingRequirements"] = row[60] ? row[60] : "";
+            packageInfo["interfaceChanged"] = row[61] ? (std::string(row[61]) == "1" ? true : false) : false;
+            packageInfo["targetCustomer"] = row[62] ? row[62] : "";
+            packageInfo["validatedByCae"] = row[63] ? (std::string(row[63]) == "1" ? "是" : "否") : "否";
+            packageInfo["sensitiveInfo"] = row[64] ? row[64] : "";
+            packageInfo["newModelVersionId"] = row[65] ? row[65] : "";
+            packageInfo["isEncrypted"] = row[66] ? (std::string(row[66]) == "1" ? "是" : "否") : "否";
+            packageInfo["encryptionKey"] = row[67] ? row[67] : "";
+            packageInfo["productAuthorizationId"] = row[68] ? row[68] : "";
+            packageInfo["remarks"] = row[69] ? row[69] : "";
+            packageInfo["matlabVersion"] = row[70] ? row[70] : "";
+            packageInfo["targetDeliveryTime"] = row[71] ? row[71] : "";
+            packageInfo["newModelVersion"] = row[87] ? row[87] : "";
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {
             nlohmann::json functionInfo;
-            functionInfo["descriptionCreate"] = row[70] ? row[70] : "";
-            functionInfo["descriptionCompleted"] = row[71] ? row[71] : "";
-            functionInfo["modelId"] = row[72] ? row[72] : "";
-            functionInfo["newModelVersionId"] = row[73] ? row[73] : "";
-            functionInfo["matlabVersion"] = row[74] ? row[74] : "";
-            functionInfo["newModelVersion"] = row[82] ? row[82] : "";
+            functionInfo["descriptionCreate"] = row[72] ? row[72] : "";
+            functionInfo["descriptionCompleted"] = row[73] ? row[73] : "";
+            functionInfo["modelId"] = row[74] ? row[74] : "";
+            functionInfo["newModelVersionId"] = row[75] ? row[75] : "";
+            functionInfo["matlabVersion"] = row[76] ? row[76] : "";
+            functionInfo["targetPlatform"] = row[77] ? row[77] : "";
+            functionInfo["newModelVersion"] = row[85] ? row[85] : "";
 
             workOrder["functionDevelopment"] = functionInfo;
         }
         else if (workOrderType == "其他") {
             nlohmann::json otherInfo;
-            otherInfo["description"] = row[75] ? row[75] : "";
-            otherInfo["remarks"] = row[76] ? row[76] : "";
+            otherInfo["description"] = row[78] ? row[78] : "";
+            otherInfo["remarks"] = row[79] ? row[79] : "";
             workOrder["otherWorkOrder"] = otherInfo;
         }
         
@@ -2625,10 +2639,14 @@ bool TicketDAO::completeSendTicket(const Ticket& ticket)
     int ret;
     // 获取当前时间 (UTF-8时区)
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    // 使用UTC时间，确保UTF-8编码兼容性
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
+    LOG_INFO("完成时间：%s",  completedTime.c_str());
     try {
         // 1. 更新工单状态为已完成
         std::string remarkStr = "";
@@ -2760,8 +2778,12 @@ bool TicketDAO::completePackageSendTicket(const TicketPackage& ticket)
     int ret;
     // 获取当前时间
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
     
     try {
@@ -2889,8 +2911,12 @@ bool TicketDAO::completePackageSendEncryptedTicket(const TicketPackage& ticket)
     int ret;
     // 获取当前时间
     std::time_t now = std::time(nullptr);
+    std::tm tm_local;
+    // localtime_s is a thread-safe way to get local time on Windows
+    localtime_s(&tm_local, &now);
     char timeStr[20];
-    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    // 格式化为 "YYYY-MM-DD HH:MM:SS" 字符串，这里的时间是服务器的本地时间 (应为UTC+8)
+    std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_local);
     std::string completedTime = timeStr;
     
     try {

@@ -7,7 +7,7 @@ meta:
 <script setup lang="ts">
 import { ElLoading, ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import modelApi from '@/api/modules/model'
 
@@ -16,6 +16,7 @@ const loading = ref(false) // loading变量定义
 // 动态数据：模型列表，每个模型有多个工单
 const modelList = ref<Model[]>([])
 const route = useRoute() // 获取当前路由信息
+const router = useRouter()
 
 // 当前选中的模型
 const currentModel = ref<any>(null)
@@ -120,6 +121,19 @@ function openCoordinationOrderDialog(model: Model) {
   showCoordinationDialog.value = true
 }
 
+function handleOrderNumberClick(orderId: string) {
+  console.warn('跳转到工单详情:', orderId)
+
+  // 跳转到工单列表页面，传递工单号参数
+  router.push({
+    path: '/order_list',
+    query: {
+      orderId,
+      fromSendDetail: 'true', // 标识来源，便于区分加载逻辑
+    },
+  })
+}
+
 // -------------后端事件处理函数---------------
 // 预处理工单列表，将版本迭代+交付发送拆分为两个工单
 function preprocessOrders(list: Model[]): Model[] {
@@ -184,8 +198,8 @@ async function apiFetchUserModels() {
           isCAEChecked: order.validatedByCae === '1', // CAE验证
           isEncrypted: order.encrypted === '1', // 是否加密
           targetCustomer: order.targetClient || '', // 目标客户
-          finishAuthId: order.licenseId || '', // 授权ID
-          finishShellNo: order.dongleId || '', // 外壳号
+          finishAuthId: order.license || '', // 授权ID
+          finishShellNo: order.dongle || '', // 外壳号
           finishFeatureDesc: order.featureFinal || order.featureInit || '', // 功能描述
           finishModelVersionId: order.newModelVersion || '', // 升级后模型版本ID（功能开发类）
           finishRemarkOther: order.description || '', // 其他备注
@@ -417,19 +431,26 @@ function expandModel(version: string, expand: boolean) {
                     </el-tooltip>
                     <span class="ml-2 text-2xl font-bold">
                       {{ model.version }}
-                      <sup
+                         <span v-if="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked)" class="ml-4 mb-2" >
+                          <img src="@/assets/icons/Cae3D.svg" style="position: relative; bottom: 3px;" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
+                        </span>
+                        <!-- 接口变更图标 -->
+                        <span v-if="model.orders.some(o => o.apiChanged)" :class="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked) ? 'ml-2': 'ml-4'">
+                          <img src="@/assets/icons/接口.svg" style="position: relative; bottom: 3px;" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
+                        </span>
+                      <!-- <sup
                         class="ml-1 text-sm font-bold"
                         :class="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked) ? 'text-green-700' : 'text-gray-400'"
                         style="line-height: 1;"
                       >
                         CAE
                         <FaIcon
-                          v-if="model.orders.some(o => o.type === '交付发送' && o.isCAEChecked)"
+                          
                           name="check"
                           class="size-4 text-green-600"
                           style="vertical-align: middle;"
                         />
-                      </sup>
+                      </sup> -->
                     </span>
                     <div class="ml-auto flex gap-2">
                       <FaButton
@@ -634,8 +655,9 @@ function expandModel(version: string, expand: boolean) {
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工单ID：</span>
                         <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold"
+                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold underline"
                           :value="order.orderID"
+                          @click="handleOrderNumberClick(order.orderID)"
                           readonly
                         >
                       </div>
@@ -705,8 +727,9 @@ function expandModel(version: string, expand: boolean) {
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工单ID：</span>
                         <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold"
+                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold underline"
                           :value="order.orderID"
+                          @click="handleOrderNumberClick(order.orderID)"
                           readonly
                         >
                       </div>
@@ -760,8 +783,9 @@ function expandModel(version: string, expand: boolean) {
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工单ID：</span>
                         <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold"
+                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold underline"
                           :value="order.orderID"
+                          @click="handleOrderNumberClick(order.orderID)"
                           readonly
                         >
                       </div>
@@ -805,8 +829,9 @@ function expandModel(version: string, expand: boolean) {
                       <div class="flex items-center gap-2">
                         <span class="w-32 text-black font-semibold">工单ID：</span>
                         <input
-                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold"
+                          class="flex-1 border border-gray-200 rounded bg-gray-50 px-3 py-2 text-blue-700 font-bold underline"
                           :value="order.orderID"
+                          @click="handleOrderNumberClick(order.orderID)"
                           readonly
                         >
                       </div>
