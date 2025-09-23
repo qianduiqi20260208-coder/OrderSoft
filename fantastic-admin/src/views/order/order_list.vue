@@ -1331,6 +1331,45 @@ function handleCopyOrder(order: OrderItem) {
                   </div>
                 </div>
 
+              <!-- 多次流转内容块，循环显示每一次流转（紧跟在任务分发后面），倒序显示 -->
+              <template v-if="order.status === '已完成' || order.status === '进行中'">
+                <template v-for="(transfer, idx) in (order.transfers ? [...order.transfers].reverse() : [])" :key="idx">
+                  <div
+                    v-if="getActiveTab(order.orderID) === 'complete'"
+                    class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
+                  >
+                    <div class="w-full flex items-center justify-between mb-4">
+                      <div class="flex items-center">
+                        <span class="text-lg text-blue-900 font-bold">
+                          工单流转
+                          {{ Array.isArray(order.transfers) && order.transfers.length > 1 ? `（第${order.transfers.length - idx}次）` : '' }}
+                        </span>
+                        <span
+                          class="ml-2 inline-block align-middle"
+                          style="width: 12px;height: 12px;background: #22c55e ;border-radius: 50%;"
+                          title="流转"
+                        />
+                      </div>
+                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                        <span>流转时间：{{ transfer.transferTime }}</span>
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2">
+                      <div class="col-span-2 w-full flex items-center gap-2">
+                        <span class="w-32 text-black font-semibold">流转原因：</span>
+                        <textarea
+                          class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
+                          :value="transfer.transferReason"
+                          rows="2"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </template>
               <!-- 发送工单 Tab面板 -->
               <div
                 v-if="getActiveTab(order.orderID) === 'send' && ['进行中', '已完成'].includes(order.status) && order.type === '交付发送' && ['待发送'].includes(order.statusTodo ?? '')"
@@ -1461,14 +1500,10 @@ function handleCopyOrder(order: OrderItem) {
                     />
                   </div>
                 </div>
-              </div>
+                
+              <!-- 发送环节流转内容块 Tab面板 getActiveTab(order.orderID) === 'send_transfer' && -->
 
-              <!-- 发送环节流转内容块 Tab面板 -->
-              <div
-                v-if="getActiveTab(order.orderID) === 'send_transfer' && order.transfers_Delivery && order.transfers_Delivery.length"
-                class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
-              >
-                <div class="space-y-4">
+                <div v-if="order.transfers_Delivery && order.transfers_Delivery.length" class="space-y-4">
                   <div v-for="(transfer, idx) in order.transfers_Delivery" :key="idx" class="border border-gray-200 rounded-lg p-4">
                     <div class="mb-4 flex items-center justify-between">
                       <div class="flex items-center gap-2">
@@ -1497,6 +1532,7 @@ function handleCopyOrder(order: OrderItem) {
                   </div>
                 </div>
               </div>
+
 
               <!-- 加密工单 Tab面板 -->
               <div
@@ -1604,22 +1640,10 @@ function handleCopyOrder(order: OrderItem) {
                     />
                   </div>
                 </div>
-              </div>
-                
-                <!-- 是否加密信息显示
-                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div class="flex items-center gap-2">
-                    <span class="text-blue-800 font-semibold">是否加密：</span>
-                    <span class="text-blue-900 font-bold">{{ order.isEncrypted }}</span>
-                  </div>
-                </div> -->
-              </div>
-
               <!-- 加密环节流转内容块 -->
               <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length">
                 <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
                   <div
-                    v-if="getActiveTab(order.orderID) === 'encrypted'"
                     class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
                   >
                     <div class="flex items-center justify-between mb-4">
@@ -1660,6 +1684,18 @@ function handleCopyOrder(order: OrderItem) {
                   </div>
                 </template>
               </template>
+              </div>
+                
+                <!-- 是否加密信息显示
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-800 font-semibold">是否加密：</span>
+                    <span class="text-blue-900 font-bold">{{ order.isEncrypted }}</span>
+                  </div>
+                </div> -->
+                    <!-- v-if="getActiveTab(order.orderID) === 'encrypted'" -->
+              </div>
+
 
               <!-- 版本迭代+交付发送类工单-封装（只读展示，进行中/已完成） -->
               <div
@@ -1812,45 +1848,6 @@ function handleCopyOrder(order: OrderItem) {
                 </template>
               </template>
 
-              <!-- 多次流转内容块，循环显示每一次流转（紧跟在任务分发后面），倒序显示 -->
-              <template v-if="order.status === '已完成' || order.status === '进行中'">
-                <template v-for="(transfer, idx) in (order.transfers ? [...order.transfers].reverse() : [])" :key="idx">
-                  <div
-                    v-if="getActiveTab(order.orderID) === 'transfer'"
-                    class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4"
-                  >
-                    <div class="w-full flex items-center justify-between mb-4">
-                      <div class="flex items-center">
-                        <span class="text-lg text-blue-900 font-bold">
-                          工单流转
-                          {{ Array.isArray(order.transfers) && order.transfers.length > 1 ? `（第${order.transfers.length - idx}次）` : '' }}
-                        </span>
-                        <span
-                          class="ml-2 inline-block align-middle"
-                          style="width: 12px;height: 12px;background: #22c55e ;border-radius: 50%;"
-                          title="流转"
-                        />
-                      </div>
-                      <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                        <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                        <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                        <span>流转时间：{{ transfer.transferTime }}</span>
-                      </div>
-                    </div>
-                    <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-gray-50 px-6 py-4 border-0 border-gray-300 relative before:content-[''] before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.04 before:bg-gray-300 before:-translate-x-1/2">
-                      <div class="col-span-2 w-full flex items-center gap-2">
-                        <span class="w-32 text-black font-semibold">流转原因：</span>
-                        <textarea
-                          class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                          :value="transfer.transferReason"
-                          rows="2"
-                          readonly
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </template>
               <!-- 任务分发 -->
               <div
                 v-if="['待分发', '进行中', '已完成', '已退回'].includes(order.status) && order.distributorID !== '' && getActiveTab(order.orderID) === 'dispatch'"
