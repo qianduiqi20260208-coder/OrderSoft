@@ -2386,7 +2386,7 @@ onMounted(() => {
             <!-- </FaPageMain> -->
 
             <!-- 加密环节流转内容块 -->
-            <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length">
+            <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length && getActiveTab(order.orderID) === 'encrypt' ">
               <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
                 <FaPageMain title="" :collaspe="!expandedMap[order.orderID]" height="auto" class="w-full">
                   <template #title>
