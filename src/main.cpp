@@ -32,8 +32,13 @@
 #include "DBConnectionManager.h"
 #include "util/LoggerConfig.h"
 #include "util/Logger.h"
+#include "WebSocketManager.h"
+#include "WebSocketController.h"
 
 std::map<int,std::string> id_name;
+
+//保存通知消息的map
+std::multimap<int,std::string> notify_messages;
 
 int main() {
 
@@ -100,12 +105,24 @@ int main() {
     customerInfoController.registerRoutes(app);
     encryptionKeyController.registerRoutes(app);
 
+
+    // 初始化 WebSocket 路由
+    crow::SimpleApp app2;
+    WebSocketController::init(app2);
+    //定时发送心跳
+    std::thread([]{
+        while (true) {
+            WebSocketManager::heartbeatSweep();
+            std::this_thread::sleep_for(std::chrono::seconds(30));
+        }
+    }).detach();
+
+
 	// 从配置文件读取端口号
 	int port = iniReader.getInt("server", "port", 18080);
 	LOG_INFO("服务器启动成功，监听端口: %d", port);
 	app.port(port).multithreaded().run();
 	
-
 	return 0;
 }
 

@@ -7,6 +7,8 @@
 #include "UserDAO.h"
 #include <set>
 #include "util/Logger.h"
+#include "WebSocketManager.h"
+
 
 TicketDAO::TicketDAO() : mysql(nullptr)
 {
@@ -209,8 +211,6 @@ bool TicketDAO::saveUploadFile(const TicketReproduce &ticket)
 
 bool TicketDAO::createTicket(Ticket &ticket)
 {
-
-
         // 使用BaseDAO的优化连接管理
     if (!ensureConnection()) {
         return false;
@@ -221,6 +221,7 @@ bool TicketDAO::createTicket(Ticket &ticket)
     int local_ret;
     MYSQL_RES* local_res;
     MYSQL_ROW local_row;
+
     
     //启用事务
     if (mysql_real_query(conn, "START TRANSACTION", strlen("START TRANSACTION"))) {
@@ -323,6 +324,15 @@ bool TicketDAO::createTicket(Ticket &ticket)
         LOG_ERROR("function:createConcreteTicket 事务提交失败！失败原因：%s", mysql_error(conn));
         return false;
     }
+
+
+    std::string notificaionMsg = "{\"type\":\"todo_notification\",\"msg\":\"你有一个待审批的工单\"}";
+    //通知另一个人
+    WebSocketManager::sendToUser((long)stoi(ticket.approverId), notificaionMsg);
+    //将未读消息存储在内存中
+    extern std::multimap<int,std::string> notify_messages;
+    notify_messages.insert({(long)stoi(ticket.approverId), notificaionMsg});
+
     return true;
 }
 bool TicketDAO::approveTicket(const Ticket &ticket)
@@ -405,6 +415,14 @@ bool TicketDAO::approveTicket(const Ticket &ticket)
         LOG_ERROR("function:approveTicket 事务提交失败!失败原因：%s", mysql_error(conn));
         return false;
     }
+
+    std::string notificaionMsg = "{\"type\":\"todo_notification\",\"msg\":\"你有一个待分发的工单\"}";
+    //通知另一个人
+    WebSocketManager::sendToUser((long)stoi(ticket.distributorId), notificaionMsg);
+    //将未读消息存储在内存中
+    extern std::multimap<int,std::string> notify_messages;
+    notify_messages.insert({(long)stoi(ticket.approverId), notificaionMsg});
+
 
     return true;
 }
@@ -490,6 +508,19 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
 		 LOG_ERROR("function:dispatchTicket 事务提交失败!失败原因：%s", mysql_error(conn));
         return false;
     }
+
+    //通知部分
+    if(ticket.priorityTask != "")
+    {
+        std::string notificaionMsg = "{\"type\":\"todo_notification\",\"msg\":\"你有一个待执行的工单\"}";
+        //通知另一个人
+        WebSocketManager::sendToUser((long)stoi(ticket.executorId), notificaionMsg);
+
+        //将未读消息存储在内存中
+        extern std::multimap<int,std::string> notify_messages;
+        notify_messages.insert({(long)stoi(ticket.approverId), notificaionMsg});
+    }
+
     return true;
 }
 bool TicketDAO::completeTicket(const Ticket &ticket)
@@ -1051,6 +1082,14 @@ bool TicketDAO::orderTransfer(const TicketTranfer &executor)
         LOG_ERROR("function:orderTransfer 事务提交失败！失败原因：%s", mysql_error(conn));
         return false;
     }
+
+    //流转通知
+    std::string notificaionMsg = "{\"type\":\"todo_notification\",\"msg\":\"你有一个待执行的工单\"}";
+    //通知另一个人
+    WebSocketManager::sendToUser((long)stoi(executor.executor[0]), notificaionMsg);
+    //将未读消息存储在内存中
+    extern std::multimap<int,std::string> notify_messages;
+    notify_messages.insert({(long)stoi(executor.executor[0]), notificaionMsg});
 
     return true;
 }
