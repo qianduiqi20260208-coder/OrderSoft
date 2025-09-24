@@ -255,7 +255,7 @@ function getOrderTabs(order: OrderItem) {
   
   // 加密工单 - 版本迭代+交付发送类
   if (['进行中', '已完成'].includes(order.status) && 
-      order.type === '版本迭代+交付发送' &&
+      (order.type === '版本迭代+交付发送' || order.type === '交付发送') &&
       ['待加密', '待发送'].includes(order.statusTodo ?? '')) {
     tabs.push({
       key: 'encrypt',
@@ -878,7 +878,6 @@ function handleCopyOrder(order: OrderItem) {
           <!-- 预计发送时间段筛选 -->
           <div class="flex flex-col">
             <el-date-picker
-              style="width: 100%;"
               v-model="filterDeliveryDateRange"
               type="daterange"
               range-separator="至"
@@ -886,7 +885,7 @@ function handleCopyOrder(order: OrderItem) {
               end-placeholder="结束日期"
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
-              class="min-w-[100px] w-full"
+              class="min-w-[120px] w-full"
               clearable
               @change="handleSearch"
             />
@@ -2060,7 +2059,7 @@ function handleCopyOrder(order: OrderItem) {
                       <span class="text-black font-semibold">对应协调单：</span>
                       <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500" :value="order.coordinationID || 'NA'" readonly>
                     </div>
-                    <div class="col-span-2 flex flex-col gap-2">
+                    <div class="col-span-1 flex flex-col gap-1">
                       <span class="text-black font-semibold">复现内容：</span>
                       <textarea class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500" :value="order.description" rows="2" readonly />
                     </div>
