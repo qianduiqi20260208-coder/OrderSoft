@@ -279,7 +279,7 @@ function submitSelectedVersions() {
     ElMessage.warning('请先选择要导出的模型版本')
     return
   }
-  const ataName = route.matched[0].name ? String(route.matched[0].name) : '模型版本'
+  const ataName = (route.matched[0].name ? String(route.matched[0].name) : '模型版本').replace(/\//g, '_')
   const timestamp = getBeijingTimestamp()
 
   // 1. 按前三位分组并合并内容

@@ -2,6 +2,7 @@
 import type { SubMenuItemProps } from './types'
 import { cn } from '@/utils'
 import { rootMenuInjectionKey } from './types'
+import { useWebSocket } from '@/utils/websocket'
 
 defineOptions({
   name: 'SubMenuItem',
@@ -17,6 +18,7 @@ const props = withDefaults(
 )
 
 const rootMenu = inject(rootMenuInjectionKey)!
+const { unreadCount } = useWebSocket()
 
 const itemRef = ref<HTMLElement>()
 
@@ -28,6 +30,12 @@ const isActived = computed(() => {
 
 const isItemActive = computed(() => {
   return isActived.value && (!props.subMenu || rootMenu.isMenuPopup)
+})
+
+// 检查是否是工单待办菜单项
+const isOrderManageMenu = computed(() => {
+  const path = props.item.path || ''
+  return path.includes('/order_manage') || path.includes('order_manage')
 })
 
 defineExpose({
@@ -80,6 +88,18 @@ defineExpose({
             >
               {{ typeof item.meta?.title === 'function' ? item.meta?.title() : item.meta?.title }}
             </span>
+            <!-- 工单待办数量徽章 -->
+            <div
+              v-if="isOrderManageMenu && unreadCount > 0"
+              class="absolute bg-gradient-to-br from-red-400 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white/90 backdrop-blur-sm"
+              :class="{
+                '-top-1 -right-1 min-w-5 h-5 px-1 text-xs': !(rootMenu.isMenuPopup && level === 0),
+                'top-1 right-1 min-w-4 h-4 px-1 text-[11px]': rootMenu.isMenuPopup && level === 0 && rootMenu.props.showCollapseName,
+                'top-0 right-0 min-w-4 h-4 px-1 text-[11px]': rootMenu.isMenuPopup && level === 0 && !rootMenu.props.showCollapseName,
+              }"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </div>
           </div>
           <i
             v-if="subMenu && !(rootMenu.isMenuPopup && level === 0)" :class="cn('relative ms-1 w-[10px] after:absolute before:absolute after:h-[1.5px] after:w-[6px] before:h-[1.5px] before:w-[6px] after:bg-current before:bg-current after:transition-transform-200 before:transition-transform-200 after:content-empty before:content-empty after:-translate-y-[1px] before:-translate-y-[1px]', {

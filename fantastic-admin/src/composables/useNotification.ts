@@ -1,18 +1,119 @@
 import { faNotification as toast } from '@/ui/components/FaNotification'
 import type { TodoItem } from '@/utils/websocket'
+import { useNotificationStore } from '@/store/modules/notification'
+import { ref } from 'vue'
+
+/**
+ * 格式化时间为 HH:mm:ss 格式
+ */
+export function formatRelativeTime(dateString: string) {
+  const date = new Date(dateString)
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  const seconds = date.getSeconds().toString().padStart(2, '0')
+  
+  return `${hours}:${minutes}:${seconds}`
+}
 
 /**
  * 通知服务组合式函数
  * 用于显示各种类型的通知消息
  */
 export function useNotification() {
+  // 全局 toast 通知开关
+  const showToastNotifications = ref(true)
+  
+  // 使用通知存储
+  const notificationStore = useNotificationStore()
+  
+  // 从 localStorage 加载设置
+  function loadToastSettings() {
+    const saved = localStorage.getItem('notification-show-toast')
+    console.log('loadToastSettings', saved);
+    
+    if (saved !== null) {
+      showToastNotifications.value = saved === 'true'
+    }
+  }
+
+  /**
+   * 保存通知到store（已迁移到store）
+   */
+  function saveNotificationToStorage(todo: TodoItem, messageId?: string) {
+    // 功能已迁移到notificationStore.saveNotification
+  }
+
+  /**
+   * 从store加载通知（已迁移到store）
+   */
+  function loadNotificationsFromStorage(): Array<{id: string, todo: TodoItem, timestamp: string, isRead: boolean}> {
+    // 功能已迁移到notificationStore.allNotifications
+    return []
+  }
+
+  /**
+   * 标记通知为已读（已迁移到store）
+   */
+  function markNotificationAsRead(notificationId: string) {
+    // 功能已迁移到notificationStore.markAsRead
+  }
+
+  /**
+   * 清除store中的通知（已迁移到store）
+   */
+  function clearStoredNotifications() {
+    // 功能已迁移到notificationStore.clearAll
+  }
+  
+  // 保存设置到 localStorage
+  function saveToastSettings() {
+    localStorage.setItem('notification-show-toast', showToastNotifications.value.toString())
+  }
+  
+  // 切换 toast 通知开关
+  function toggleToastNotifications() {
+    showToastNotifications.value = !showToastNotifications.value
+    saveToastSettings()
+    
+    // 显示切换状态提示
+    if (showToastNotifications.value) {
+      toast({
+        title: '✅ 通知已开启',
+        description: '通知提醒已启用',
+        variant: 'success',
+        duration: 2000
+      })
+    } else {
+      toast({
+        title: '🔕 通知已关闭',
+        description: '通知提醒已禁用',
+        variant: 'default',
+        duration: 2000
+      })
+    }
+  }
+  
+  // 初始化设置
+  loadToastSettings()
+  
   /**
    * 显示新待办事项通知
    */
-  function showTodoNotification(todo: TodoItem) {
-    console.log(`显示待办事项通知: ${todo.title} (${todo.priority})`);
+  function showTodoNotification(todo: TodoItem, messageId?: string) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
+    // 保存通知到store（现在由调用方负责保存）
+    // saveNotificationToStorage(todo, messageId)
+    
+    console.log(`显示待办事项通知: ${todo.title} (${todo.priority})`, messageId ? `消息ID: ${messageId}` : '');
     
     const priorityConfig = {
+      success: {
+        variant: 'success' as const,
+        icon: 'custom-todo',
+        title: '工单完成'
+      },
       high: {
         variant: 'destructive' as const,
         icon: 'custom-todo',
@@ -32,20 +133,23 @@ export function useNotification() {
 
     const config = priorityConfig[todo.priority] || priorityConfig.medium
 
+    // 新的显示格式：{orderType}#{id}({modelName}){category}[{client}] + 相对时间
+    const description = `${todo.orderType}#${todo.id}(${todo.modelName})${todo.category}${todo.client ? `[${todo.client}]` : ''}${todo.timestamp ? ` ${formatRelativeTime(todo.timestamp)}` : ''}`;
+
     toast({
-      title: config.title,
-      description: `${todo.title}${todo.description ? ` - ${todo.description}` : ''}`,
+      title: todo.title,
+      description: description,
       variant: config.variant,
       icon: config.icon,
       duration: todo.priority === 'high' ? 8000 : 5000,
-      action: {
-        altText: '查看详情',
-        label: '查看',
-        onClick: () => {
-          // 这里可以添加跳转到待办详情的逻辑
-          console.log('查看待办详情:', todo.id)
-        }
-      }
+      // action: {
+      //   altText: '查看详情',
+      //   label: '查看',
+      //   onClick: () => {
+      //     // 这里可以添加跳转到待办详情的逻辑
+      //     console.log('查看待办详情:', todo.id)
+      //   }
+      // }
     })
   }
 
@@ -53,11 +157,14 @@ export function useNotification() {
    * 显示待办事项更新通知
    */
   function showTodoUpdateNotification(todo: TodoItem, action: 'completed' | 'updated' | 'deleted') {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     const actionConfig = {
       completed: {
         title: '✅ 任务完成',
         description: `已完成：${todo.title}`,
-        variant: 'default' as const,
+        variant: 'success' as const,
         duration: 3000
       },
       updated: {
@@ -86,33 +193,12 @@ export function useNotification() {
   }
 
   /**
-   * 显示WebSocket连接状态通知
-   */
-  function showConnectionNotification(isConnected: boolean) {
-    if (isConnected) {
-      console.log(`显示连接成功通知`);
-      
-      // toast({
-      //   title: '🔗 连接成功',
-      //   description: 'WebSocket连接已建立，可以接收实时通知',
-      //   variant: 'default',
-      //   duration: 3000
-      // })
-    } else {
-      console.log(`显示连接断开通知`);
-      // toast({
-      //   title: '⚠️ 连接断开',
-      //   description: 'WebSocket连接已断开，正在尝试重连...',
-      //   variant: 'destructive',
-      //   duration: 5000
-      // })
-    }
-  }
-
-  /**
    * 显示错误通知
    */
   function showErrorNotification(title: string, description?: string) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     toast({
       title: `❌ ${title}`,
       description: description || '操作失败，请稍后重试',
@@ -122,13 +208,16 @@ export function useNotification() {
   }
 
   /**
-   * 显示成功通知
+   * 显示成功通知（绿色背景）
    */
   function showSuccessNotification(title: string, description?: string) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     toast({
       title: `✅ ${title}`,
       description,
-      variant: 'default',
+      variant: 'success',
       duration: 3000
     })
   }
@@ -136,19 +225,25 @@ export function useNotification() {
   /**
    * 显示信息通知
    */
-  function showInfoNotification(title: string, description?: string) {
-    toast({
-      title: `ℹ️ ${title}`,
-      description,
-      variant: 'default',
-      duration: 4000
-    })
-  }
+  // function showInfoNotification(title: string, description?: string) {
+  //   // 如果 toast 通知被禁用，则不显示
+  //   if (localStorage.getItem('notification-show-toast') === 'false') return
+    
+  //   toast({
+  //     title: `ℹ️ ${title}`,
+  //     description,
+  //     variant: 'default',
+  //     duration: 4000
+  //   })
+  // }
 
   /**
    * 显示警告通知
    */
   function showWarningNotification(title: string, description?: string) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     toast({
       title: `⚠️ ${title}`,
       description,
@@ -161,6 +256,9 @@ export function useNotification() {
    * 显示待办事项过期提醒
    */
   function showOverdueNotification(todos: TodoItem[]) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     if (todos.length === 0) return
 
     const title = todos.length === 1 
@@ -196,6 +294,9 @@ export function useNotification() {
     pending: number
     overdue: number
   }) {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     const { total, completed, pending, overdue } = summary
     
     let title = '📊 今日待办总结'
@@ -222,6 +323,9 @@ export function useNotification() {
    * 显示系统通知
    */
   function showSystemNotification(title: string, message: string, type?: 'info' | 'warning' | 'error') {
+    // 如果 toast 通知被禁用，则不显示
+    if (localStorage.getItem('notification-show-toast') === 'false') return
+    
     const typeConfig = {
       info: {
         icon: 'ℹ️',
@@ -253,13 +357,19 @@ export function useNotification() {
   return {
     showTodoNotification,
     showTodoUpdateNotification,
-    showConnectionNotification,
     showErrorNotification,
     showSuccessNotification,
-    showInfoNotification,
+    // showInfoNotification,
     showWarningNotification,
     showOverdueNotification,
     showDailySummaryNotification,
-    showSystemNotification
+    showSystemNotification,
+    toggleToastNotifications,
+    showToastNotifications,
+    // 本地存储相关方法
+    saveNotificationToStorage,
+    loadNotificationsFromStorage,
+    markNotificationAsRead,
+    clearStoredNotifications
   }
 }

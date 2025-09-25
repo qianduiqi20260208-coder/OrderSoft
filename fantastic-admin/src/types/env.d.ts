@@ -12,6 +12,7 @@ interface ImportMetaEnv {
    * 接口请求地址，会设置到 axios 的 baseURL 参数上
    * VITE_APP_API_BASEURL = /
    * VITE_APP_API_BASEURL = http://localhost:18080/ # 需要与真实后端相连时填写对应的后端地址
+   * VITE_APP_API_BASEURL = http://172.16.19.99:18080/ # 胡
    */
   readonly VITE_APP_API_BASEURL: string
   /**
