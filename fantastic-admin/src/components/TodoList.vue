@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TodoItem } from '@/utils/websocket'
+// import type { TodoItem } from '@/utils/websocket' // 暂时未使用
 import { useWebSocket, TodoStatus } from '@/utils/websocket'
 import TodoItemComponent from './TodoItem.vue'
 
@@ -91,7 +91,7 @@ function getFilterColor(filter: TodoStatus) {
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-gray-900 flex items-center">
           <FaIcon name="i-material-symbols:task-outline" class="mr-2 size-6" />
-          我的待办
+          工单管理
           <span v-if="unreadCount > 0" class="ml-2 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
             {{ unreadCount }} 条新消息
           </span>
@@ -135,9 +135,9 @@ function getFilterColor(filter: TodoStatus) {
     <div class="p-4">
       <div v-if="filteredTodos.length === 0" class="text-center py-12">
         <FaIcon name="i-material-symbols:task-outline" class="mx-auto size-12 text-gray-300 mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">暂无待办事项</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">暂无工单</h3>
         <p class="text-gray-500">
-          {{ currentFilter === TodoStatus.ALL ? '还没有任何待办事项' : `没有${filterOptions.find(o => o.value === currentFilter)?.label}的待办事项` }}
+          {{ currentFilter === TodoStatus.ALL ? '还没有任何工单' : `没有${filterOptions.find(o => o.value === currentFilter)?.label}的工单` }}
         </p>
       </div>
 
@@ -154,7 +154,7 @@ function getFilterColor(filter: TodoStatus) {
     <!-- 底部统计 -->
     <div v-if="showHeader && stats.total > 0" class="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
       <div class="flex items-center justify-between text-sm text-gray-600">
-        <span>共 {{ stats.total }} 项待办</span>
+        <span>共 {{ stats.total }} 项工单</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center">
             <div class="w-2 h-2 bg-orange-400 rounded-full mr-1" />

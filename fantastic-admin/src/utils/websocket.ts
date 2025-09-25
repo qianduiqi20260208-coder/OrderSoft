@@ -21,13 +21,15 @@ export enum TodoPriority {
 export interface TodoItem {
   id: string
   title: string
-  description: string
+  orderType: string // 订单类型，如"交付发送"
+  modelName: string // 模型名称，如"质量特性仿真模型"
   priority: TodoPriority
   status: Exclude<TodoStatus, TodoStatus.ALL>
   createdAt: string
   dueDate?: string
-  category?: string
+  category: string // 处理阶段：待分发/待审批/待封装/待加密/待发送/待完成
   userId?: string // 待办事项所有者ID
+  timestamp?: string // 通知时间戳，用于显示相对时间
 }
 
 // WebSocket消息类型
@@ -43,8 +45,9 @@ export interface WebSocketMessage {
 class WebSocketService {
   private ws: WebSocket | null = null
   private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
   private reconnectInterval = 3000
+  private maxReconnectAttempts = 999
+  private reconnectMultiplier = 1.5
   private heartbeatInterval: number | null = null
   private url: string
   private notification = useNotification()
@@ -64,6 +67,13 @@ class WebSocketService {
   // 连接WebSocket
   connect() {
     try {
+      // 如果已经存在连接，先关闭它
+      if (this.ws) {
+        this.ws.close(1000, '重新连接')
+        this.ws = null
+      }
+      
+      console.log(`正在连接WebSocket (尝试次数: ${this.reconnectAttempts + 1})...`)
       this.ws = new WebSocket(this.url)
       this.setupEventListeners()
     } catch (error) {
@@ -79,27 +89,26 @@ class WebSocketService {
     this.ws.onopen = () => {
       console.log('WebSocket连接已建立')
       this.isConnected.value = true
+      
+      // 重置重连计数
       this.reconnectAttempts = 0
+      
       this.startHeartbeat()
       
       // 自动进行用户认证
       this.authenticateUser()
-      
-      // 显示连接成功通知
-      if (this.reconnectAttempts > 0) {
-        this.notification.showConnectionNotification(true)
-      }
     }
 
     this.ws.onmessage = (event) => {
       try {
+        console.log('收到原始WebSocket数据:', event.data);
         const message: WebSocketMessage = JSON.parse(event.data)
-        console.log('收到WebSocket消息:', message);
         
         this.handleMessage(message)
       } catch (error) {
         console.error('解析WebSocket消息失败:', error)
-        this.notification.showErrorNotification('消息解析失败', '收到的消息格式不正确')
+        console.error('原始数据:', event.data)
+        // this.notification.showErrorNotification('消息解析失败', '收到的消息格式不正确')
       }
     }
 
@@ -108,19 +117,18 @@ class WebSocketService {
       this.isConnected.value = false
       this.stopHeartbeat()
       
-      // 显示连接断开通知
-      this.notification.showConnectionNotification(false)
-      
-      if (event.code !== 1000) { // 非正常关闭
-        this.scheduleReconnect()
+      // 只有在非正常关闭时才显示断开通知和尝试重连
+      if (event.code !== 1000) {
+        console.log('WebSocket非正常关闭，准备重连...')
+      } else {
+        console.log('WebSocket正常关闭')
       }
+      this.scheduleReconnect()
     }
 
     this.ws.onerror = (error) => {
       console.error('WebSocket错误:', error)
       this.isConnected.value = false
-      
-      // this.notification.showErrorNotification('连接错误', 'WebSocket连接出现问题')
     }
   }
 
@@ -166,7 +174,7 @@ class WebSocketService {
       }
       
       // 显示新待办事项通知
-      this.notification.showTodoNotification(data)
+      this.notification.showTodoNotification({...data, timestamp: message.timestamp})
       
       // 注释掉重复的系统通知，避免显示带图标的重复通知
       // if (!this.isCurrentUserMessage(message)) {
@@ -193,6 +201,7 @@ class WebSocketService {
     if (userStore.account && userStore.isLogin) {
       this.send({
         type: 'auth',
+        userId: userStore.account,
         data: {
           userId: userStore.account,
           account: userStore.account,
@@ -347,16 +356,28 @@ class WebSocketService {
 
   // 重连机制
   private scheduleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      console.log(`尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-      
-      setTimeout(() => {
-        this.connect()
-      }, this.reconnectInterval)
-    } else {
-      console.error('达到最大重连次数，停止重连')
+    this.reconnectAttempts++
+    
+    if (this.reconnectAttempts > this.maxReconnectAttempts) {
+      console.error(`重连失败：已达到最大重连次数 (${this.maxReconnectAttempts}次)`)
+      this.notification.showErrorNotification(
+        '连接失败', 
+        `无法连接到服务器，请检查网络连接后刷新页面`
+      )
+      return
     }
+    
+    // 指数退避算法，最大间隔不超过30秒
+    const delay = Math.min(
+      this.reconnectInterval * Math.pow(this.reconnectMultiplier, this.reconnectAttempts - 1),
+      30000
+    )
+    
+    console.log(`尝试重连 (第${this.reconnectAttempts}次)，${delay/1000}秒后重试...`)
+    
+    setTimeout(() => {
+      this.connect()
+    }, delay)
   }
 
   // 断开连接
@@ -372,6 +393,7 @@ class WebSocketService {
     this.isInitialLoad = true // 重置初始加载标志
     this.unreadCount.value = 0 // 重置未读计数
     this.todos.splice(0) // 清空待办列表
+    this.reconnectAttempts = 0 // 重置重连计数
   }
 
   // 重置重连计数

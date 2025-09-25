@@ -14,7 +14,11 @@ type ToasterToast = ToastProps & {
   id: string
   title?: string
   description?: StringOrVNode
-  action?: Component
+  action?: Component | {
+    altText: string
+    label: string
+    onClick: () => void
+  }
   icon?: string
 }
 

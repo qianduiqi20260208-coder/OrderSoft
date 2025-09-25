@@ -61,7 +61,7 @@ function handleDelete() {
     <!-- 头部：标题和优先级 -->
     <div class="flex items-start justify-between mb-3">
       <h3 class="text-lg font-semibold text-gray-900 flex-1 mr-3">
-        {{ todo.title }}
+        {{ todo.orderType }}#{{ todo.id }}({{ todo.modelName }}){{ todo.category }}
       </h3>
       <div class="flex items-center gap-2">
         <!-- 优先级标签 -->
@@ -81,9 +81,9 @@ function handleDelete() {
       </div>
     </div>
 
-    <!-- 描述 -->
-    <p v-if="todo.description" class="text-gray-600 text-sm mb-3 leading-relaxed">
-      {{ todo.description }}
+    <!-- 标题 -->
+    <p class="text-gray-600 text-sm mb-3 leading-relaxed">
+      {{ todo.title }}
     </p>
 
     <!-- 分类 -->

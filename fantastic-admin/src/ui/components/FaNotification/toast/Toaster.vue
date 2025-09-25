@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isVNode } from 'vue'
-import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '.'
+import { Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '.'
 import { useToast } from './use-toast'
 
 const { toasts } = useToast()
@@ -41,7 +41,9 @@ console.log("toasts,",toasts.value[0]);
         <!-- 关闭按钮 -->
         <ToastClose />
       </div>
-      <component :is="toast.action" />
+      <ToastAction v-if="toast.action && typeof toast.action === 'object' && 'altText' in toast.action" :alt-text="toast.action.altText" @click="toast.action.onClick">
+        {{ toast.action.label }}
+      </ToastAction>
     </Toast>
     <ToastViewport />
   </ToastProvider>

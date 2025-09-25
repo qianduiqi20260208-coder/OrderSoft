@@ -319,7 +319,6 @@ async function fetchChartData() {
     }
   }
   catch (error) {
-    console.error('获取图表数据失败:', error)
     ElMessage.error('获取图表数据失败')
   }
   finally {
@@ -362,7 +361,6 @@ const colors = [
 // 修改：渲染图表函数
 function renderChart() {
   if (!chartContainer.value) {
-    console.error('图表容器未找到')
     return
   }
 
