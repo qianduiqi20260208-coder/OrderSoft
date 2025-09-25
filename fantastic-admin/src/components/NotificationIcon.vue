@@ -111,7 +111,7 @@ function handleContextMenu(event: MouseEvent) {
   event.stopPropagation()
   
   // 确保菜单显示
-  isContextMenuOpen.value = true
+  isContextMenuOpen.value = !isContextMenuOpen.value
   contextMenuPosition.value = {
     x: event.screenX,
     y: 0 // 取绝对值
@@ -182,7 +182,7 @@ const isDevMode = import.meta.env.DEV
     <!-- 右键菜单 -->
     <div v-if="isContextMenuOpen" 
       class="context-menu fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999] min-w-[150px]"
-      :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
+      style="right:74px; top:86px"
       @click.stop>
       <button @click="toggleBadgeCount" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2">
         <FaIcon :name="showBadgeCount ? 'i-material-symbols:numbers' : 'i-material-symbols:numbers-off'" class="size-4" />
@@ -249,6 +249,7 @@ const isDevMode = import.meta.env.DEV
                     <h4 class="text-sm font-medium text-gray-900 truncate">
                       {{ todo.title }}
                     </h4>
+                    <span v-if="todo.client" class="text-xs px-1.5 py-0.5 rounded" style="color: #2b53d2; background-color: #f0f4ff;">{{ todo.client }}</span>
                   </div>
                   <span class="text-sm text-gray-600 p-1 break-words">
                     <span :class="{
@@ -258,7 +259,7 @@ const isDevMode = import.meta.env.DEV
                       'text-purple-700': todo.orderType === '版本迭代+交付发送',
                       'text-pink-700': todo.orderType === '功能开发',
                       'text-gray-700': todo.orderType === '其他'
-                    }">{{ todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id); router.push('/order_manage')">#{{ todo.id }}</span>({{ todo.modelName }}){{ todo.category }}
+                    }">{{ todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id); router.push('/order_manage')">#{{ todo.id }}</span>({{ todo.modelName }})
                   </span>
 
                   <!-- 分类标签 -->
@@ -266,6 +267,7 @@ const isDevMode = import.meta.env.DEV
                     <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
                       {{ todo.category }}
                     </span>
+                    
                   </div>
                 </div>
                 <!-- 状态图标 -->

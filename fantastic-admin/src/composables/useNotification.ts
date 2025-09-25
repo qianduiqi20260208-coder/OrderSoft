@@ -1,5 +1,6 @@
 import { faNotification as toast } from '@/ui/components/FaNotification'
 import type { TodoItem } from '@/utils/websocket'
+import { useNotificationStore } from '@/store/modules/notification'
 import { ref } from 'vue'
 
 /**
@@ -22,6 +23,9 @@ export function useNotification() {
   // 全局 toast 通知开关
   const showToastNotifications = ref(true)
   
+  // 使用通知存储
+  const notificationStore = useNotificationStore()
+  
   // 从 localStorage 加载设置
   function loadToastSettings() {
     const saved = localStorage.getItem('notification-show-toast')
@@ -30,6 +34,35 @@ export function useNotification() {
     if (saved !== null) {
       showToastNotifications.value = saved === 'true'
     }
+  }
+
+  /**
+   * 保存通知到store（已迁移到store）
+   */
+  function saveNotificationToStorage(todo: TodoItem, messageId?: string) {
+    // 功能已迁移到notificationStore.saveNotification
+  }
+
+  /**
+   * 从store加载通知（已迁移到store）
+   */
+  function loadNotificationsFromStorage(): Array<{id: string, todo: TodoItem, timestamp: string, isRead: boolean}> {
+    // 功能已迁移到notificationStore.allNotifications
+    return []
+  }
+
+  /**
+   * 标记通知为已读（已迁移到store）
+   */
+  function markNotificationAsRead(notificationId: string) {
+    // 功能已迁移到notificationStore.markAsRead
+  }
+
+  /**
+   * 清除store中的通知（已迁移到store）
+   */
+  function clearStoredNotifications() {
+    // 功能已迁移到notificationStore.clearAll
   }
   
   // 保存设置到 localStorage
@@ -66,11 +99,14 @@ export function useNotification() {
   /**
    * 显示新待办事项通知
    */
-  function showTodoNotification(todo: TodoItem) {
+  function showTodoNotification(todo: TodoItem, messageId?: string) {
     // 如果 toast 通知被禁用，则不显示
     if (localStorage.getItem('notification-show-toast') === 'false') return
     
-    console.log(`显示待办事项通知: ${todo.title} (${todo.priority})`);
+    // 保存通知到store（现在由调用方负责保存）
+    // saveNotificationToStorage(todo, messageId)
+    
+    console.log(`显示待办事项通知: ${todo.title} (${todo.priority})`, messageId ? `消息ID: ${messageId}` : '');
     
     const priorityConfig = {
       success: {
@@ -97,8 +133,8 @@ export function useNotification() {
 
     const config = priorityConfig[todo.priority] || priorityConfig.medium
 
-    // 新的显示格式：{orderType}#{id}({modelName}){category} + 相对时间
-    const description = `${todo.orderType}#${todo.id}(${todo.modelName})${todo.category}${todo.timestamp ? ` ${formatRelativeTime(todo.timestamp)}` : ''}`;
+    // 新的显示格式：{orderType}#{id}({modelName}){category}[{client}] + 相对时间
+    const description = `${todo.orderType}#${todo.id}(${todo.modelName})${todo.category}${todo.client ? `[${todo.client}]` : ''}${todo.timestamp ? ` ${formatRelativeTime(todo.timestamp)}` : ''}`;
 
     toast({
       title: todo.title,
@@ -329,6 +365,11 @@ export function useNotification() {
     showDailySummaryNotification,
     showSystemNotification,
     toggleToastNotifications,
-    showToastNotifications
+    showToastNotifications,
+    // 本地存储相关方法
+    saveNotificationToStorage,
+    loadNotificationsFromStorage,
+    markNotificationAsRead,
+    clearStoredNotifications
   }
 }
