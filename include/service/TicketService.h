@@ -10,9 +10,9 @@ class TicketService:public ITicketService
 {
 public:
     TicketService(std::shared_ptr<ITicketDAO>,std::shared_ptr<IModelDAO>);
-    bool createTicket(Ticket& ticket) override;
-    bool approveTicket(const Ticket& ticket)override;
-    bool dispatchTicket(const Ticket& ticket, const std::string& account)override;
+    bool createTicketAndNotify(Ticket& ticket) override;
+    bool approveTicketAndNotify(const Ticket& ticket)override;
+    bool dispatchTicketAndNotify(const Ticket& ticket, const std::string& account)override;
     bool completeTicket(const Ticket& ticket)override;
     bool completeConcreteTicket(const Ticket& ticket)override;
     bool completeSendTicket(const Ticket& ticket)override;
@@ -26,7 +26,7 @@ public:
     std::vector<nlohmann::json> selectOrderByConditionWithDetails(const std::map<std::string,std::string> filter, int offset, int pageSize) override;
 
     //工单流转的实现
-    bool orderTransfer(const TicketTranfer& executor) override;
+    bool orderTransferAndNotify(const TicketTranfer& executor) override;
     unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) override;
     std::vector<std::string> getClient() override;
 

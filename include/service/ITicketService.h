@@ -9,9 +9,9 @@ class ITicketService
 {
 protected:
 public:
-    virtual bool createTicket(Ticket& ticket){return true;};
-    virtual bool approveTicket(const Ticket& ticket){return true;};
-    virtual bool dispatchTicket(const Ticket& ticket, const std::string& account){return true;};
+    virtual bool createTicketAndNotify(Ticket& ticket){return true;};
+    virtual bool approveTicketAndNotify(const Ticket& ticket){return true;};
+    virtual bool dispatchTicketAndNotify(const Ticket& ticket, const std::string& account){return true;};
     virtual bool completeTicket(const Ticket& ticket){return true;};
     virtual bool completeConcreteTicket(const Ticket& ticket){return true;};
     virtual bool completeSendTicket(const Ticket& ticket){return true;};
@@ -35,7 +35,7 @@ public:
     // 新增：获取用户待办工单（包含详细信息和流转信息）
     virtual std::vector<nlohmann::json> getUserPendingWorkOrders(const std::string& userId) = 0;
 
-    virtual bool orderTransfer(const TicketTranfer& executor) = 0;
+    virtual bool orderTransferAndNotify(const TicketTranfer& executor) = 0;
     virtual unsigned long long getOrderCount(const std::map<std::string, std::string>& filter) = 0;
 
     virtual std::vector<std::string> getClient() = 0;
