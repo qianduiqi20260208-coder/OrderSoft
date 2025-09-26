@@ -9,6 +9,9 @@
 #endif
 
 #include <crow/websocket.h>
+#include "DBConnectionManager.h"
+#include <sstream>
+#include <crow/json.h>
 
 struct Session {
     crow::websocket::connection* conn;
@@ -38,12 +41,26 @@ public:
         }
     }
 
-    static void sendToUser(long userId, const std::string& msg) {
+    static void sendToUserAndSaveMsg(std::vector<long> userIds, crow::json::wvalue& msg) {
         std::lock_guard<std::mutex> lock(mtx);
-        if (sessions.count(userId)) {
-            sessions[userId].conn->send_text(msg);
+
+        //先持久化存储，这样才会有messageId数据
+        int messageId = saveMsg(msg);
+
+        for(auto userId : userIds) {
+            if (sessions.count(userId)) {
+                msg["messageId"] = std::to_string(messageId);
+                std::cout<<"给"<<userId<<"发"<<msg.dump()<<std::endl;
+                //给指定的所有用户发消息
+                sessions[userId].conn->send_text(msg.dump());
+            }
         }
+
+        std::cout<<"send msg:"<<msg.dump()<<std::endl;
+
     }
+
+
 
     // 定时任务调用：发 ping 并清理超时连接
     static void heartbeatSweep() {
@@ -59,9 +76,21 @@ public:
                     << "\"data\":{},"
                     << "\"timestamp\":\"" << timestamp << "\""
                     << "}";
+                if(it->second.conn)
+                {
+                    //这个异常只需放行就可以了
+                    try
+                    {
+                        it->second.conn->send_text(json.str());
+                    }
+                    catch (...) {
+                        std::cerr << "send_text 发生未知异常" << std::endl;
+                    }
+                    
 
-                it->second.conn->send_text(json.str());
+                }
 
+                std::cout<<"ping:"<<json.str()<<std::endl;
                 if (now - it->second.lastPong > std::chrono::seconds(90)) {
                     it = sessions.erase(it); // 超时移除
                 } else {
@@ -69,8 +98,205 @@ public:
                 }
             }
     }
+
+    // 将消息标记为已读
+    static void markNotificationAsRead(int notificationId)
+    {
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::notificationHasRead 无法获取数据库连接" << std::endl;
+            return;
+        }
+
+        std::stringstream ss;
+        ss << "UPDATE notification SET status='已读' WHERE id=" << notificationId;
+        std::string query = ss.str();
+
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::notificationHasRead 更新消息状态失败: " << mysql_error(conn) << std::endl;
+        } else {
+            std::cout << "WebSocketManager::notificationHasRead 消息状态更新成功" << std::endl;
+        }
+    }
     
+    // 用户上线时的数据发送
+    static std::vector<std::string> sendNotificationWhenConnected(int userId)
+    {
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::notificationHasRead 无法获取数据库连接" << std::endl;
+            return {};
+        }
+
+        std::stringstream ss;
+        ss << "SELECT message FROM notification WHERE status='未读' AND receiver_id=" << userId << " ORDER BY created_at DESC";
+        std::string query = ss.str();
+        std::vector<std::string> messages;
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::sendNotificationWhenConnected 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            return messages;
+        }
+        MYSQL_RES* res = mysql_store_result(conn);
+        if (res) {
+            MYSQL_ROW row;
+            while ((row = mysql_fetch_row(res))) {
+                if (row[0]) {
+                    messages.push_back(row[0]);
+                }
+            }
+            mysql_free_result(res);
+        } else {
+            std::cerr << "WebSocketManager::sendNotificationWhenConnected 获取结果集失败: " << mysql_error(conn) << std::endl;
+        }
+        return messages;
+    }
+
+    static std::string queryNameById(int userId)
+    {
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::queryNameById 无法获取数据库连接" << std::endl;
+            return "";
+        }
+
+        std::stringstream ss;
+        ss << "SELECT real_name FROM user WHERE username = " << userId << ";";
+        std::string query = ss.str();
+        std::string name;
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::queryNameById 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            return "";
+        }
+        MYSQL_RES* res = mysql_store_result(conn);
+        if (res) {
+            MYSQL_ROW row;
+            while ((row = mysql_fetch_row(res))) {
+                if (row[0]) {
+                    name = row[0];
+                }
+            }
+            mysql_free_result(res);
+        } else {
+            std::cerr << "WebSocketManager::queryNameById 获取结果集失败: " << mysql_error(conn) << std::endl;
+        }
+        return name;
+    }
+
+    static std::string queryClientByWorkOrderId(int workOrderId)
+    {
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::queryClientByWorkOrderId 无法获取数据库连接" << std::endl;
+            return "";
+        }
+
+        std::stringstream ss;
+
+        //查询交付发送工单表
+        ss << "SELECT target_customer FROM delivery_send WHERE work_order_id = " << workOrderId << ";";
+        std::string query = ss.str();
+        std::string name;
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::queryNameById 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            return "";
+        }
+        MYSQL_RES* res = mysql_store_result(conn);
+        if (res) {
+            MYSQL_ROW row;
+            if ((row = mysql_fetch_row(res))) {
+                if (row[0]) {
+                    name = row[0];
+                }
+            }
+            mysql_free_result(res);
+        } else {
+            std::cerr << "WebSocketManager::queryNameById 获取结果集失败: " << mysql_error(conn) << std::endl;
+        }
+
+        //查询封装发送工单表
+        ss.clear();
+        ss.str("");
+        ss << "SELECT target_customer FROM package_send WHERE work_order_id = " << workOrderId << ";";
+        query = ss.str();
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::queryNameById 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            return "";
+        }
+        res = mysql_store_result(conn);
+        if (res) {
+            MYSQL_ROW row;
+            if ((row = mysql_fetch_row(res))) {
+                if (row[0]) {
+                    name = row[0];
+                }
+            }
+            mysql_free_result(res);
+        } else {
+            std::cerr << "WebSocketManager::queryNameById 获取结果集失败: " << mysql_error(conn) << std::endl;
+        }
+
+        return name;
+    }
+
+    static Ticket queryWorkOrderInfo(int orderId)
+    {
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::notificationHasRead 无法获取数据库连接" << std::endl;
+            return Ticket{};
+        }
+        Ticket ticket;
+        std::stringstream ss;
+        std::string query = ss.str();
+        ss<<"SELECT created_at,type,model.model_name,status_todo,creator_id,approver_id,dispatcher_id FROM work_order inner join model on model.ata_code = work_order.model WHERE id = "<<orderId<<";";
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::queryWorkOrderInfo 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            return ticket;
+        }
+        MYSQL_RES* res = mysql_store_result(conn);
+        if (res) {
+            MYSQL_ROW row;
+            if ((row = mysql_fetch_row(res))) {
+                if (row[0]) {
+                    ticket.createTime = row[0];
+                }else if(row[1])
+                {
+                    ticket.ticketType = row[1];
+                }else if(row[2])
+                {
+                    ticket.model = row[2];
+                }else if(row[3])
+                {
+                    ticket.status = row[3];
+                }else if(row[4])
+                {
+                    ticket.creatorId = row[4];
+                }else if(row[5])
+                {
+                    ticket.approverId = row[5];
+                }else if(row[6])
+                {
+                    ticket.distributorId = row[6];
+                }
+
+            }
+            mysql_free_result(res);
+        } else {
+            std::cerr << "WebSocketManager::queryWorkOrderInfo 获取结果集失败: " << mysql_error(conn) << std::endl;
+        }
+
+        return ticket;
+    }
+
+
 private:
+
+
     static std::string makeIso8601LocalNoMillis() {
         // 当前本地时间
         auto now_sys = std::chrono::system_clock::now();
@@ -80,6 +306,56 @@ private:
         ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%dT%H:%M:%S");
         return ss.str();
     }
+    //返回插入数据的id
+    static int saveMsg(crow::json::wvalue& jsonObj)
+    {
+        int messageId = -1;
+        //将消息存储在数据库中
+        auto connGuard = DBConnectionManager::getPoolConnection();
+        MYSQL* conn = connGuard.get();
+        if (!conn) {
+            std::cerr << "WebSocketManager::saveMsg 无法获取数据库连接" << std::endl;
+            return messageId;
+        }
+
+        //获取需要插入的数据
+        std::string senderId = jsonObj["userId"].dump();
+        std::string receiverId = jsonObj["data"]["userId"].dump();
+
+        //执行插入操作
+        std::stringstream ss;
+        ss<<"INSERT INTO notification(message,status,created_at,receiver_id) VALUES("
+
+          << "'" << jsonObj.dump() << "',"
+          << "'未读',"
+          << "NOW(),"
+          <<receiverId
+          << ")";
+        std::string query = ss.str();   
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::saveMsg 插入消息失败: " << mysql_error(conn) << std::endl;
+        } else {
+            std::cout << "WebSocketManager::saveMsg 消息插入成功" << std::endl;
+        }
+        messageId = mysql_insert_id(conn);
+
+        //将消息id也插入到json里
+        jsonObj["messageId"] = crow::json::wvalue(std::to_string((int)mysql_insert_id(conn)));
+        ss.clear();
+        ss.str("");
+        LOG_DEBUG("jsonObj:",jsonObj["messageId"] );
+        ss << "UPDATE notification SET message='" << jsonObj.dump() << "' WHERE id=" << messageId<<";";
+        query = ss.str();
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "WebSocketManager::saveMsg 更新消息ID失败: " << mysql_error(conn) << std::endl;
+        } else {
+            std::cout << "WebSocketManager::saveMsg 消息ID更新成功" << std::endl;
+        }
+
+        return messageId;
+
+    }
+
 
 
 };

@@ -324,7 +324,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketreproduce.content = getField(result, "description"); // 复现内容描述
         ticketreproduce.createRemark = getField(result, "create_remark"); // 创建备注
         ticketreproduce.approverId = (getField(result, "approverID")); // 审批人ID
-        bool ok = ticketService->createTicket(ticketreproduce);
+        bool ok = ticketService->createTicketAndNotify(ticketreproduce);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -374,7 +374,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketversion.createRemark = body.value("create_remark", ""); // 创建备注
         ticketversion.approverId = (body.value("approverID", "")); // 审批人ID
 
-        bool ok = ticketService->createTicket(ticketversion);
+        bool ok = ticketService->createTicketAndNotify(ticketversion);
 
         nlohmann::json resp;
         if (ok) {
@@ -420,7 +420,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketdelivery.createRemark = body.value("create_remark", ""); // 创建备注
         ticketdelivery.approverId = (body.value("approverID", "")); // 审批人ID
 
-        bool ok = ticketService->createTicket(ticketdelivery);
+        bool ok = ticketService->createTicketAndNotify(ticketdelivery);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -474,7 +474,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型 
 
 
-        bool ok = ticketService->createTicket(ticketpackage);
+        bool ok = ticketService->createTicketAndNotify(ticketpackage);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -520,7 +520,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketfeature.createRemark = body.value("create_remark", ""); // 创建备注
         ticketfeature.approverId = (body.value("approverID", "")); // 审批人ID
 
-        bool ok = ticketService->createTicket(ticketfeature);
+        bool ok = ticketService->createTicketAndNotify(ticketfeature);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -564,7 +564,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketother.approverId = (body.value("approverID", "")); // 审批人ID
 
 
-        bool ok = ticketService->createTicket(ticketother);
+        bool ok = ticketService->createTicketAndNotify(ticketother);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -605,7 +605,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.targetDeliveryTime = (body.value("targetDeliveryTime", "")); // 预计发送时间
         ticket.ticketType = body.value("orderType", ""); // 工单类型
 
-        bool ok = ticketService->approveTicket(ticket);
+        bool ok = ticketService->approveTicketAndNotify(ticket);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -644,7 +644,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticket.approvedTime = body.value("approveTime", ""); // 审批时间
         ticket.rejectReason = body.value("rejectReason", ""); // 拒绝原因 
 
-        bool ok = ticketService->approveTicket(ticket);
+        bool ok = ticketService->approveTicketAndNotify(ticket);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -690,7 +690,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(401, R"({"status":1,"error":"无法获取用户信息","data":{}})");
         }
         
-        bool ok = ticketService->dispatchTicket(ticket, account);
+        bool ok = ticketService->dispatchTicketAndNotify(ticket, account);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -735,7 +735,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             return crow::response(401, R"({"status":1,"error":"无法获取用户信息","data":{}})");
         }
         
-        bool ok = ticketService->dispatchTicket(ticket, account);
+        bool ok = ticketService->dispatchTicketAndNotify(ticket, account);
         nlohmann::json resp;
         if (ok) {
             resp = {
@@ -1093,7 +1093,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketexecutor.ticketType = body.value("orderType", ""); // 工单类型
         ticketexecutor.transferType = body.value("transferType", ""); // 流转类型
 
-        bool ok = ticketService->orderTransfer(ticketexecutor);
+        bool ok = ticketService->orderTransferAndNotify(ticketexecutor);
         
         nlohmann::json resp;
         if (ok) {
@@ -1135,7 +1135,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // 流转时间
         ticketexecutor.transferType = "封装流转"; // 固定为封装流转类型
 
-        bool ok = ticketService->orderTransfer(ticketexecutor);
+        bool ok = ticketService->orderTransferAndNotify(ticketexecutor);
         
         nlohmann::json resp;
         if (ok) {
@@ -1178,7 +1178,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketexecutor.transferType = "加密流转"; // 固定为加密流转类型
         ticketexecutor.newModelVersion = body.value("finishModelVersion", ""); // 完成模型版本
 
-        bool ok = ticketService->orderTransfer(ticketexecutor);
+        bool ok = ticketService->orderTransferAndNotify(ticketexecutor);
         
         nlohmann::json resp;
         if (ok) {
@@ -1220,7 +1220,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         ticketexecutor.timestamp.push_back(body.value("transferTime", "")); // 流转时间
         ticketexecutor.transferType = "发送流转"; // 固定为发送流转类型
 
-        bool ok = ticketService->orderTransfer(ticketexecutor);
+        bool ok = ticketService->orderTransferAndNotify(ticketexecutor);
         
         nlohmann::json resp;
         if (ok) {

@@ -78,7 +78,6 @@ declare global {
   const useMenu: typeof import('../utils/composables/useMenu')['default']
   const useMenuStore: typeof import('../store/modules/menu')['useMenuStore']
   const useModel: typeof import('vue')['useModel']
-  const useNotificationStore: typeof import('../store/modules/notification')['useNotificationStore']
   const useRoute: typeof import('vue-router')['useRoute']
   const useRouteStore: typeof import('../store/modules/route')['useRouteStore']
   const useRouter: typeof import('vue-router')['useRouter']
@@ -101,7 +100,4 @@ declare global {
   // @ts-ignore
   export type { ClientSuffix } from '../store/modules/clientSuffix'
   import('../store/modules/clientSuffix')
-  // @ts-ignore
-  export type { NotificationItem } from '../store/modules/notification'
-  import('../store/modules/notification')
 }

@@ -37,8 +37,6 @@
 
 std::map<int,std::string> id_name;
 
-//保存通知消息的map
-std::multimap<int,std::string> notify_messages;
 
 int main() {
 
@@ -107,8 +105,7 @@ int main() {
 
 
     // 初始化 WebSocket 路由
-    crow::SimpleApp app2;
-    WebSocketController::init(app2);
+    WebSocketController::init(app);
     //定时发送心跳
     std::thread([]{
         while (true) {
