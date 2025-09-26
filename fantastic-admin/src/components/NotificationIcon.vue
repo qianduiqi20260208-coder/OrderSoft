@@ -78,6 +78,12 @@ function handleTodoItemClick(todoId: string) {
   
   // 标记单个待办事项为已读，未读数量减一
   markAsRead(todoId)
+  
+  // 关闭下拉菜单
+  closeDropdown()
+  
+  // 跳转到订单管理页面
+  router.push('/order_manage')
 }
 
 // 点击外部关闭下拉菜单
@@ -259,7 +265,7 @@ const isDevMode = import.meta.env.DEV
                       'text-purple-700': todo.orderType === '版本迭代+交付发送',
                       'text-pink-700': todo.orderType === '功能开发',
                       'text-gray-700': todo.orderType === '其他'
-                    }">{{ todo.orderType == '直接封装+发送' ? '版本迭代+交付发送' : todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id); router.push('/order_manage')">#{{ todo.id }}</span>({{ todo.modelName }})
+                    }">{{ todo.orderType == '直接封装+发送' ? '版本迭代+交付发送' : todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id)">#{{ todo.id }}</span>({{ todo.modelName }})
                   </span>
 
                   <!-- 分类标签 -->

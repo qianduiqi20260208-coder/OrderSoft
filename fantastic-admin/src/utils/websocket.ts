@@ -66,7 +66,7 @@ class WebSocketService {
   public currentUser = ref<{ userId: string; account: string; role?: string } | null>(null)
   private isInitialLoad = true // 标记是否为初始加载
 
-  // constructor(url: string = 'ws://localhost:8080/ws') {
+  // constructor(url: string = 'ws://localhost:18090/ws') {
   constructor(url: string = 'ws://172.16.19.99:18080/ws') {
     this.url = url
   }
@@ -293,6 +293,11 @@ class WebSocketService {
       if (message.messageId) {
         this.notificationStore.saveNotification(updatedData, message.messageId, true)
       }
+      
+      // 如果待办事项已完成，可以选择删除相关通知（可选）
+      if (data.status === 'completed' && oldTodo.messageId) {
+        // this.notificationStore.deleteNotification(oldTodo.messageId) // 删除完成通知
+      }
     }
     
     // 如果不是当前用户的操作，显示通知
@@ -319,6 +324,11 @@ class WebSocketService {
       // 保存通知到store（删除通知保持原有状态）
       if (message.messageId) {
         this.notificationStore.saveNotification(todo, message.messageId, true)
+      }
+      
+      // 删除相关通知（可选，因为待办事项已删除）
+      if (todo.messageId) {
+        // this.notificationStore.deleteNotification(todo.messageId) // 删除相关通知
       }
       
       // 如果不是当前用户的操作，显示通知
@@ -365,6 +375,9 @@ class WebSocketService {
         if (todo.messageId) {
           this.notificationStore.markAsRead(todo.messageId)
           this.send({type:"ack",id:todo.messageId})
+          // 可选：从缓存中删除已读通知（避免存储过多已读通知）
+          this.notificationStore.deleteNotification(todo.messageId) // 删除特定通知
+          // this.notificationStore.clearReadNotifications() // 或者清除所有已读通知
         }
       }
     } else {
