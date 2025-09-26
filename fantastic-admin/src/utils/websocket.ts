@@ -66,7 +66,8 @@ class WebSocketService {
   public currentUser = ref<{ userId: string; account: string; role?: string } | null>(null)
   private isInitialLoad = true // 标记是否为初始加载
 
-  constructor(url: string = 'ws://localhost:8080/ws') {
+  // constructor(url: string = 'ws://localhost:8080/ws') {
+  constructor(url: string = 'ws://172.16.19.99:18080/ws') {
     this.url = url
   }
 
@@ -151,6 +152,8 @@ class WebSocketService {
         // 心跳响应，无需特殊处理
         break
       case 'todo_notification':
+        console.log('收到待办事项通知:', message.data);
+        
         this.handleTodoNotification(message.data, message)
         break
       case 'todo_update':
@@ -170,7 +173,7 @@ class WebSocketService {
   // 处理待办事项通知
   private handleTodoNotification(data: TodoItem, message: WebSocketMessage) {
     // 检查是否已经存在相同ID的待办事项
-    const existingTodo = this.todos.find(todo => todo.id === data.id)
+    const existingTodo = this.todos.find(todo => todo.messageId === message.messageId)
     if (existingTodo) {
       console.log('待办事项已存在，跳过添加:', data.id)
       return
@@ -198,12 +201,11 @@ class WebSocketService {
       }
       
       // 显示新待办事项通知，包含消息ID
-      this.notification.showTodoNotification({...todoWithMessageId, timestamp: message.timestamp}, message.messageId)
       
       // 注释掉重复的系统通知，避免显示带图标的重复通知
       // if (!this.isCurrentUserMessage(message)) {
-      //   const operatorName = message.account || '其他用户'
-      //   this.notification.showSystemNotification(
+        //   const operatorName = message.account || '其他用户'
+        //   this.notification.showSystemNotification(
       //     '新待办事项',
       //     `${operatorName} 创建了新的待办事项: ${data.title}`,
       //     'info'
@@ -215,6 +217,7 @@ class WebSocketService {
         this.unreadCount.value++
       }
     }
+    this.notification.showTodoNotification({...todoWithMessageId, timestamp: message.timestamp}, message.messageId)
   }
 
   // 用户认证
@@ -342,7 +345,10 @@ class WebSocketService {
   // 发送消息
   send(message: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message))
+      const jsonMessage = JSON.stringify(message)
+      console.log(`发送消息:`,jsonMessage);
+      
+      this.ws.send(jsonMessage)
     } else {
       console.warn('WebSocket未连接，无法发送消息')
     }
@@ -358,6 +364,7 @@ class WebSocketService {
         // 同时标记store中的通知为已读
         if (todo.messageId) {
           this.notificationStore.markAsRead(todo.messageId)
+          this.send({type:"ack",id:todo.messageId})
         }
       }
     } else {
@@ -399,7 +406,12 @@ class WebSocketService {
   private startHeartbeat() {
     this.heartbeatInterval = window.setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.send({ type: 'ping' })
+        // 从store获取当前登录用户的userId,用于心跳包认证
+        const userId = this.userStore.account
+        if (userId) {
+          console.log('发送心跳包',userId);
+          this.send({ type: 'pong', userId: userId })
+        }
       }
     }, 30000) // 每30秒发送一次心跳
   }

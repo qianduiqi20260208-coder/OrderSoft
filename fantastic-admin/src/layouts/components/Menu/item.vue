@@ -93,7 +93,7 @@ defineExpose({
               v-if="isOrderManageMenu && unreadCount > 0"
               class="absolute bg-gradient-to-br from-red-400 to-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white/90 backdrop-blur-sm"
               :class="{
-                '-top-1 -right-1 min-w-5 h-5 px-1 text-xs': !(rootMenu.isMenuPopup && level === 0),
+                'top-1 right-39 min-w-5 h-5 px-1 text-xs': !(rootMenu.isMenuPopup && level === 0),
                 'top-1 right-1 min-w-4 h-4 px-1 text-[11px]': rootMenu.isMenuPopup && level === 0 && rootMenu.props.showCollapseName,
                 'top-0 right-0 min-w-4 h-4 px-1 text-[11px]': rootMenu.isMenuPopup && level === 0 && !rootMenu.props.showCollapseName,
               }"
