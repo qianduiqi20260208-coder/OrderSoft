@@ -187,13 +187,13 @@ bool TicketService::completeTicket(const Ticket &ticket)
         {"userId", username},
         {"data", crow::json::wvalue({
             {"id", ticket.id},
-            {"title", "新的待办事项"},
+            {"title", "工单完成通知"},
             {"orderType", queryTicket.ticketType},
             {"modelName", queryTicket.model},
             {"priority", "low"},
             {"status", "pending"},
             {"createdAt", queryTicket.createTime},
-            {"category", queryTicket.status},
+            {"category", "已完成"},
             {"client",client}
         })}
         });

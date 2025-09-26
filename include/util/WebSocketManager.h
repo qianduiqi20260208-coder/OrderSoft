@@ -252,10 +252,11 @@ public:
         }
         Ticket ticket;
         std::stringstream ss;
+        ss<<"SELECT created_at,type,model.model_name,status_todo,creator_id,approver_id,dispatcher_id FROM work_order inner join model on model.ata_code = work_order.model WHERE work_order.id = "<<orderId<<"";
         std::string query = ss.str();
-        ss<<"SELECT created_at,type,model.model_name,status_todo,creator_id,approver_id,dispatcher_id FROM work_order inner join model on model.ata_code = work_order.model WHERE id = "<<orderId<<";";
+        
         if (mysql_query(conn, query.c_str())) {
-            std::cerr << "WebSocketManager::queryWorkOrderInfo 查询未读消息失败: " << mysql_error(conn) << std::endl;
+            std::cerr << "WebSocketManager::queryWorkOrderInfo: " << mysql_error(conn) << std::endl;
             return ticket;
         }
         MYSQL_RES* res = mysql_store_result(conn);
@@ -264,22 +265,28 @@ public:
             if ((row = mysql_fetch_row(res))) {
                 if (row[0]) {
                     ticket.createTime = row[0];
-                }else if(row[1])
+                }
+                if(row[1])
                 {
                     ticket.ticketType = row[1];
-                }else if(row[2])
+                }
+                if(row[2])
                 {
                     ticket.model = row[2];
-                }else if(row[3])
+                }
+                if(row[3])
                 {
                     ticket.status = row[3];
-                }else if(row[4])
+                }
+                if(row[4])
                 {
                     ticket.creatorId = row[4];
-                }else if(row[5])
+                }
+                if(row[5])
                 {
                     ticket.approverId = row[5];
-                }else if(row[6])
+                }
+                if(row[6])
                 {
                     ticket.distributorId = row[6];
                 }
