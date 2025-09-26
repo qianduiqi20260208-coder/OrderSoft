@@ -1083,6 +1083,11 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
     }
 
     for (const auto& ele : filter) {
+        if (ele.first == "filterMineFlag")
+        {
+            continue;
+        }
+        
         if (!first) ss << " AND ";
         if (intSet.find(ele.first) != intSet.end()) {
             if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {

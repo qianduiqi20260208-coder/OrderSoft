@@ -36,6 +36,7 @@ bool TicketService::createTicketAndNotify(Ticket &ticket)
     std::string nowStr = getCurrentTime();
     crow::json::wvalue msg({
     {"type", "todo_notification"},
+    {"messageId",""},
     {"timestamp", nowStr},
     {"userId", ticket.creatorId},
     {"data", crow::json::wvalue({

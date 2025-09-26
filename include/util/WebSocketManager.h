@@ -44,18 +44,20 @@ public:
     static void sendToUserAndSaveMsg(std::vector<long> userIds, crow::json::wvalue& msg) {
         std::lock_guard<std::mutex> lock(mtx);
 
+        //先持久化存储，这样才会有messageId数据
+        int messageId = saveMsg(msg);
+
         for(auto userId : userIds) {
-        if (sessions.count(userId)) {
-
-
-            //给指定的所有用户发消息
-            sessions[userId].conn->send_text(msg.dump());
-        }
+            if (sessions.count(userId)) {
+                msg["messageId"] = std::to_string(messageId);
+                std::cout<<"给"<<userId<<"发"<<msg.dump()<<std::endl;
+                //给指定的所有用户发消息
+                sessions[userId].conn->send_text(msg.dump());
+            }
         }
 
         std::cout<<"send msg:"<<msg.dump()<<std::endl;
-        //持久化存储
-        saveMsg(msg);
+
     }
 
 
@@ -74,9 +76,21 @@ public:
                     << "\"data\":{},"
                     << "\"timestamp\":\"" << timestamp << "\""
                     << "}";
-            
-                it->second.conn->send_text(json.str());
+                if(it->second.conn)
+                {
+                    //这个异常只需放行就可以了
+                    try
+                    {
+                        it->second.conn->send_text(json.str());
+                    }
+                    catch (...) {
+                        std::cerr << "send_text 发生未知异常" << std::endl;
+                    }
+                    
 
+                }
+
+                std::cout<<"ping:"<<json.str()<<std::endl;
                 if (now - it->second.lastPong > std::chrono::seconds(90)) {
                     it = sessions.erase(it); // 超时移除
                 } else {
@@ -239,7 +253,7 @@ public:
         Ticket ticket;
         std::stringstream ss;
         std::string query = ss.str();
-        ss<<"SELECT created_at,type,model,status_todo,creator_id,approver_id,dispatcher_id FROM work_order WHERE id = "<<orderId<<";";
+        ss<<"SELECT created_at,type,model.model_name,status_todo,creator_id,approver_id,dispatcher_id FROM work_order inner join model on model.ata_code = work_order.model WHERE id = "<<orderId<<";";
         if (mysql_query(conn, query.c_str())) {
             std::cerr << "WebSocketManager::queryWorkOrderInfo 查询未读消息失败: " << mysql_error(conn) << std::endl;
             return ticket;
@@ -292,14 +306,16 @@ private:
         ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%dT%H:%M:%S");
         return ss.str();
     }
-    static void saveMsg(crow::json::wvalue& jsonObj)
+    //返回插入数据的id
+    static int saveMsg(crow::json::wvalue& jsonObj)
     {
+        int messageId = -1;
         //将消息存储在数据库中
         auto connGuard = DBConnectionManager::getPoolConnection();
         MYSQL* conn = connGuard.get();
         if (!conn) {
             std::cerr << "WebSocketManager::saveMsg 无法获取数据库连接" << std::endl;
-            return;
+            return messageId;
         }
 
         //获取需要插入的数据
@@ -308,12 +324,12 @@ private:
 
         //执行插入操作
         std::stringstream ss;
-        ss<<"INSERT INTO notification(sender_id,receiver_id,message,status,created_at) VALUES("
-          << "'" << senderId << "',"
-          << "'" << receiverId << "',"
+        ss<<"INSERT INTO notification(message,status,created_at,receiver_id) VALUES("
+
           << "'" << jsonObj.dump() << "',"
           << "'未读',"
-          << "NOW()"
+          << "NOW(),"
+          <<receiverId
           << ")";
         std::string query = ss.str();   
         if (mysql_query(conn, query.c_str())) {
@@ -321,18 +337,22 @@ private:
         } else {
             std::cout << "WebSocketManager::saveMsg 消息插入成功" << std::endl;
         }
+        messageId = mysql_insert_id(conn);
 
         //将消息id也插入到json里
         jsonObj["messageId"] = crow::json::wvalue(std::to_string((int)mysql_insert_id(conn)));
         ss.clear();
         ss.str("");
-        ss << "UPDATE notification SET message='" << jsonObj.dump() << "' WHERE id=" << stoi(jsonObj["messageId"].dump());
+        LOG_DEBUG("jsonObj:",jsonObj["messageId"] );
+        ss << "UPDATE notification SET message='" << jsonObj.dump() << "' WHERE id=" << messageId<<";";
         query = ss.str();
         if (mysql_query(conn, query.c_str())) {
             std::cerr << "WebSocketManager::saveMsg 更新消息ID失败: " << mysql_error(conn) << std::endl;
         } else {
             std::cout << "WebSocketManager::saveMsg 消息ID更新成功" << std::endl;
         }
+
+        return messageId;
 
     }
 
