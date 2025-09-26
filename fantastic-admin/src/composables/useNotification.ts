@@ -101,6 +101,8 @@ export function useNotification() {
    */
   function showTodoNotification(todo: TodoItem, messageId?: string) {
     // 如果 toast 通知被禁用，则不显示
+    console.log(`showToastNotifications:`, localStorage.getItem('notification-show-toast'));
+    
     if (localStorage.getItem('notification-show-toast') === 'false') return
     
     // 保存通知到store（现在由调用方负责保存）
@@ -134,7 +136,7 @@ export function useNotification() {
     const config = priorityConfig[todo.priority] || priorityConfig.medium
 
     // 新的显示格式：{orderType}#{id}({modelName}){category}[{client}] + 相对时间
-    const description = `${todo.orderType}#${todo.id}(${todo.modelName})${todo.category}${todo.client ? `[${todo.client}]` : ''}${todo.timestamp ? ` ${formatRelativeTime(todo.timestamp)}` : ''}`;
+    const description = `${todo.orderType == '直接封装+发送' ? '版本迭代+交付发送' : todo.orderType}#${todo.id}(${todo.modelName})${todo.category}${todo.client ? `[${todo.client}]` : ''}${todo.timestamp ? ` ${formatRelativeTime(todo.timestamp)}` : ''}`;
 
     toast({
       title: todo.title,

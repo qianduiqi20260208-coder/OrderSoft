@@ -43,8 +43,8 @@ function saveSettings() {
 // 最近的待办事项（最多显示5个）
 const recentTodos = computed(() => {
   return todos
-    .filter(todo => todo.status !== 'completed')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(todo => todo.status !== 'completed').reverse()
+    // .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     // .slice(0, 5)
 })
 
@@ -259,7 +259,7 @@ const isDevMode = import.meta.env.DEV
                       'text-purple-700': todo.orderType === '版本迭代+交付发送',
                       'text-pink-700': todo.orderType === '功能开发',
                       'text-gray-700': todo.orderType === '其他'
-                    }">{{ todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id); router.push('/order_manage')">#{{ todo.id }}</span>({{ todo.modelName }})
+                    }">{{ todo.orderType == '直接封装+发送' ? '版本迭代+交付发送' : todo.orderType }}</span><span class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" @click.stop="handleTodoItemClick(todo.id); router.push('/order_manage')">#{{ todo.id }}</span>({{ todo.modelName }})
                   </span>
 
                   <!-- 分类标签 -->
