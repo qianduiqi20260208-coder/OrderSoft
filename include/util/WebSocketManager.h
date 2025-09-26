@@ -24,6 +24,20 @@ private:
     static inline std::mutex mtx;
 
 public:
+    //清除断开连接的连接
+    static void eraseDisconnection(crow::websocket::connection* conn)
+    {
+        //用户主动断开连接的情况
+        std::lock_guard<std::mutex> lock(mtx);
+        for (auto it = sessions.begin(); it != sessions.end();) {
+            if (it->second.conn == conn) {  // 指针匹配
+                it = sessions.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
     static void addConnection(long userId, crow::websocket::connection* conn) {
         std::lock_guard<std::mutex> lock(mtx);
         sessions[userId] = {conn, std::chrono::steady_clock::now()};
@@ -86,8 +100,6 @@ public:
                     catch (...) {
                         std::cerr << "send_text 发生未知异常" << std::endl;
                     }
-                    
-
                 }
 
                 std::cout<<"ping:"<<json.str()<<std::endl;
