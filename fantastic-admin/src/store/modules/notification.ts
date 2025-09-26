@@ -120,6 +120,38 @@ export const useNotificationStore = defineStore(
       return notifications.value.find(n => n.id === notificationId)
     }
     
+    // 根据通知ID删除通知
+    function deleteNotification(notificationId: string) {
+      try {
+        const index = notifications.value.findIndex(n => n.id === notificationId)
+        if (index !== -1) {
+          notifications.value.splice(index, 1)
+          console.log('通知已删除:', notificationId)
+          return true
+        }
+        return false
+      } catch (error) {
+        console.error('删除通知失败:', error)
+        return false
+      }
+    }
+    
+    // 根据待办事项ID删除通知
+    function deleteNotificationByTodoId(todoId: string) {
+      try {
+        const index = notifications.value.findIndex(n => n.todo.id === todoId)
+        if (index !== -1) {
+          notifications.value.splice(index, 1)
+          console.log('待办事项通知已删除:', todoId)
+          return true
+        }
+        return false
+      } catch (error) {
+        console.error('删除待办事项通知失败:', error)
+        return false
+      }
+    }
+    
     // 从本地存储加载通知（用于持久化）
     function loadFromLocalStorage() {
       try {
@@ -163,6 +195,8 @@ export const useNotificationStore = defineStore(
       clearReadNotifications,
       findNotificationByTodoId,
       findNotificationById,
+      deleteNotification,
+      deleteNotificationByTodoId,
       loadFromLocalStorage,
       saveToLocalStorage
     }
