@@ -202,6 +202,50 @@ const batchExecutorID = ref('') // 批量分发时统一设置下一流程负责
 // Tab状态管理
 const activeTabMap = ref<Record<string, string>>({}) // 存储每个工单当前激活的Tab
 
+// 预计发送时间快捷选项
+const deliveryTimeShortcuts = [
+  {
+    text: '今天',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime())
+      return date
+    }
+  },
+  {
+    text: '明天',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24)
+      return date
+    }
+  },
+  {
+    text: '后天',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24 * 2)
+      return date
+    }
+  },
+  {
+    text: '三天后',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24 * 3)
+      return date
+    }
+  },
+  {
+    text: '一周后',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24 * 7)
+      return date
+    }
+  }
+]
+
 // -----------事件处理函数--------------
 function expandOrder(orderId: string, expand: boolean) {
   expandedMap.value[orderId] = expand
@@ -229,6 +273,12 @@ function expandOrder(orderId: string, expand: boolean) {
 
 // 处理任务审批通过逻辑
 async function handleApprove(order: OrderItem) {
+  // 验证：交付发送和版本迭代+交付发送类工单必须填写预计发送时间
+  if (['交付发送', '版本迭代+交付发送'].includes(order.type) && !order.targetDeliveryTime) {
+    ElMessage.error('请先填写预计发送时间')
+    return
+  }
+
   // ------------页面设置------------
   order.referencePriority = leaderPriority.value // 设置参考优先级
   order.status = '待分发' // 工单状态修改为待分发
@@ -871,6 +921,13 @@ function getBatchModelId(): string | undefined {
 // 批量审批确认
 const batchTargetDeliveryTime = ref<string>('')
 async function confirmBatchApprove() {
+  // 验证预计发送时间：如果有交付发送或版本迭代+交付发送类型的工单，必须填写预计发送时间
+  const hasDeliveryOrders = userOrders.value.filter(o => selectedOrderIds.value.includes(o.orderID)).some(o => ['交付发送', '版本迭代+交付发送'].includes(o.type))
+  if (hasDeliveryOrders && !batchTargetDeliveryTime.value) {
+    ElMessage.error('请选择预计发送时间')
+    return
+  }
+  
   let successCount = 0
   for (const orderID of selectedOrderIds.value) {
     const order = userOrders.value.find(o => o.orderID === orderID)
@@ -2967,7 +3024,8 @@ onMounted(() => {
                     <div v-if="order.status === '待审批'">
                       <el-date-picker v-model="order.targetDeliveryTime" type="date" placeholder="请选择日期"
                         format="YYYY-MM-DD" value-format="YYYY-MM-DD" class="min-w-[120px] w-full"
-                        :disabled="order.status !== '待审批'" clearable />
+                        :disabled="order.status !== '待审批'" clearable 
+                        :shortcuts="deliveryTimeShortcuts" />
                     </div>
                     <div v-else>
                       <span class="rounded bg-gray-100 px-2 py-1 text-blue-700 font-bold">
@@ -2978,7 +3036,7 @@ onMounted(() => {
                 </div>
                 <div class="flex items-center gap-3 ml-6 mt-8">
                   <el-button type="success" size="default"
-                    :disabled="order.status !== '待审批' || !leaderPriority || !order.distributorID"
+                    :disabled="order.status !== '待审批' || !leaderPriority || !order.distributorID || (['交付发送', '版本迭代+交付发送'].includes(order.type) && !order.targetDeliveryTime)"
                     @click="handleApprove(order)">
                     <i class="i-mdi-check-circle-outline mr-1" /> 同意
                   </el-button>
@@ -3302,7 +3360,8 @@ onMounted(() => {
               .filter(o => selectedOrderIds.includes(o.orderID))
               .some(o => ['交付发送', '版本迭代+交付发送'].includes(o.type))" label="预计发送时间" required>
               <el-date-picker v-model="batchTargetDeliveryTime" type="date" placeholder="请选择日期" format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD" class="min-w-[120px] w-full" clearable />
+                value-format="YYYY-MM-DD" class="min-w-[120px] w-full" clearable 
+                :shortcuts="deliveryTimeShortcuts" />
             </el-form-item>
             <!-- 工单信息预览 -->
             <el-form-item label="已选工单" label-width="80px">
