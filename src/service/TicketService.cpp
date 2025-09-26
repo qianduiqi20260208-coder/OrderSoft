@@ -257,7 +257,38 @@ bool TicketService::completeConcreteTicket(const Ticket& ticket)
         
         //通知功能部分 2.发送消息并把消息持久化
         WebSocketManager::sendToUserAndSaveMsg(receivers, msg);
+    }else if(ticket.ticketType == "交付发送")
+    {
+        //完成工单的人只有一个，但是需要发送给的人有好几个
+        //查询流转人的姓名
+        std::string username = WebSocketManager::queryNameById(stoi(ticket.executorId));
+
+        //通知功能部分 1.封装json
+        std::string nowStr = getCurrentTime();
+
+        auto queryTicket = WebSocketManager::queryWorkOrderInfo(ticket.id);
+
+
+        crow::json::wvalue msg({
+        {"type", "todo_notification"},
+        {"timestamp", nowStr},
+        {"userId", username},
+        {"data", crow::json::wvalue({
+            {"id", ticket.id},
+            {"title", "新的待办事项"},
+            {"orderType", queryTicket.ticketType},
+            {"modelName", queryTicket.model},
+            {"priority", "low"},
+            {"status", "pending"},
+            {"createdAt", queryTicket.createTime},
+            {"category", queryTicket.status}
+        })}
+        });
+        
+        //通知功能部分 2.发送消息并把消息持久化
+        WebSocketManager::sendToUserAndSaveMsg({(long)stoi(ticket.sendExecutorId)}, msg);
     }
+
     return b;
 }
 
@@ -296,13 +327,13 @@ bool TicketService::completeSendTicket(const Ticket& ticket)
     {"userId", username},
     {"data", crow::json::wvalue({
         {"id", ticket.id},
-        {"title", "新的待办事项"},
+        {"title", "工单已完成通知"},
         {"orderType", queryTicket.ticketType},
         {"modelName", queryTicket.model},
         {"priority", "low"},
         {"status", "pending"},
         {"createdAt", queryTicket.createTime},
-        {"category", queryTicket.status},
+        {"category", "已完成"},
         {"client", client},
     })}
     });

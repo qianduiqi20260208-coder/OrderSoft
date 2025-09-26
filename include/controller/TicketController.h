@@ -44,6 +44,5 @@ private:
     std::vector<std::string> shellNumberList_; // 外壳号列表
     std::vector<std::string> authIDList_; // 授权ID列表
 
-    // 工单主结构体，包含所有工单类型的字段
 
 };

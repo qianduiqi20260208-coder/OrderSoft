@@ -41,6 +41,9 @@ public:
         })
         .onclose([](crow::websocket::connection& conn, const std::string&, uint16_t){//超时之后会自动关闭连接 这个地方就用不到了
             std::cout << "WebSocket connection disconnected\n";
+            
+            WebSocketManager::eraseDisconnection(&conn);
+            
         });
 
     }

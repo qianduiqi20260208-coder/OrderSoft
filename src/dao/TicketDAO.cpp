@@ -501,7 +501,7 @@ bool TicketDAO::dispatchTicket(const Ticket& ticket, const std::string& account)
 
 /*
     功能描述：除了交付发送以及封装发送之外的工单状态改为已完成
-    交付发送工单的状态改为待发送 封装发送工单的状态改为待封装
+    交付发送类工单的状态修改
 
 */
 bool TicketDAO::completeTicket(const Ticket &ticket)
@@ -1087,7 +1087,7 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
         {
             continue;
         }
-        
+
         if (!first) ss << " AND ";
         if (intSet.find(ele.first) != intSet.end()) {
             if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {
