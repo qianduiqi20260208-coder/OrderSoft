@@ -957,44 +957,36 @@ function handleCopyOrder(order: OrderItem) {
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
                     </span> -->
 
-<div class="flex items-center gap-4 text-sm font-bold">
-  <!-- CAE 平台 -->
-  <span v-if="order.targetPlatform === 'CAE'"
-        class="px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-bold">
-    CAE
-  </span>
+<div class="flex items-center px-2 gap-4 text-sm font-bold">
 
   <!-- 接口变更 -->
   <span v-if="order.apiChanged"
-        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">
-    接口变更
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default " title ="接口变动">
+    ICD变动
   </span>
 
-  <!-- 优先级 -->
-  <span :class="order.taskPriority === '紧急'
-                  ? 'px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold'
-                  : 'px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-bold'">
-    {{ order.taskPriority }}
+  <!-- 优先级（修正了 :class 的写法） -->
+  <span v-if="order.taskPriority === '紧急'"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default" title="任务优先级">
+    紧急
   </span>
 
   <!-- 敏感信息 -->
   <span v-if="order.hasSensitiveInfo != '否'"
-        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">
-    敏感信息包含
+        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold cursor-default" title="包含敏感信息">
+    敏感ICD
   </span>
 
-  <!-- CAE 验证 -->
-  <span v-if="order.isCAEChecked === '是'"
-        class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">
-    CAE-IPT平台验证通过
-  </span>
+<!-- CAE 验证 -->
+<span v-if="order.isCAEChecked === '是'"
+      class="relative inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold cursor-default" title="通过CAE-IPT平台验证">
+  CAE-IPT
+  <!-- 右上角对号 -->
+  <img src="@/assets/icons/check.svg"
+       class="absolute -top-1 -right-1 w-3 h-3" 
+       alt="通过" />
+</span>
 
-  <!-- 你后面需要继续加的状态，也可以照这个格式 -->
-  <!--
-  <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 text-xs font-medium">
-    自定义状态
-  </span>
-  -->
 </div>
 
 
