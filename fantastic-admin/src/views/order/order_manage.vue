@@ -1531,30 +1531,38 @@ onMounted(() => {
                         class="flex items-end">
                         <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
                       </span> -->
-                      <div class="flex items-center gap-2 text-sm font-medium">
-                        <span v-if="order.targetPlatform === 'CAE'" class=" ml-2 text-green-600">
-                          CAE
-                        </span>
 
-                        <span v-if="order.apiChanged" class="ml-2 text-red-600">
-                          接口变更
-                        </span>
+<div class="flex items-center px-2 gap-4 text-sm font-bold">
 
-                        <span :class="order.taskPriority === '紧急' ? 'ml-2 text-red-600' : 'ml-2 text-green-600'">
-                          {{ order.taskPriority }}
-                        </span>
+  <!-- 接口变更 -->
+  <span v-if="order.apiChanged"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default " title ="接口变动">
+    ICD变动
+  </span>
 
-                        <span v-if="order.hasSensitiveInfo != '否'" class="ml-2 text-red-600">
-                          敏感信息包含
-                        </span>
+  <!-- 优先级（修正了 :class 的写法） -->
+  <span v-if="order.taskPriority === '紧急'"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default" title="任务优先级">
+    紧急
+  </span>
 
-                        <span v-if="order.isCAEChecked ==='是'" class="ml-2 text-green-600">
-                          CAE-IPT平台验证通过
-                        </span>
+  <!-- 敏感信息 -->
+  <span v-if="order.hasSensitiveInfo != '否'"
+        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold cursor-default" title="包含敏感信息">
+    敏感ICD
+  </span>
 
-                        <!-- 这里可以继续加 -->
+<!-- CAE 验证 -->
+<span v-if="order.isCAEChecked === '是'"
+      class="relative inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold cursor-default" title="通过CAE-IPT平台验证">
+  CAE-IPT
+  <!-- 右上角对号 -->
+  <img src="@/assets/icons/check.svg"
+       class="absolute -top-1 -right-1 w-3 h-3" 
+       alt="通过" />
+</span>
 
-                      </div>
+</div>
 
 
 

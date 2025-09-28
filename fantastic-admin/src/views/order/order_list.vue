@@ -957,30 +957,45 @@ function handleCopyOrder(order: OrderItem) {
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
                     </span> -->
 
-                      <div class="flex items-center gap-2 text-sm font-medium">
-                        <span v-if="order.targetPlatform === 'CAE'" class=" ml-2 text-green-600">
-                          CAE
-                        </span>
+<div class="flex items-center gap-4 text-sm font-bold">
+  <!-- CAE 平台 -->
+  <span v-if="order.targetPlatform === 'CAE'"
+        class="px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-bold">
+    CAE
+  </span>
 
-                        <span v-if="order.apiChanged" class="ml-2 text-red-600">
-                          接口变更
-                        </span>
+  <!-- 接口变更 -->
+  <span v-if="order.apiChanged"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">
+    接口变更
+  </span>
 
-                        <span :class="order.taskPriority === '紧急' ? 'ml-2 text-red-600' : 'ml-2 text-green-600'">
-                          {{ order.taskPriority }}
-                        </span>
+  <!-- 优先级 -->
+  <span :class="order.taskPriority === '紧急'
+                  ? 'px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold'
+                  : 'px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-bold'">
+    {{ order.taskPriority }}
+  </span>
 
-                        <span v-if="order.hasSensitiveInfo != '否'" class="ml-2 text-red-600">
-                          敏感信息包含
-                        </span>
+  <!-- 敏感信息 -->
+  <span v-if="order.hasSensitiveInfo != '否'"
+        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">
+    敏感信息包含
+  </span>
 
-                        <span v-if="order.isCAEChecked ==='是'" class="ml-2 text-green-600">
-                          CAE-IPT平台验证通过
-                        </span>
+  <!-- CAE 验证 -->
+  <span v-if="order.isCAEChecked === '是'"
+        class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">
+    CAE-IPT平台验证通过
+  </span>
 
-                        <!-- 这里可以继续加 -->
-
-                      </div>
+  <!-- 你后面需要继续加的状态，也可以照这个格式 -->
+  <!--
+  <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 text-xs font-medium">
+    自定义状态
+  </span>
+  -->
+</div>
 
 
 
