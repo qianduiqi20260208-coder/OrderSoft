@@ -957,24 +957,24 @@ function handleCopyOrder(order: OrderItem) {
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
                     </span> -->
 
-                      <div class="flex items-center gap-4 text-sm font-medium">
-                        <span v-if="order.targetPlatform === 'CAE'" class="text-green-600">
+                      <div class="flex items-center gap-2 text-sm font-medium">
+                        <span v-if="order.targetPlatform === 'CAE'" class=" ml-2 text-green-600">
                           CAE
                         </span>
 
-                        <span v-if="order.apiChanged" class="text-red-600">
+                        <span v-if="order.apiChanged" class="ml-2 text-red-600">
                           接口变更
                         </span>
 
-                        <span :class="order.taskPriority === '紧急' ? 'text-red-600' : 'text-green-600'">
+                        <span :class="order.taskPriority === '紧急' ? 'ml-2 text-red-600' : 'ml-2 text-green-600'">
                           {{ order.taskPriority }}
                         </span>
 
-                        <span v-if="order.hasSensitiveInfo != '否'" class="text-red-600">
+                        <span v-if="order.hasSensitiveInfo != '否'" class="ml-2 text-red-600">
                           敏感信息包含
                         </span>
 
-                        <span v-if="order.isCAEChecked ==='是'" class="text-green-600">
+                        <span v-if="order.isCAEChecked ==='是'" class="ml-2 text-green-600">
                           CAE-IPT平台验证通过
                         </span>
 
