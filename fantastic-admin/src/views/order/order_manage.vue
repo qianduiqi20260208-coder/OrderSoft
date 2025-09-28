@@ -775,7 +775,7 @@ async function fetchUserOrders() {
 
         versionInfo: order.Version_Info || '', // 封装环节信息
         encryptedInfo: order.Encrypted_Info || '', // 加密环节信息
-        createRemark: order.createRemark || '', // 创建备注 
+        createRemark: order.createRemark || '', // 创建备注
         targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || '',
       }
 
@@ -1464,14 +1464,43 @@ onMounted(() => {
                         工单#{{ order.orderID }}
                       </span>
                       <!-- CAE图标 -->
-                      <span v-if="order.targetPlatform === 'CAE'" class="ml-4 flex items-end">
+                      <!-- 接口变更图标 -->
+
+                      <!-- <span v-if="order.targetPlatform === 'CAE'" class="ml-4 flex items-end">
                         <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
                       </span>
-                      <!-- 接口变更图标 -->
+
                       <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2' : 'ml-4'"
                         class="flex items-end">
                         <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
-                      </span>
+                      </span> -->
+                      <div class="flex items-center gap-4 text-sm font-medium">
+                        <span v-if="order.targetPlatform === 'CAE'" class="text-green-600">
+                          CAE
+                        </span>
+
+                        <span v-if="order.apiChanged" class="text-red-600">
+                          接口变更
+                        </span>
+
+                        <span :class="order.taskPriority === '紧急' ? 'text-red-600' : 'text-green-600'">
+                          {{ order.taskPriority }}
+                        </span>
+
+                        <span v-if="order.hasSensitiveInfo != '否'" class="text-red-600">
+                          敏感信息包含
+                        </span>
+
+                        <span v-if="order.isCAEChecked ==='是'" class="text-green-600">
+                          CAE-IPT平台验证通过
+                        </span>
+
+                        <!-- 这里可以继续加 -->
+
+                      </div>
+
+
+
                     </span>
                   </span>
                   <div class="mt-2 flex flex-wrap items-center gap-6 text-sm">
@@ -1885,7 +1914,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                
+
                 </div>
               </div>
 
@@ -2838,9 +2867,9 @@ onMounted(() => {
                 </FaPageMain>
               </template>
             </template>
-            
+
             <!-- 任务分发 -->
-            
+
             <div v-if="['待分发', '进行中'].includes(order.status)  && order.distributorID !== '' && getActiveTab(order.orderID) === 'distribute'" title="" :collaspe="!expandedMap[order.orderID]"
               height="auto" class="w-full border-l border-b border-r  rounded-b-lg border-gray-300 p-4">
               <div>

@@ -43,6 +43,4 @@ private:
     std::vector<std::string> customerList_; // 客户列表
     std::vector<std::string> shellNumberList_; // 外壳号列表
     std::vector<std::string> authIDList_; // 授权ID列表
-
-
 };

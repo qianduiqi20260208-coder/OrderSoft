@@ -948,13 +948,42 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
 
                     <!-- CAE图标 -->
-                    <span v-if="order.targetPlatform === 'CAE'" class="ml-4">
+                    <!-- 接口变更图标 -->
+                    <!-- <span v-if="order.targetPlatform === 'CAE'" class="ml-4">
                       <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
                     </span>
-                    <!-- 接口变更图标 -->
+
                     <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2' : 'ml-4'">
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
-                    </span>
+                    </span> -->
+
+                      <div class="flex items-center gap-4 text-sm font-medium">
+                        <span v-if="order.targetPlatform === 'CAE'" class="text-green-600">
+                          CAE
+                        </span>
+
+                        <span v-if="order.apiChanged" class="text-red-600">
+                          接口变更
+                        </span>
+
+                        <span :class="order.taskPriority === '紧急' ? 'text-red-600' : 'text-green-600'">
+                          {{ order.taskPriority }}
+                        </span>
+
+                        <span v-if="order.hasSensitiveInfo != '否'" class="text-red-600">
+                          敏感信息包含
+                        </span>
+
+                        <span v-if="order.isCAEChecked ==='是'" class="text-green-600">
+                          CAE-IPT平台验证通过
+                        </span>
+
+                        <!-- 这里可以继续加 -->
+
+                      </div>
+
+
+
                     <span style="margin-left: 24px;">
                       <div class="flex items-center gap-2">
                         <!-- 详细信息按钮 -->
@@ -1998,7 +2027,7 @@ function handleCopyOrder(order: OrderItem) {
           </template>
           <div v-if="currentOrder">
             <div class="grid grid-cols-2 gap-x-8 gap-y-4">
-              <!-- 基础信息 
+              <!-- 基础信息
               <div class="flex items-center gap-2">
                 <span class="w-32 text-black font-semibold">工单：</span>
                 <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="currentOrder.orderID" readonly>
