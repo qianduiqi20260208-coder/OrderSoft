@@ -1,6 +1,6 @@
 import { faNotification as toast } from '@/ui/components/FaNotification'
 import type { TodoItem } from '@/utils/websocket'
-import { useNotificationStore } from '@/store/modules/notification'
+// import { useNotificationStore } from '@/store/modules/notification'
 import { ref } from 'vue'
 
 /**
@@ -24,7 +24,7 @@ export function useNotification() {
   const showToastNotifications = ref(true)
   
   // 使用通知存储
-  const notificationStore = useNotificationStore()
+  // const notificationStore = useNotificationStore()
   
   // 从 localStorage 加载设置
   function loadToastSettings() {
@@ -39,7 +39,7 @@ export function useNotification() {
   /**
    * 保存通知到store（已迁移到store）
    */
-  function saveNotificationToStorage(todo: TodoItem, messageId?: string) {
+  function saveNotificationToStorage(_todo: TodoItem, _messageId?: string) {
     // 功能已迁移到notificationStore.saveNotification
   }
 
@@ -54,7 +54,7 @@ export function useNotification() {
   /**
    * 标记通知为已读（已迁移到store）
    */
-  function markNotificationAsRead(notificationId: string) {
+  function markNotificationAsRead(_notificationId: string) {
     // 功能已迁移到notificationStore.markAsRead
   }
 
