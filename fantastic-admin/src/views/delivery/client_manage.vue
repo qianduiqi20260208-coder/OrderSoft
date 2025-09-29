@@ -424,31 +424,6 @@ async function fetchClients() {
   }
 }
 
-// 加载版本历史数据（对话框版本）
-async function loadModelVersionHistory(clientName: string) {
-  modelVersionHistoryLoading.value = true
-  try {
-    const res = await deliveryApi.getCustomerModelVersionHistory(clientName)
-    console.log(`对话框版本 - API响应数据:`, res)
-    const responseData = res.data || res
-    if (responseData?.models) {
-      modelVersionHistoryData.value = responseData.models || []
-      console.log(`对话框版本 - 版本历史数据已加载:`, responseData.models)
-    } else if (responseData?.data?.models) {
-      modelVersionHistoryData.value = responseData.data.models || []
-      console.log(`对话框版本 - 版本历史数据已加载 (嵌套结构):`, responseData.data.models)
-    } else {
-      console.error('对话框版本 - 响应数据格式不正确，无法找到models字段:', responseData)
-      modelVersionHistoryData.value = []
-    }
-  } catch (error) {
-    console.error('获取版本历史失败:', error)
-    ElMessage.error('获取版本历史失败，请稍后重试')
-  } finally {
-    modelVersionHistoryLoading.value = false
-  }
-}
-
 // 直接加载版本历史数据到指定客户
 async function loadModelVersionHistoryDirect(clientName: string, clientIndex: number) {
   clientList.value[clientIndex].versionHistoryLoading = true
@@ -477,13 +452,6 @@ async function loadModelVersionHistoryDirect(clientName: string, clientIndex: nu
   } finally {
     clientList.value[clientIndex].versionHistoryLoading = false
   }
-}
-
-// 关闭版本管理对话框
-function handleCloseModelVersionHistory() {
-  modelVersionHistoryDialogVisible.value = false
-  currentClientName.value = ''
-  modelVersionHistoryData.value = []
 }
 
 // 页面初始化时加载数据
@@ -654,7 +622,7 @@ onMounted(() => {
                 >
                   <template #default="{ row }">
                     <div v-if="row.versions && row.versions.length > 0" class="text-sm">
-                      <div v-for="(version, index) in row.versions" :key="version.workOrderNo">
+                      <div v-for="(version, _index) in row.versions" :key="version.workOrderNo">
                         <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
                           <div class="p-2 border-b border-gray-300 last:border-b-0 mb-1">
                             <el-tag :type="version.isLatest ? 'success' : 'info'" size="small">
