@@ -601,7 +601,6 @@ onMounted(() => {
               stripe
               style="width: 100%"
               class="mt-2"
-              :height="!client.versionHistoryLoading && (!client.versionHistoryData || client.versionHistoryData.length === 0)? 200 : 500"
             >
               <!-- 固定列：系统信息 -->
               <el-table-column prop="ata_code" fixed="left" label="系统" min-width="180" show-overflow-tooltip />
@@ -624,7 +623,7 @@ onMounted(() => {
                     <div v-if="row.versions && row.versions.length > 0" class="text-sm">
                       <div v-for="(version, _index) in row.versions" :key="version.workOrderNo">
                         <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
-                          <div class="p-2 border-b border-gray-300 last:border-b-0 mb-1">
+                          <div class="p-1 border-b border-gray-300 last:border-b-0 mb-1">
                             <el-tag :type="version.isLatest ? 'success' : 'info'" size="small">
                               {{ version.modelVersion }}
                             </el-tag>
@@ -647,7 +646,7 @@ onMounted(() => {
                         <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
                           <!-- 添加下划线和点击事件 -->
                           <div 
-                            class="p-2 border-b border-gray-300 last:border-b-0 mb-1 text-xs text-gray-600 underline cursor-pointer hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150"
+                            class="p-1 border-b border-gray-300 last:border-b-0 mb-1 text-xs text-gray-600 underline cursor-pointer hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150"
                             @click="handleOrderNumberClick(version.workOrderNo)"
                           >
                             #{{ version.workOrderNo }}
