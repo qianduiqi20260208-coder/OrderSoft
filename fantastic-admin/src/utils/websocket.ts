@@ -67,7 +67,7 @@ class WebSocketService {
   private isInitialLoad = true // 标记是否为初始加载
 
   // constructor(url: string = 'ws://localhost:18090/ws') {
-  constructor(url: string = 'ws://172.16.19.99:18080/ws') {
+  constructor(url: string = 'ws://10.20.28.63:18080/ws') {
     this.url = url
   }
 

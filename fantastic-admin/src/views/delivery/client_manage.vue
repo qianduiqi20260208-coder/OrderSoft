@@ -10,6 +10,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import deliveryApi from '@/api/modules/delivery'
 
+
 // ----------------定义数据结构--------------------
 // 添加路由实例
 const route = useRoute()
@@ -17,6 +18,31 @@ const router = useRouter()
 const loading = ref(false) // loading变量定义
 // 动态数据：客户列表
 const clientList = ref<Client[]>([])
+
+// 获取唯一的日期列表（用于第一层表头）
+function getUniqueDates(client: Client): string[] {
+  const dates = new Set<string>()
+  
+  if (!client.versionHistoryData || client.versionHistoryData.length === 0) {
+    return []
+  }
+  
+  client.versionHistoryData.forEach(row => {
+    if (row.versions && Array.isArray(row.versions)) {
+      row.versions.forEach((version: { deliveryDate?: string; packageSendDate?: string }) => {
+        const dateKey = version.deliveryDate || version.packageSendDate
+        if (dateKey) {
+          dates.add(dateKey)
+        }
+      })
+    }
+  })
+  
+  // 按日期排序
+  return Array.from(dates).sort((a, b) => 
+    new Date(a).getTime() - new Date(b).getTime()
+  )
+}
 
 // 定义客户信息管理数据结构
 interface Client {
@@ -32,6 +58,11 @@ interface Client {
     expiringCount: number // 临期授权数量（7天内过期）
     expiredCount: number // 过期授权数量
   }
+
+  // 版本管理相关（新增）
+  showVersionHistory?: boolean // 是否显示版本历史
+  versionHistoryData?: any[] // 版本历史数据
+  versionHistoryLoading?: boolean // 版本历史加载状态
 }
 
 // -------------新建客户相关---------------
@@ -41,6 +72,12 @@ const createForm = ref({
   clientName: '',
   clientinfo: '',
 })
+
+// -------------版本管理相关---------------
+const modelVersionHistoryDialogVisible = ref(false)
+const currentClientName = ref('')
+const modelVersionHistoryData = ref([])
+const modelVersionHistoryLoading = ref(false)
 
 // 新建客户表单验证规则
 const createRules = {
@@ -239,14 +276,17 @@ function getTotalLicenseCount(client: Client): number {
   return client.licenseStats.validCount + client.licenseStats.expiringCount + client.licenseStats.expiredCount
 }
 
-// 跳转发送详情
-function handleSendDetail(client: Client) {
+
+// 工单号点击跳转处理函数
+function handleOrderNumberClick(orderId: string) {
+  console.warn('跳转到工单详情:', orderId)
+  
+  // 跳转到工单列表页面，传递工单号参数
   router.push({
-    path: '/client_manage/send_detail',
+    path: '/order_list',
     query: {
-      clientName: client.clientName, // 客户名称
-      modelCount: client.modelCount, // 发送模型数量
-      modelVersionCount: client.modelVersionCount, // 发送模型总版本数量
+      orderId,
+      fromSendDetail: 'true', // 标识来源，便于区分加载逻辑
     },
   })
 }
@@ -264,6 +304,26 @@ function handleAuthDetail(client: Client) {
       expiredCount: client.licenseStats.expiredCount, // 过期授权数量
     },
   })
+}
+
+// 查看版本管理详情 - 现在直接在页面中展示
+function handleModelVersionHistory(client: Client, clientIndex?: number) {
+  console.log(`handleModelVersionHistory 被调用，客户: ${client.clientName}, 索引: ${clientIndex}`)
+  // 切换版本管理显示状态
+  const index = clientIndex !== undefined ? clientIndex : clientList.value.findIndex(c => c.clientName === client.clientName)
+  console.log(`找到的客户索引: ${index}`)
+  if (index !== -1) {
+    // 切换当前客户的版本管理显示状态
+    if (clientList.value[index].showVersionHistory) {
+      console.log(`隐藏版本历史`)
+      clientList.value[index].showVersionHistory = false
+      clientList.value[index].versionHistoryData = []
+    } else {
+      console.log(`显示版本历史，开始加载数据`)
+      clientList.value[index].showVersionHistory = true
+      loadModelVersionHistoryDirect(client.clientName, index)
+    }
+  }
 }
 
 // ----------------高亮功能相关函数--------------------
@@ -336,11 +396,16 @@ async function fetchClients() {
         dongleCount: client.dongleCount || 0, // 加密狗数量
         modelCount: client.modelCount || 0, // 发送模型数量
         modelVersionCount: client.modelVersionCount || 0, // 发送模型总版本数量
+        clientinfo: client.clientinfo, // 客户信息备注
         licenseStats: {
           validCount: client.licenseStats?.validCount || 0, // 有效授权数量
           expiringCount: client.licenseStats?.expiringCount || 0, // 临期授权数量
           expiredCount: client.licenseStats?.expiredCount || 0, // 过期授权数量
         },
+        // 初始化版本管理相关属性
+        showVersionHistory: false,
+        versionHistoryData: [],
+        versionHistoryLoading: false,
       }))
 
       clientList.value = mappedData
@@ -357,6 +422,68 @@ async function fetchClients() {
   finally {
     loading.value = false
   }
+}
+
+// 加载版本历史数据（对话框版本）
+async function loadModelVersionHistory(clientName: string) {
+  modelVersionHistoryLoading.value = true
+  try {
+    const res = await deliveryApi.getCustomerModelVersionHistory(clientName)
+    console.log(`对话框版本 - API响应数据:`, res)
+    const responseData = res.data || res
+    if (responseData?.models) {
+      modelVersionHistoryData.value = responseData.models || []
+      console.log(`对话框版本 - 版本历史数据已加载:`, responseData.models)
+    } else if (responseData?.data?.models) {
+      modelVersionHistoryData.value = responseData.data.models || []
+      console.log(`对话框版本 - 版本历史数据已加载 (嵌套结构):`, responseData.data.models)
+    } else {
+      console.error('对话框版本 - 响应数据格式不正确，无法找到models字段:', responseData)
+      modelVersionHistoryData.value = []
+    }
+  } catch (error) {
+    console.error('获取版本历史失败:', error)
+    ElMessage.error('获取版本历史失败，请稍后重试')
+  } finally {
+    modelVersionHistoryLoading.value = false
+  }
+}
+
+// 直接加载版本历史数据到指定客户
+async function loadModelVersionHistoryDirect(clientName: string, clientIndex: number) {
+  clientList.value[clientIndex].versionHistoryLoading = true
+  console.log(`开始加载客户 ${clientName} 的版本历史数据...`)
+  try {
+    const res = await deliveryApi.getCustomerModelVersionHistory(clientName)
+    console.log(`API响应数据:`, res)
+    // 处理mock数据和实际数据的差异
+    const responseData = res.data || res
+    console.log(`处理后的响应数据:`, responseData)
+    if (responseData?.models) {
+      // 将版本数据直接存储到对应客户的数据中
+      clientList.value[clientIndex].versionHistoryData = responseData.models || []
+      console.log(`版本历史数据已加载:`, responseData.models)
+    } else if (responseData?.data?.models) {
+      // 处理嵌套的数据结构
+      clientList.value[clientIndex].versionHistoryData = responseData.data.models || []
+      console.log(`版本历史数据已加载 (嵌套结构):`, responseData.data.models)
+    } else {
+      console.error('响应数据格式不正确，无法找到models字段:', responseData)
+      clientList.value[clientIndex].versionHistoryData = []
+    }
+  } catch (error) {
+    console.error('获取版本历史失败:', error)
+    clientList.value[clientIndex].versionHistoryData = []
+  } finally {
+    clientList.value[clientIndex].versionHistoryLoading = false
+  }
+}
+
+// 关闭版本管理对话框
+function handleCloseModelVersionHistory() {
+  modelVersionHistoryDialogVisible.value = false
+  currentClientName.value = ''
+  modelVersionHistoryData.value = []
 }
 
 // 页面初始化时加载数据
@@ -397,7 +524,7 @@ onMounted(() => {
 
         <!-- 动态渲染所有客户 -->
         <FaPageMain
-          v-for="client in clientList"
+          v-for="(client, clientIndex) in clientList"
           :key="client.clientName"
           :title="client.clientName"
           :collaspe="false"
@@ -438,17 +565,23 @@ onMounted(() => {
                   >
                     编辑
                   </FaButton>
-                  <FaButton
+                  <!-- <FaButton
                     class="border border-purple-500 rounded bg-purple-300 px-5 py-1.5 text-black font-semibold transition-colors duration-150 hover:bg-purple-400"
                     @click="handleSendDetail(client)"
                   >
                     发送详情
-                  </FaButton>
+                  </FaButton> -->
                   <FaButton
                     class="border border-orange-500 rounded bg-orange-300 px-5 py-1.5 text-black font-semibold transition-colors duration-150 hover:bg-orange-400"
                     @click="handleAuthDetail(client)"
                   >
                     授权详情
+                  </FaButton>
+                  <FaButton
+                    class="border border-teal-500 rounded bg-teal-300 px-5 py-1.5 text-black font-semibold transition-colors duration-150 hover:bg-teal-400"
+                    @click="handleModelVersionHistory(client, clientIndex)"
+                  >
+                    发送详情
                   </FaButton>
                 </div>
               </div>
@@ -484,6 +617,85 @@ onMounted(() => {
               <span v-if="client.clientinfo" class="max-w-[300px] truncate text-sm text-gray-500 font-normal">
                 备注：{{ client.clientinfo }}
               </span>
+            </div>
+          </div>
+
+          <!-- 版本历史表格（直接显示在页面中） -->
+          <div v-if="client.showVersionHistory" class="mt-4 px-4 pb-4">
+            <el-divider content-position="left">
+              <span class="text-lg font-bold text-gray-700">发送详情</span>
+            </el-divider>
+            
+            <el-table
+              v-loading="client.versionHistoryLoading"
+              :data="client.versionHistoryData"
+              border
+              stripe
+              style="width: 100%"
+              class="mt-2"
+              height="500"
+            >
+              <!-- 固定列：系统信息 -->
+              <el-table-column prop="ata_code" fixed="left" label="系统" min-width="180" show-overflow-tooltip />
+              <el-table-column prop="model_name"  fixed="left" label="模型" min-width="180" show-overflow-tooltip />
+              <el-table-column prop="latest_version" fixed="left"  label="最后发送版本" min-width="120" align="center" />
+              
+              <!-- 动态列：按日期分组的版本信息 -->
+              <el-table-column
+                v-for="date in getUniqueDates(client)"
+                :key="date"
+                :label="date"
+                align="center"
+              >
+                <el-table-column
+                  label="版本"
+                  width="100"
+                  align="center"
+                >
+                  <template #default="{ row }">
+                    <div v-if="row.versions && row.versions.length > 0" class="text-sm">
+                      <div v-for="(version, index) in row.versions" :key="version.workOrderNo">
+                        <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
+                          <div class="p-2 border-b border-gray-300 last:border-b-0 mb-1">
+                            <el-tag :type="version.isLatest ? 'success' : 'info'" size="small">
+                              {{ version.modelVersion }}
+                            </el-tag>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="no-version text-gray-400 text-sm">-</div>
+                  </template>
+                </el-table-column>
+                
+                <el-table-column
+                  label="工单ID"
+                  width="120"
+                  align="center"
+                >
+                  <template #default="{ row }">
+                    <div v-if="row.versions && row.versions.length > 0" class="text-sm">
+                      <div v-for="(version, _index) in row.versions" :key="version.workOrderNo">
+                        <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
+                          <!-- 添加下划线和点击事件 -->
+                          <div 
+                            class="p-2 border-b border-gray-300 last:border-b-0 mb-1 text-xs text-gray-600 underline cursor-pointer hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150"
+                            @click="handleOrderNumberClick(version.workOrderNo)"
+                          >
+                            #{{ version.workOrderNo }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="no-version text-gray-400 text-sm">-</div>
+                  </template>
+                </el-table-column>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 无数据提示 -->
+            <div v-if="!client.versionHistoryLoading && (!client.versionHistoryData || client.versionHistoryData.length === 0)" class="mt-4 text-center text-gray-500">
+              暂无版本历史数据
             </div>
           </div>
         </FaPageMain>

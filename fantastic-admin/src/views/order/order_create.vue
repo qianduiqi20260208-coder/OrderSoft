@@ -1043,7 +1043,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="problemOrderForm.description"
               type="textarea"
-              :rows="4"
+              :rows="8"
               placeholder="请详细描述复现内容"
             />
           </el-form-item>
@@ -1051,7 +1051,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="problemOrderForm.create_remark"
               type="textarea"
-              :rows="4"
+              :rows="8"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1201,7 +1201,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterOrderForm.updateNotes"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入更新内容"
             />
           </el-form-item>
@@ -1209,7 +1209,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterOrderForm.packageRequirement"
               type="textarea"
-              :rows="2"
+              :rows="8"
               placeholder="请输入封装要求"
             />
           </el-form-item>
@@ -1217,7 +1217,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterOrderForm.create_remark"
               type="textarea"
-              :rows="2"
+              :rows="8"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1358,7 +1358,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="deliverOrderForm.create_remark"
               type="textarea"
-              :rows="2"
+              :rows="8"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1492,7 +1492,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterDeliverOrderForm.updateNotes"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入更新内容"
             />
           </el-form-item>
@@ -1500,7 +1500,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterDeliverOrderForm.packageRequirement"
               type="textarea"
-              :rows="2"
+              :rows="8"
               placeholder="请输入封装要求"
             />
           </el-form-item>
@@ -1552,7 +1552,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="iterDeliverOrderForm.create_remark"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1639,7 +1639,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="devOrderForm.featureDesc"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入功能描述"
             />
           </el-form-item>
@@ -1647,7 +1647,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="devOrderForm.create_remark"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1744,7 +1744,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="otherOrderForm.contentDesc"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入内容描述"
             />
           </el-form-item>
@@ -1752,7 +1752,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="otherOrderForm.create_remark"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入备注"
             />
           </el-form-item>

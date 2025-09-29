@@ -58,6 +58,9 @@ public:
 
     virtual std::vector<std::vector<std::string>> getAllModelLatestVesrionByClient(std::string client) =0;
 
+    // 获取指定客户的模型版本历史记录（包括最新版本和历史版本）
+    virtual nlohmann::json getCustomerModelVersionHistory(const std::string& clientName) = 0;
+
     // 获取所有客户的suffix字段，返回带有客户标识的后缀列表
     virtual std::vector<std::pair<std::string, std::string>> getAllClientSuffixList() = 0;
 

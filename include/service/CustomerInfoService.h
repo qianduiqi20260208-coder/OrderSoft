@@ -62,6 +62,9 @@ public:
     // 获取指定客户的模型ATA章节号和发送模型数量
     std::pair<int,int> getModelAndModelVersionCountByClient(const std::string& clientName) override;
 
+    // 获取指定客户的模型版本历史记录（包括最新版本和历史版本）
+    nlohmann::json getCustomerModelVersionHistory(const std::string& clientName) override;
+
 private:
     std::shared_ptr<ICustomerInfoDAO> customerInfoDAO_;
     std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getAllSendRecordGroupedByClient(std::string client);

@@ -172,4 +172,18 @@ export default {
     api.put('auth/batch-update', data, {
       // baseURL: '/mock/',
     }),
+
+  // 获取客户模型版本历史信息
+  getCustomerModelVersionHistory: (clientName: string) => {
+    console.log(`API请求: 获取客户 ${clientName} 的版本历史`)
+    return api.get('client/model-version-history', {
+      params: { clientName },
+    }).then(response => {
+      console.log(`API响应: 客户 ${clientName} 的版本历史`, response)
+      return response
+    }).catch(error => {
+      console.error(`API错误: 客户 ${clientName} 的版本历史`, error)
+      throw error
+    })
+  },
 }

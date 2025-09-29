@@ -2964,7 +2964,7 @@ onMounted(() => {
             </div>
             <!-- 任务审批 -->
             <div v-if="['待审批', '待分发', '进行中'].includes(order.status)  && getActiveTab(order.orderID) === 'approve'" title=""
-              :collaspe="!expandedMap[order.orderID]" height="auto" class="w-full border-l border-b border-r  rounded-b-lg border-gray-300 p-4">
+              :collaspe="!expandedMap[order.orderID]" height="auto" class="w-full border-l border-b border-r  rounded-b-lg border-gray-300 bg-gray-50  p-4">
               <div>
                 <div class="w-full flex items-center justify-between pr-4">
                   <div class="flex items-center">
@@ -2990,7 +2990,7 @@ onMounted(() => {
                 <div class="grid grid-cols-3 gap-x-8 gap-y-4 flex-1">
                   <!-- 参考优先级 -->
                   <div class="flex flex-col gap-1">
-                    <span class="text-gray-700 font-semibold text-sm">参考优先级：</span>
+                    <span class="text-black font-semibold">参考优先级：</span>
                     <!-- 修改这里：根据工单状态显示不同的组件 -->
                     <div v-if="order.status === '待审批'">
                       <!-- 待审批状态：显示下拉选择框，默认值为工单已有的参考优先级 -->
@@ -3002,15 +3002,19 @@ onMounted(() => {
                     </div>
                     <div v-else>
                       <!-- 非待审批状态：显示只读输入框，显示工单的参考优先级 -->
-                      <el-input :model-value="order.referencePriority" size="default" class="min-w-[120px] w-full"
-                        disabled />
+                    <div class="border-b py-2 " style="border-color:'#d2d5db'">
+                      {{ order.referencePriority }}
+                    </div>
                     </div>
                   </div>
 
                   <!-- 下一流程负责人-分发人选择 -->
-                  <div class="flex flex-col gap-1">
-                    <span class="text-gray-700 font-semibold text-sm">下一流程负责人：</span>
-                    <el-select v-model="order.distributorID" placeholder="请选择负责人ID" filterable clearable size="default"
+                  <div>
+                    <span class="text-black font-semibold">下一流程负责人：</span>
+                    <div v-if="order.status != '待审批'" class="border-b py-2 " style="border-color:'#d2d5db'">
+                      {{order.distributorID}}
+                    </div>
+                    <el-select v-else v-model="order.distributorID" placeholder="请选择负责人ID" filterable clearable size="default"
                       class="min-w-[120px] w-full" :disabled="order.status !== '待审批'"
                       @visible-change="val => val && fetchDistributorList(order.modelID)" popper-class="custom-select-dropdown">
                       <el-option v-for="item in distributor" :key="item.id" :label="`${item.name} (${item.id})`"

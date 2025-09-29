@@ -45,6 +45,9 @@ public:
     // 获取客户的授权信息（按授权ID分组）
     std::vector<std::vector<std::string>> getCustomerAuthorizationsByGroup(const std::string& clientName) override;
 
+    // 获取指定客户的模型版本历史记录（包括最新版本和历史版本）
+    nlohmann::json selectCustomerModelVersionHistory(const std::string& clientName) override;
+
     ~CustomerInfoDAO();
 
 private:

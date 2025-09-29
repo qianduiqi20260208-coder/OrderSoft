@@ -2206,4 +2206,84 @@ export default defineFakeRoute([
     },
   },
 
+  // 获取客户模型版本历史信息
+  {
+    url: '/mock/client/model-version-history',
+    method: 'get',
+    response: ({ query }) => {
+      const { clientName } = query
+
+      // 模拟不同客户的模型版本历史数据
+      const mockData = {
+        'CAE': {
+          models: [
+            {
+              ata_code: 'ATA04',
+              model_name: 'Aerodynamics',
+              latest_version: 'v3.2',
+              version_info: {
+                '1': { version_id: 'VER001', version: 'v1.0', is_latest: false },
+                '2': { version_id: 'VER002', version: 'v2.0', is_latest: false },
+                '3': { version_id: 'VER003', version: 'v3.0', is_latest: false },
+                '4': { version_id: 'VER004', version: 'v3.2', is_latest: true }
+              }
+            },
+            {
+              ata_code: 'ATA08',
+              model_name: 'WeightBalance',
+              latest_version: 'v2.5',
+              version_info: {
+                '1': { version_id: 'VER005', version: 'v1.0', is_latest: false },
+                '2': { version_id: 'VER006', version: 'v2.0', is_latest: false },
+                '3': { version_id: 'VER007', version: 'v2.5', is_latest: true }
+              }
+            },
+            {
+              ata_code: 'ATA00',
+              model_name: 'Groundhandling',
+              latest_version: 'v1.8',
+              version_info: {
+                '1': { version_id: 'VER008', version: 'v1.0', is_latest: false },
+                '2': { version_id: 'VER009', version: 'v1.5', is_latest: false },
+                '3': { version_id: 'VER010', version: 'v1.8', is_latest: true }
+              }
+            }
+          ]
+        },
+        '华模科技': {
+          models: [
+            {
+              ata_code: 'ATA04',
+              model_name: 'Aerodynamics',
+              latest_version: 'v2.1',
+              version_info: {
+                '1': { version_id: 'VER011', version: 'v1.0', is_latest: false },
+                '2': { version_id: 'VER012', version: 'v2.0', is_latest: false },
+                '3': { version_id: 'VER013', version: 'v2.1', is_latest: true }
+              }
+            },
+            {
+              ata_code: 'ATA08',
+              model_name: 'WeightBalance',
+              latest_version: 'v1.5',
+              version_info: {
+                '1': { version_id: 'VER014', version: 'v1.0', is_latest: false },
+                '2': { version_id: 'VER015', version: 'v1.5', is_latest: true }
+              }
+            }
+          ]
+        }
+      }
+
+      // 返回对应客户的数据，如果没有则返回空数据
+      const data = mockData[clientName as keyof typeof mockData] || { models: [] }
+
+      return {
+        error: '',
+        status: 1,
+        data: data
+      }
+    },
+  },
+
 ])
