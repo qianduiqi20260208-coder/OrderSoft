@@ -948,13 +948,49 @@ function handleCopyOrder(order: OrderItem) {
                     </div>
 
                     <!-- CAE图标 -->
-                    <span v-if="order.targetPlatform === 'CAE'" class="ml-4">
+                    <!-- 接口变更图标 -->
+                    <!-- <span v-if="order.targetPlatform === 'CAE'" class="ml-4">
                       <img src="@/assets/icons/Cae3D.svg" class="inline-block w-7 h-7" title="CAE" alt="CAE" />
                     </span>
-                    <!-- 接口变更图标 -->
+
                     <span v-if="order.apiChanged" :class="order.targetPlatform === 'CAE' ? 'ml-2' : 'ml-4'">
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
-                    </span>
+                    </span> -->
+
+<div class="flex items-center px-2 gap-4 text-sm font-bold">
+
+  <!-- 接口变更 -->
+  <span v-if="order.apiChanged"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default " title ="接口变动">
+    ICD变动
+  </span>
+
+  <!-- 优先级（修正了 :class 的写法） -->
+  <span v-if="order.taskPriority === '紧急'"
+        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default" title="任务优先级">
+    紧急
+  </span>
+
+  <!-- 敏感信息 -->
+  <span v-if="order.hasSensitiveInfo != '否'"
+        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold cursor-default" title="包含敏感信息">
+    敏感ICD
+  </span>
+
+<!-- CAE 验证 -->
+<span v-if="order.isCAEChecked === '是'"
+      class="relative inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold cursor-default" title="通过CAE-IPT平台验证">
+  CAE-IPT
+  <!-- 右上角对号 -->
+  <img src="@/assets/icons/check.svg"
+       class="absolute -top-1 -right-1 w-3 h-3" 
+       alt="通过" />
+</span>
+
+</div>
+
+
+
                     <span style="margin-left: 24px;">
                       <div class="flex items-center gap-2">
                         <!-- 详细信息按钮 -->
@@ -1998,7 +2034,7 @@ function handleCopyOrder(order: OrderItem) {
           </template>
           <div v-if="currentOrder">
             <div class="grid grid-cols-2 gap-x-8 gap-y-4">
-              <!-- 基础信息 
+              <!-- 基础信息
               <div class="flex items-center gap-2">
                 <span class="w-32 text-black font-semibold">工单：</span>
                 <input class="flex-1 border border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold" :value="currentOrder.orderID" readonly>
