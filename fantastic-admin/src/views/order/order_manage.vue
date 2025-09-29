@@ -2685,7 +2685,7 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="col-span-1 w-full flex items-center gap-2">
-                    <span class="w-40 text-black font-semibold">
+                    <span class="w-34 text-black font-semibold">
                       <span class="mr-1 text-red-500">*</span>
                       升级后版本：</span>
                     <div class="flex flex-1 flex-col gap-2">
@@ -2765,13 +2765,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </div>
-                  <!-- 第三行：备注 -->
-                  <div class="col-span-2 w-full flex items-center gap-2">
-                    <span class="w-32 text-black font-semibold">封装备注：</span>
-                    <textarea v-model="order.packageRemark"
-                      class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                      rows="2" :readonly="order.statusTodo !== '待封装'" />
-                  </div>
+
                   <!-- 选择下一步加密人 -->
                   <div class="col-span-2 w-full flex items-center gap-2">
                     <span class="mr-1 text-red-500">*</span>
@@ -2783,7 +2777,13 @@ onMounted(() => {
                         :value="item.id" />
                     </el-select>
                   </div>
-
+                  <!-- 第三行：备注 -->
+                  <div class="col-span-2 w-full flex items-center gap-2">
+                    <span class="w-32 text-black font-semibold">封装备注：</span>
+                    <textarea v-model="order.packageRemark"
+                      class="flex-1 resize-none border-0 border-b border-gray-300 bg-transparent py-2 text-sm text-black focus:outline-none focus:border-blue-500"
+                      rows="2" :readonly="order.statusTodo !== '待封装'" />
+                  </div>
                   <!-- 只有待封装时显示提交按钮和流转区 -->
                   <div class="col-span-2 mt-4 flex flex-col items-center gap-4">
                     <el-button type="primary" size="large"
