@@ -863,15 +863,15 @@ function handleCopyOrder(order: OrderItem) {
           </el-select>
 
           <!-- 预计发送时间段筛选 -->
-          <div class="flex flex-col">
+          <!-- <div class="flex flex-col"> -->
             <el-date-picker v-model="filterDeliveryDateRange" type="daterange" range-separator="至"
               start-placeholder="预计发送日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD"
-              class="min-w-[120px] w-full" clearable @change="handleSearch" />
-          </div>
+              class="min-w-[120px]" style="width: 100%" clearable @change="handleSearch" />
+          <!-- </div> -->
 
           <!-- 状态下拉框 -->
           <div class="flex flex-col">
-            <el-select v-model="filterStatus" placeholder="工单状态" clearable multiple collapse-tags class="min-w-[120px] w-full">
+            <el-select v-model="filterStatus" placeholder="工单状态" clearable multiple collapse-tags class="min-w-[80px] w-full">
               <el-option label="草稿" value="草稿" />
               <el-option label="待审批" value="待审批" />
               <el-option label="待分发" value="待分发" />
