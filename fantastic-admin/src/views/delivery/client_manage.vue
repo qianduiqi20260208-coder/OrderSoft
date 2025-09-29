@@ -601,7 +601,7 @@ onMounted(() => {
               stripe
               style="width: 100%"
               class="mt-2"
-              height="500"
+              :height="!client.versionHistoryLoading && (!client.versionHistoryData || client.versionHistoryData.length === 0)? 200 : 500"
             >
               <!-- 固定列：系统信息 -->
               <el-table-column prop="ata_code" fixed="left" label="系统" min-width="180" show-overflow-tooltip />
@@ -661,10 +661,6 @@ onMounted(() => {
               </el-table-column>
             </el-table>
             
-            <!-- 无数据提示 -->
-            <div v-if="!client.versionHistoryLoading && (!client.versionHistoryData || client.versionHistoryData.length === 0)" class="mt-4 text-center text-gray-500">
-              暂无版本历史数据
-            </div>
           </div>
         </FaPageMain>
       </template>

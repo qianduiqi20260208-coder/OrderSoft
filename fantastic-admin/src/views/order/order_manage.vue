@@ -927,7 +927,7 @@ async function confirmBatchApprove() {
     ElMessage.error('请选择预计发送时间')
     return
   }
-  
+
   let successCount = 0
   for (const orderID of selectedOrderIds.value) {
     const order = userOrders.value.find(o => o.orderID === orderID)
@@ -1558,7 +1558,7 @@ onMounted(() => {
   CAE-IPT
   <!-- 右上角对号 -->
   <img src="@/assets/icons/check.svg"
-       class="absolute -top-1 -right-1 w-3 h-3" 
+       class="absolute -top-1 -right-1 w-3 h-3"
        alt="通过" />
 </span>
 
@@ -3039,9 +3039,9 @@ onMounted(() => {
                     </div>
                     <div v-else>
                       <!-- 非待审批状态：显示只读输入框，显示工单的参考优先级 -->
-                    <div class="border-b py-2 " style="border-color:'#d2d5db'">
-                      {{ order.referencePriority }}
-                    </div>
+                      <div class="border-b py-2 " style="border-color:'#d2d5db'">
+                        {{ order.referencePriority }}
+                      </div>
                     </div>
                   </div>
 
@@ -3049,11 +3049,12 @@ onMounted(() => {
                   <div>
                     <span class="text-black font-semibold">下一流程负责人：</span>
                     <div v-if="order.status != '待审批'" class="border-b py-2 " style="border-color:'#d2d5db'">
-                      {{order.distributorID}}
+                      {{ order.distributorID }}
                     </div>
-                    <el-select v-else v-model="order.distributorID" placeholder="请选择负责人ID" filterable clearable size="default"
-                      class="min-w-[120px] w-full" :disabled="order.status !== '待审批'"
-                      @visible-change="val => val && fetchDistributorList(order.modelID)" popper-class="custom-select-dropdown">
+                    <el-select v-else v-model="order.distributorID" placeholder="请选择负责人ID" filterable clearable
+                      size="default" class="min-w-[120px] w-full" :disabled="order.status !== '待审批'"
+                      @visible-change="val => val && fetchDistributorList(order.modelID)"
+                      popper-class="custom-select-dropdown">
                       <el-option v-for="item in distributor" :key="item.id" :label="`${item.name} (${item.id})`"
                         :value="item.id" />
                     </el-select>
@@ -3065,8 +3066,7 @@ onMounted(() => {
                     <div v-if="order.status === '待审批'">
                       <el-date-picker v-model="order.targetDeliveryTime" type="date" placeholder="请选择日期"
                         format="YYYY-MM-DD" value-format="YYYY-MM-DD" class="min-w-[120px] w-full"
-                        :disabled="order.status !== '待审批'" clearable 
-                        :shortcuts="deliveryTimeShortcuts" />
+                        :disabled="order.status !== '待审批'" clearable :shortcuts="deliveryTimeShortcuts" />
                     </div>
                     <div v-else>
                       <span class="rounded bg-gray-100 px-2 py-1 text-blue-700 font-bold">
@@ -3089,7 +3089,8 @@ onMounted(() => {
               </div>
             </div>
             <!-- 任务发起（始终显示在最下方） -->
-            <div  v-if="getActiveTab(order.orderID) === 'initiate'" title="" :collaspe="!expandedMap[order.orderID]" height="auto" class="w-full border-l border-b border-r  rounded-b-lg border-gray-300 p-4">
+            <div v-if="getActiveTab(order.orderID) === 'initiate'" title="" :collaspe="!expandedMap[order.orderID]"
+              height="auto" class="w-full border-l border-b border-r  rounded-b-lg border-gray-300 p-4">
               <div>
                 <div class="w-full flex items-center justify-between pr-4">
                   <div class="flex items-center">
@@ -3120,22 +3121,26 @@ onMounted(() => {
                 <!-- 基础信息 -->
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">工单：</span>
-                  <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
+                  <input
+                    class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
                     :value="order.orderID" readonly>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">工单类型：</span>
-                  <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
+                  <input
+                    class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
                     :value="order.type" readonly>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">发起人：</span>
-                  <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
+                  <input
+                    class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
                     :value="order.promoterID" readonly>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">发起时间：</span>
-                  <input class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
+                  <input
+                    class="w-full  border-0 border-b border-gray-300 bg-gray-50  py-2 text-blue-700 font-bold  focus:outline-none focus:border-blue-500"
                     :value="order.startTime" readonly>
                 </div>
 
@@ -3143,7 +3148,8 @@ onMounted(() => {
                 <template v-if="order.type === '问题复现'">
                   <div class="flex flex-col gap-2">
                     <span class="text-black font-semibold">对应协调单：</span>
-                    <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
+                    <input
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="order.coordinationID || 'NA'" readonly>
                   </div>
                   <div class="col-span-1 flex flex-col gap-2">
@@ -3180,7 +3186,8 @@ onMounted(() => {
                   </div>
                   <div class="flex flex-col gap-2">
                     <span class="text-black font-semibold">审批人：</span>
-                    <input class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
+                    <input
+                      class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                       :value="order.approverID || 'NA'" readonly>
                   </div>
                 </template>
@@ -3401,7 +3408,7 @@ onMounted(() => {
               .filter(o => selectedOrderIds.includes(o.orderID))
               .some(o => ['交付发送', '版本迭代+交付发送'].includes(o.type))" label="预计发送时间" required>
               <el-date-picker v-model="batchTargetDeliveryTime" type="date" placeholder="请选择日期" format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD" class="min-w-[120px] w-full" clearable 
+                value-format="YYYY-MM-DD" class="min-w-[120px] w-full" clearable
                 :shortcuts="deliveryTimeShortcuts" />
             </el-form-item>
             <!-- 工单信息预览 -->

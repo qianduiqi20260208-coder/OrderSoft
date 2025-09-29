@@ -983,7 +983,7 @@ function handleCopyOrder(order: OrderItem) {
   CAE-IPT
   <!-- 右上角对号 -->
   <img src="@/assets/icons/check.svg"
-       class="absolute -top-1 -right-1 w-3 h-3" 
+       class="absolute -top-1 -right-1 w-3 h-3"
        alt="通过" />
 </span>
 
