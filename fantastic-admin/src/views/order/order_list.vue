@@ -957,37 +957,39 @@ function handleCopyOrder(order: OrderItem) {
                       <img src="@/assets/icons/接口.svg" class="inline-block w-5 h-6" title="接口变更" alt="接口变更" />
                     </span> -->
 
-<div class="flex items-center px-2 gap-4 text-sm font-bold">
+                    <div class="flex items-center px-2 gap-4 text-sm font-bold">
 
-  <!-- 接口变更 -->
-  <span v-if="order.apiChanged"
-        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default " title ="接口变动">
-    ICD变动
-  </span>
+                      <!-- 接口变更 -->
+                      <span v-if="order.apiChanged == '是'"
+                        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default "
+                        title="接口变动">
+                        ICD变动
+                      </span>
 
-  <!-- 优先级（修正了 :class 的写法） -->
-  <span v-if="order.taskPriority === '紧急'"
-        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default" title="任务优先级">
-    紧急
-  </span>
+                      <!-- 优先级（修正了 :class 的写法） -->
+                      <span v-if="order.taskPriority === '紧急'"
+                        class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold cursor-default"
+                        title="任务优先级">
+                        紧急
+                      </span>
 
-  <!-- 敏感信息 -->
-  <span v-if="order.hasSensitiveInfo != '否'"
-        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold cursor-default" title="包含敏感信息">
-    敏感ICD
-  </span>
+                      <!-- 敏感信息 -->
+                      <span v-if="order.hasSensitiveInfo == '是'"
+                        class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold cursor-default"
+                        title="包含敏感信息">
+                        敏感ICD
+                      </span>
 
-<!-- CAE 验证 -->
-<span v-if="order.isCAEChecked === '是'"
-      class="relative inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold cursor-default" title="通过CAE-IPT平台验证">
-  CAE-IPT
-  <!-- 右上角对号 -->
-  <img src="@/assets/icons/check.svg"
-       class="absolute -top-1 -right-1 w-3 h-3"
-       alt="通过" />
-</span>
+                      <!-- CAE 验证 -->
+                      <span v-if="order.isCAEChecked === '是'"
+                        class="relative inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold cursor-default"
+                        title="通过CAE-IPT平台验证">
+                        CAE-IPT
+                        <!-- 右上角对号 -->
+                        <img src="@/assets/icons/check.svg" class="absolute -top-1 -right-1 w-3 h-3" alt="通过" />
+                      </span>
 
-</div>
+                    </div>
 
 
 
@@ -1193,8 +1195,8 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-red-500': tab.status === 'rejected',
                           'bg-gray-400': !tab.status || tab.status === 'pending'
                         }" :title="tab.status === 'completed' ? '已完成' :
-                            tab.status === 'in_progress' ? '进行中' :
-                              tab.status === 'rejected' ? '已退回' : '未开始'"></span>
+                          tab.status === 'in_progress' ? '进行中' :
+                            tab.status === 'rejected' ? '已退回' : '未开始'"></span>
                         <!-- 脉冲动画（进行中状态） -->
                         <span v-if="tab.status === 'in_progress'"
                           class="absolute top-1/6 left-0 w-3 h-3 bg-orange-500 rounded-full animate-ping opacity-75"></span>
@@ -1512,43 +1514,44 @@ function handleCopyOrder(order: OrderItem) {
                   </div>
                 </div>
 
-                  <!-- 加密环节流转内容块 -->
-                  <template v-if="order.transfers_Encrypted && order.transfers_Encrypted.length && getActiveTab(order.orderID) === 'encrypt'">
-                    <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
-                      <div class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4">
-                        <div class="flex items-center justify-between mb-4">
-                          <!-- <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                <!-- 加密环节流转内容块 -->
+                <template
+                  v-if="order.transfers_Encrypted && order.transfers_Encrypted.length && getActiveTab(order.orderID) === 'encrypt'">
+                  <template v-for="(transfer, idx) in order.transfers_Encrypted" :key="idx">
+                    <div class="bg-white border-l border-r border-b border-gray-200 rounded-b-lg shadow-sm p-4">
+                      <div class="flex items-center justify-between mb-4">
+                        <!-- <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
                         <span>负责人：{{ transfer.executorID }}</span>
                         <span>完成时间：{{ transfer.finishedAt }}</span>
                       </div> -->
-                        </div>
-                        <div class="w-full flex items-center justify-between mb-4">
-                          <div class="flex items-center">
-                            <span class="text-lg text-purple-900 font-bold">
-                              加密环节流转
-                              {{ order.transfers_Encrypted.length > 1 ? `（第${order.transfers_Encrypted.length - idx}次）`
+                      </div>
+                      <div class="w-full flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                          <span class="text-lg text-purple-900 font-bold">
+                            加密环节流转
+                            {{ order.transfers_Encrypted.length > 1 ? `（第${order.transfers_Encrypted.length - idx}次）`
                               : '' }}
-                            </span>
-                            <span class="ml-2 inline-block align-middle"
-                              style="width: 12px;height: 12px;background: #a855f7 ;border-radius: 50%;" title="加密流转" />
-                          </div>
-                          <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
-                            <span>流转发起人：{{ transfer.transferCreatorName }}</span>
-                            <span>流转执行人：{{ transfer.transferExecutorName }}</span>
-                            <span>流转时间：{{ transfer.transferTime }}</span>
-                          </div>
+                          </span>
+                          <span class="ml-2 inline-block align-middle"
+                            style="width: 12px;height: 12px;background: #a855f7 ;border-radius: 50%;" title="加密流转" />
                         </div>
-                        <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-purple-50 px-6 py-4">
-                          <div class="col-span-2 w-full flex items-center gap-2">
-                            <span class="w-32 text-black font-semibold">工作记录：</span>
-                            <textarea
-                              class="flex-1 resize-none border border-gray-300 bg-purple-50 px-3 py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                              :value="transfer.transferReason" rows="2" readonly />
-                          </div>
+                        <div class="flex items-center gap-4 text-sm text-gray-700 font-bold">
+                          <span>流转发起人：{{ transfer.transferCreatorName }}</span>
+                          <span>流转执行人：{{ transfer.transferExecutorName }}</span>
+                          <span>流转时间：{{ transfer.transferTime }}</span>
                         </div>
                       </div>
-                    </template>
+                      <div class="grid grid-cols-2 items-start gap-x-8 gap-y-4 rounded bg-purple-50 px-6 py-4">
+                        <div class="col-span-2 w-full flex items-center gap-2">
+                          <span class="w-32 text-black font-semibold">工作记录：</span>
+                          <textarea
+                            class="flex-1 resize-none border border-gray-300 bg-purple-50 px-3 py-2 text-sm text-black focus:outline-none focus:border-blue-500"
+                            :value="transfer.transferReason" rows="2" readonly />
+                        </div>
+                      </div>
+                    </div>
                   </template>
+                </template>
                 <!-- 是否加密信息显示
                 <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div class="flex items-center gap-2">
@@ -2030,7 +2033,7 @@ function handleCopyOrder(order: OrderItem) {
         <el-dialog v-model="dialogVisible" title="" width="900px" :close-on-click-modal="false" @close="closeDialog">
           <template #title>
             <span v-if="currentOrder" class="text-lg font-bold">工单#{{ currentOrder.orderID }}详细信息-{{ currentOrder.type
-              }}</span>
+            }}</span>
           </template>
           <div v-if="currentOrder">
             <div class="grid grid-cols-2 gap-x-8 gap-y-4">

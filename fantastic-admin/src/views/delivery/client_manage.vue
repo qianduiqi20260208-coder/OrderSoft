@@ -73,12 +73,6 @@ const createForm = ref({
   clientinfo: '',
 })
 
-// -------------版本管理相关---------------
-const modelVersionHistoryDialogVisible = ref(false)
-const currentClientName = ref('')
-const modelVersionHistoryData = ref([])
-const modelVersionHistoryLoading = ref(false)
-
 // 新建客户表单验证规则
 const createRules = {
   clientName: [
