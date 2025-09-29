@@ -244,13 +244,13 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             filter["id"] = orderID;  // 根据工单ID筛选
         }
         if (!type.empty()) {
-            filter["type"] = type;  // 根据工单类型筛选
+            filter["type"] = type;  // 根据工单类型筛选（支持逗号分隔的多选）
         }
         if (!promoterID.empty()) {
             filter["creator_id"] = promoterID;  // 根据发起人工号筛选
         }
         if (!status.empty()) {
-            filter["status"] = status;  // 根据工单状态筛选
+            filter["status"] = status;  // 根据工单状态筛选（支持逗号分隔的多选）
         }
         if (!referencePriority.empty()) {
             filter["priority"] = referencePriority;  // 根据参考优先级筛选
@@ -259,7 +259,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             filter["task_priority"] = taskPriority;  // 根据任务优先级
         }
         if (!modelID.empty()) {
-            filter["model"] = modelID;  // 根据模型名筛选
+            filter["model"] = modelID;  // 根据模型名筛选（支持逗号分隔的多选）
         }
         if (!filterMineFlag.empty()) {
             filter["filterMineFlag"] = filterMineFlag;  // 根据我的工单标志筛选

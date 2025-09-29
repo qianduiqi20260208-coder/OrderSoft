@@ -1120,6 +1120,42 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
                     if (i != values.size() - 1) ss << ",";
                 }
                 ss << ")";
+            } else if (ele.first == "type" && ele.second.find(',') != std::string::npos) {
+                // 处理以逗号分割的工单类型字符串，使用IN查询
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (std::getline(iss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \t"));
+                    token.erase(token.find_last_not_of(" \t") + 1);
+                    if (!token.empty()) {
+                        values.push_back(token);
+                    }
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << "'" << values[i] << "'";
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            } else if (ele.first == "status" && ele.second.find(',') != std::string::npos) {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (std::getline(iss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \t"));
+                    token.erase(token.find_last_not_of(" \t") + 1);
+                    if (!token.empty()) {
+                        values.push_back(token);
+                    }
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << "'" << values[i] << "'";
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
             } else {
                 if (ele.second.find(',') != std::string::npos) {
                     std::istringstream iss(ele.second);
@@ -2377,6 +2413,32 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                     if(!firstModel) ss << ",";
                     ss << "'" << model << "'";
                     firstModel = false;
+                }
+                ss << ")";
+            } else if(ele.first == "type") {
+                // 处理以逗号分割的工单类型字符串，使用IN查询
+                ss << "wo." << ele.first << " IN (";
+                std::string types = ele.second;
+                std::stringstream typeStream(types);
+                std::string type;
+                bool firstType = true;
+                while(std::getline(typeStream, type, ',')) {
+                    if(!firstType) ss << ",";
+                    ss << "'" << type << "'";
+                    firstType = false;
+                }
+                ss << ")";
+            } else if(ele.first == "status") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "wo." << ele.first << " IN (";
+                std::string statuses = ele.second;
+                std::stringstream statusStream(statuses);
+                std::string status;
+                bool firstStatus = true;
+                while(std::getline(statusStream, status, ',')) {
+                    if(!firstStatus) ss << ",";
+                    ss << "'" << status << "'";
+                    firstStatus = false;
                 }
                 ss << ")";
             } else if(ele.first == "startDate") {

@@ -182,13 +182,13 @@ const total = ref(0) // 总工单数
 
 // 筛选相关变量
 const filterOrderID = ref('') // 工单ID搜索框
-const filterType = ref('') // 工单类型下拉框
+const filterType = ref<string[]>([]) // 工单类型下拉框（多选）
 const filterPromoterID = ref('') // 员工工号下拉框
 const filterDateRange = ref<[string, string]>(['', '']) // 日期区间选择器
-const filterModelID = ref('') // 模型下拉框
+const filterModelID = ref<string[]>([]) // 模型下拉框（多选）
 const filterReferencePriority = ref('') // 参考优先级下拉框
 const filterTaskPriority = ref('') // 任务优先级下拉框
-const filterStatus = ref('') // 工单状态下拉框
+const filterStatus = ref<string[]>([]) // 工单状态下拉框（多选）
 const filterMine = ref(false) // 与我相关复选框
 const filterDeliveryDateRange = ref<[string, string]>(['', ''])
 
@@ -400,12 +400,12 @@ async function fetchUserOrders(page = 1) {
       page,
       pageSize,
       orderID: filterOrderID.value,
-      type: filterType.value,
+      type: Array.isArray(filterType.value) && filterType.value.length > 0 ? filterType.value.join(',') : '',
       promoterID: filterPromoterID.value,
-      modelID: filterModelID.value,
+      modelID: Array.isArray(filterModelID.value) && filterModelID.value.length > 0 ? filterModelID.value.join(',') : '',
       referencePriority: filterReferencePriority.value,
       taskPriority: filterTaskPriority.value,
-      status: filterStatus.value,
+      status: Array.isArray(filterStatus.value) && filterStatus.value.length > 0 ? filterStatus.value.join(',') : '',
     }
 
     if (filterDateRange.value) {
@@ -433,7 +433,7 @@ async function fetchUserOrders(page = 1) {
       && userStore.permissions.length === 1
       && userStore.permissions[0] === 'ModelEngineer'
     ) {
-      if (!filterModelID.value || filterModelID.value === '') {
+      if (!filterModelID.value || filterModelID.value.length === 0) {
         // 只查自己负责的模型
         params.modelID = userStore.userModels.join(',')
       }
@@ -582,7 +582,7 @@ function loadUserModels() {
       ElMessage.warning('userStorage中无模型数据，使用默认模型列表')
     }
     // 默认筛选条件为“全部”，即空字符串
-    filterModelID.value = ''
+    filterModelID.value = []
   }
   catch (error) {
     console.error('加载用户模型失败:', error)
@@ -610,7 +610,7 @@ onMounted(() => {
     // 如果有模型，默认筛选第一个模型（或全部模型）
     if (userModels.length > 0) {
       // 这里可以让用户选择，也可以直接用全部模型
-      filterModelID.value = ''
+      filterModelID.value = []
     }
   }
 
@@ -848,8 +848,7 @@ function handleCopyOrder(order: OrderItem) {
             @keyup.enter="handleSearch" />
 
           <!-- 工单类型下拉框 -->
-          <el-select v-model="filterType" placeholder="工单类型" clearable class="min-w-[100px] w-full">
-            <el-option label="全部" value="" />
+          <el-select v-model="filterType" placeholder="工单类型" clearable multiple collapse-tags class="min-w-[100px] w-full">
             <el-option label="GX(更新)" value="版本迭代" />
             <el-option label="JF(交付)" value="交付发送" />
             <el-option label="GJ(更新交付)" value="直接封装+发送" />
@@ -859,8 +858,7 @@ function handleCopyOrder(order: OrderItem) {
           </el-select>
 
           <!-- 模型下拉框 -->
-          <el-select v-model="filterModelID" placeholder="模型" clearable class="min-w-[100px] w-full">
-            <el-option label="全部" value="" />
+          <el-select v-model="filterModelID" placeholder="模型" clearable multiple collapse-tags class="min-w-[100px] w-full">
             <el-option v-for="model in modelList" :key="model.id" :label="model.name" :value="model.id" />
           </el-select>
 
@@ -873,8 +871,7 @@ function handleCopyOrder(order: OrderItem) {
 
           <!-- 状态下拉框 -->
           <div class="flex flex-col">
-            <el-select v-model="filterStatus" placeholder="工单状态" clearable class="min-w-[120px] w-full">
-              <el-option label="全部" value="" />
+            <el-select v-model="filterStatus" placeholder="工单状态" clearable multiple collapse-tags class="min-w-[120px] w-full">
               <el-option label="草稿" value="草稿" />
               <el-option label="待审批" value="待审批" />
               <el-option label="待分发" value="待分发" />
