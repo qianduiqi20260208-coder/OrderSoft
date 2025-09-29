@@ -2012,9 +2012,9 @@ function handleCopyOrder(order: OrderItem) {
                   <!-- 备注 -->
                   <div class="flex flex-col gap-2 w-full">
                     <span class="text-black font-semibold">创建工单备注：</span>
-                    <textarea
-                      class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                      :value="order.createRemark" rows="2" readonly />
+                    <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                      {{ order.createRemark || '暂无创建备注' }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2084,9 +2084,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
@@ -2143,9 +2143,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
@@ -2189,9 +2189,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
@@ -2261,9 +2261,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
@@ -2295,9 +2295,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
@@ -2329,9 +2329,9 @@ function handleCopyOrder(order: OrderItem) {
                 </div>
                 <div class="col-span-2 flex flex-col gap-2">
                   <span class="text-black font-semibold">创建备注：</span>
-                  <textarea
-                    class="w-full resize-none border-0 border-b border-gray-300 bg-gray-50  py-2 text-sm text-black focus:outline-none focus:border-blue-500"
-                    :value="currentOrder.createRemark || '无'" rows="2" readonly />
+                  <div class="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-800 border shadow-sm">
+                    {{ currentOrder.createRemark || '暂无创建备注' }}
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="text-black font-semibold">审批人：</span>
