@@ -392,6 +392,7 @@ async function fetchUserOrders(page = 1) {
       referencePriority?: string
       taskPriority?: string
       status?: string
+      statusTodo?: string
       startDate?: string
       endDate?: string
       filterMineFlag?: boolean
@@ -405,7 +406,6 @@ async function fetchUserOrders(page = 1) {
       modelID: Array.isArray(filterModelID.value) && filterModelID.value.length > 0 ? filterModelID.value.join(',') : '',
       referencePriority: filterReferencePriority.value,
       taskPriority: filterTaskPriority.value,
-      status: Array.isArray(filterStatus.value) && filterStatus.value.length > 0 ? filterStatus.value.join(',') : '',
     }
 
     if (filterDateRange.value) {
@@ -418,6 +418,23 @@ async function fetchUserOrders(page = 1) {
     ) {
       params.startDate = `${filterDeliveryDateRange.value[0]} 00:00:00`
       params.endDate = `${filterDeliveryDateRange.value[1]} 23:59:59`
+    }
+
+    // 处理状态筛选
+    if (filterStatus.value && filterStatus.value.length > 0) {
+      const detailedStatuses = filterStatus.value.filter(status => status.includes('-'))
+      if (detailedStatuses.length > 0) {
+        // 设置主状态为"进行中"
+        // params.status = '进行中'
+        // 提取statusTodo值
+        const statusTodos = detailedStatuses.map(status => status.split('-')[1])
+        params.statusTodo = statusTodos.join(',')
+      }
+        // 普通状态筛选
+        const normalStatuses = filterStatus.value.filter(status => !status.includes('-'))
+        if (normalStatuses.length > 0) {
+          params.status = normalStatuses.join(',')
+        }
     }
 
     // 如果勾选了与我相关，设置四个角色为当前用户ID
@@ -876,6 +893,10 @@ function handleCopyOrder(order: OrderItem) {
               <el-option label="待审批" value="待审批" />
               <el-option label="待分发" value="待分发" />
               <el-option label="进行中" value="进行中" />
+              <el-option label="进行中-待封装" value="进行中-待封装" />
+              <el-option label="进行中-待加密" value="进行中-待加密" />
+              <el-option label="进行中-待发送" value="进行中-待发送" />
+              <el-option label="进行中-待完成" value="进行中-待完成" />
               <el-option label="已完成" value="已完成" />
               <el-option label="已退回" value="已退回" />
             </el-select>
@@ -1037,11 +1058,14 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          'bg-blue-100 text-blue-700': order.status === '进行中',
+                          'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
+                          'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
+                          'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
+                          'bg-emerald-100 text-emerald-700': order.status === '进行中' && order.statusTodo === '待完成',
                           'bg-green-100 text-green-700': order.status === '已完成',
                           'bg-red-100 text-red-700': order.status === '已退回',
                         }">
-                          {{ order.status }}
+                          {{ order.status === '进行中' ? order.statusTodo : order.status}}
                         </span>
                       </span>
                     </template>
@@ -1074,11 +1098,15 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          'bg-blue-100 text-blue-700': order.status === '进行中',
+                          
+                          'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
+                          'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
+                          'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
+                          'bg-emerald-100 text-emerald-700': order.status === '进行中' && order.statusTodo === '待完成',
                           'bg-green-100 text-green-700': order.status === '已完成',
                           'bg-red-100 text-red-700': order.status === '已退回',
                         }">
-                          {{ order.status }}
+                          {{ order.status === '进行中' ? order.statusTodo : order.status }}
                         </span>
                       </span>
                     </template>
@@ -1115,11 +1143,15 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          'bg-blue-100 text-blue-700': order.status === '进行中',
+                          
+                          'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
+                          'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
+                          'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
+                          'bg-emerald-100 text-emerald-700': order.status === '进行中' && order.statusTodo === '待完成',
                           'bg-green-100 text-green-700': order.status === '已完成',
                           'bg-red-100 text-red-700': order.status === '已退回',
                         }">
-                          {{ order.status }}
+                          {{ order.status === '进行中' ? order.statusTodo : order.status }}
                         </span>
                       </span>
                     </template>
@@ -1145,11 +1177,15 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          'bg-blue-100 text-blue-700': order.status === '进行中',
+                          
+                          'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
+                          'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
+                          'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
+                          'bg-emerald-100 text-emerald-700': order.status === '进行中' && order.statusTodo === '待完成',
                           'bg-green-100 text-green-700': order.status === '已完成',
                           'bg-red-100 text-red-700': order.status === '已退回',
                         }">
-                          {{ order.status }}
+                          {{ order.status === '进行中' ? order.statusTodo : order.status }}
                         </span>
                       </span>
                     </template>

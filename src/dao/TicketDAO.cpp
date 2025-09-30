@@ -1088,7 +1088,14 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
             continue;
         }
 
-        if (!first) ss << " AND ";
+        if (!first) {
+            if(ele.first == "statusTodo") {
+                ss << " OR ";
+            }else
+            {
+                ss << " AND ";
+            }
+        }
         if (intSet.find(ele.first) != intSet.end()) {
             if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {
                 std::istringstream iss(ele.second);
@@ -1156,6 +1163,19 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
                     if (i != values.size() - 1) ss << ",";
                 }
                 ss << ")";
+            } else if(ele.first == "statusTodo") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "(wo.status_todo IN (";
+                std::string statusTodoes = ele.second;
+                std::stringstream statusTodoStream(statusTodoes);
+                std::string statusTodo;
+                bool firststatusTodo = true;
+                while(std::getline(statusTodoStream, statusTodo, ',')) {
+                    if(!firststatusTodo) ss << ",";
+                    ss << "'" << statusTodo << "'";
+                    firststatusTodo = false;
+                }
+                ss << ")  and wo.status = '进行中')";
             } else {
                 if (ele.second.find(',') != std::string::npos) {
                     std::istringstream iss(ele.second);
@@ -2382,7 +2402,15 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             continue;
         }
         
-        if(!first) ss << " AND ";
+        if(!first) {
+            if(ele.first == "statusTodo") {
+                ss << " OR ";
+            }else
+            {
+                ss << " AND ";
+            }
+            
+        }
         
         if(intSet.find(ele.first) != intSet.end()) {
             if(ele.first == "executor_id") {
@@ -2441,6 +2469,19 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                     firstStatus = false;
                 }
                 ss << ")";
+            } else if(ele.first == "statusTodo") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "(wo.status_todo IN (";
+                std::string statusTodoes = ele.second;
+                std::stringstream statusTodoStream(statusTodoes);
+                std::string statusTodo;
+                bool firststatusTodo = true;
+                while(std::getline(statusTodoStream, statusTodo, ',')) {
+                    if(!firststatusTodo) ss << ",";
+                    ss << "'" << statusTodo << "'";
+                    firststatusTodo = false;
+                }
+                ss << ") and wo.status = '进行中')";
             } else if(ele.first == "startDate") {
                 // 添加目标交付时间的开始日期过滤
                 ss << "((ds.target_delivery_time IS NOT NULL AND ds.target_delivery_time >= '" << ele.second << "') ";

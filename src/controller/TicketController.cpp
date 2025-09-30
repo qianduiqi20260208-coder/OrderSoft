@@ -231,6 +231,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         std::string referencePriority = params.get("referencePriority") ? params.get("referencePriority") : "";
         std::string taskPriority = params.get("taskPriority") ? params.get("taskPriority") : "";
         std::string status = params.get("status") ? params.get("status") : "";
+        std::string statusTodo = params.get("statusTodo") ? params.get("statusTodo") : "";
         std::string filterMineFlag = params.get("filterMineFlag") ? params.get("filterMineFlag") : "";
         std::string userId = params.get("userId") ? params.get("userId") : "";
         std::string startDate = params.get("startDate") ? params.get("startDate") : "";
@@ -251,6 +252,9 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
         if (!status.empty()) {
             filter["status"] = status;  // 根据工单状态筛选（支持逗号分隔的多选）
+        }
+        if (!statusTodo.empty()) {
+            filter["statusTodo"] = statusTodo;  // 根据工单状态筛选（支持逗号分隔的多选）
         }
         if (!referencePriority.empty()) {
             filter["priority"] = referencePriority;  // 根据参考优先级筛选
