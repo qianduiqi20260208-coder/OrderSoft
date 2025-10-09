@@ -43,7 +43,7 @@ function saveSettings() {
 // 最近的待办事项（最多显示5个）
 const recentTodos = computed(() => {
   return todos
-    .filter(todo => todo.status !== 'completed').reverse()
+    .filter(todo => todo.status != 'completed').reverse()
     // .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     // .slice(0, 5)
 })
@@ -67,7 +67,9 @@ function goToTodoPage() {
 }
 
 // 点击待办事项列表项
-function handleTodoItemClick(todoId: string) {
+function handleTodoItemClick(todoId: any) {
+  console.log('handleTodoItemClick', todoId,processedTodoIds.value.has(todoId),processedTodoIds.value);
+  
   // 如果该待办事项已经处理过，则不再重复处理
   if (processedTodoIds.value.has(todoId)) {
     return
@@ -80,7 +82,7 @@ function handleTodoItemClick(todoId: string) {
   markAsRead(todoId)
   
   // 关闭下拉菜单
-  closeDropdown()
+  // closeDropdown()
   
   // 跳转到订单管理页面
   router.push('/order_manage')
@@ -237,9 +239,9 @@ const isDevMode = import.meta.env.DEV
           </div>
 
           <div v-else class="divide-y divide-gray-100">
-            <div v-for="todo in recentTodos" :key="todo.id"
+            <div v-for="todo in recentTodos" :key="todo.messageId"
               class="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="handleTodoItemClick(todo.id)">
+              @click="handleTodoItemClick(todo.messageId)">
               <div class="flex items-start gap-3">
                 <!-- 优先级指示器 -->
                 <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="{
