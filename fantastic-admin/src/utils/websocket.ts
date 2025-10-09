@@ -148,8 +148,11 @@ class WebSocketService {
       case 'auth_failed':
         this.handleAuthFailed(message.data)
         break
-      case 'pong':
-        // 心跳响应，无需特殊处理
+      case 'ping':
+        // 心跳响应，设置用户待处理工单数量        
+        this.userStore.pendingWorkOrdersCount = message.data.pendingCount
+        console.log('收到心跳响应，待处理工单数量:', message.data.pendingCount);
+        
         break
       case 'todo_notification':
         console.log('收到待办事项通知:', message.data);

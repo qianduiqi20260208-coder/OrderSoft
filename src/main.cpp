@@ -107,9 +107,9 @@ int main() {
     // 初始化 WebSocket 路由
     WebSocketController::init(app);
     //定时发送心跳
-    std::thread([]{
+    std::thread([&]{
         while (true) {
-            WebSocketManager::heartbeatSweep();
+            WebSocketManager::heartbeatSweep(*ticketDAO);
             std::this_thread::sleep_for(std::chrono::seconds(30));
         }
     }).detach();
