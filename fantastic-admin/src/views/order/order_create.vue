@@ -68,6 +68,7 @@ async function submitProblemOrder() {
     || !problemOrderForm.value.modelVersionID
     || !problemOrderForm.value.description
     || !problemOrderForm.value.approverID
+    || problemOrderForm.value.files.length === 0
   ) {
     ElMessage.error('请完整填写所有必填项')
     return
@@ -1074,7 +1075,7 @@ async function fetchCustomerList() {
               placeholder="请输入备注"
             />
           </el-form-item>
-          <el-form-item label="参考文件">
+          <el-form-item label="参考文件" required>
             <el-upload
               v-model:file-list="problemOrderForm.files"
               action="#"
@@ -1095,7 +1096,7 @@ async function fetchCustomerList() {
           </el-button>
           <el-button
             type="primary"
-            :disabled="!problemOrderForm.modelId || !problemOrderForm.description || !problemOrderForm.modelVersionID || !problemOrderForm.approverID"
+            :disabled="!problemOrderForm.modelId || !problemOrderForm.description || !problemOrderForm.modelVersionID || !problemOrderForm.approverID || problemOrderForm.files.length === 0"
             @click="submitProblemOrder"
           >
             提交
