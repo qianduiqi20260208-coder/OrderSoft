@@ -224,6 +224,24 @@ const versionDialogVisible = ref(false)
 const versionTableData = ref<ModelVersionInfo[]>([])
 const selectedVersions = ref<ModelVersionInfo[]>([])
 const versionDialogLoading = ref(false)
+// 前端过滤条件（模型版本 / 更新内容）
+const filterVersionKeyword = ref('')
+const filterUpdateNotesKeyword = ref('')
+const filteredVersionTableData = computed(() => {
+  const ver = filterVersionKeyword.value.trim().toLowerCase()
+  const notes = filterUpdateNotesKeyword.value.trim().toLowerCase()
+  return versionTableData.value.filter(item => {
+    const v = (item.version || '').toLowerCase()
+    const n = (item.updateNotes || '').toLowerCase()
+    const passVer = ver === '' || v.includes(ver)
+    const passNotes = notes === '' || n.includes(notes)
+    return (passVer && passNotes) || v.includes('----')
+  })
+})
+function resetVersionFilters() {
+  filterVersionKeyword.value = ''
+  filterUpdateNotesKeyword.value = ''
+}
 function openVersionDialog() {
   versionDialogVisible.value = true
 }
@@ -898,9 +916,21 @@ function expandModel(version: string, expand: boolean) {
                 width="50vw"
                 @open="fetchVersionTableData"
               >
+                <!-- 前端过滤条件：版本/更新内容 -->
+                <el-form inline class="mb-3">
+                  <el-form-item label="版本筛选">
+                    <el-input v-model="filterVersionKeyword" placeholder="包含关键字" clearable />
+                  </el-form-item>
+                  <el-form-item label="更新内容筛选">
+                    <el-input v-model="filterUpdateNotesKeyword" placeholder="包含关键字" clearable />
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button @click="resetVersionFilters">重置</el-button>
+                  </el-form-item>
+                </el-form>
                 <el-table
                   v-loading="versionDialogLoading"
-                  :data="versionTableData"
+                  :data="filteredVersionTableData"
                   style="width: 100%;"
                   @selection-change="handleSelectionChange"
                 >
