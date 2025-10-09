@@ -161,6 +161,24 @@ function toggleBadgeCount() {
   saveSettings()
 }
 
+// 清除通知
+function clearNotifications() {
+  let processedIds = new Set<string>()
+  todos.map(todo => {
+    if (todo.messageId) {
+      processedIds.add(todo.messageId)
+    }
+  })
+  // 清除所有待办事项
+  processedIds.forEach(todoId => {
+    markAsRead(todoId)
+  })
+  // 重置未读数量
+  unreadCount.value = 0
+  // 关闭下拉菜单
+  closeDropdown()
+}
+
 
 // 开发模式判断
 const isDevMode = import.meta.env.DEV
@@ -199,6 +217,10 @@ const isDevMode = import.meta.env.DEV
       <button @click="toggleNotifications" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2">
         <FaIcon :name="showNotifications ? 'i-material-symbols:visibility' : 'i-material-symbols:visibility-off'" class="size-4" />
         {{ showNotifications ? '隐藏通知' : '显示通知' }}
+      </button>
+      <button @click="clearNotifications" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2">
+        <FaIcon name="i-material-symbols:delete-outline" class="size-4" />
+        清除通知
       </button>
     </div>
 
