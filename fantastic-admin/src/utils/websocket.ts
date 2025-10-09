@@ -373,7 +373,7 @@ class WebSocketService {
     
     if (todoId) {
       const todo = this.todos.find(t => t.messageId == todoId)
-      if (todo && todo.status === 'pending') {
+      if (todo) {
         this.unreadCount.value = Math.max(0, this.unreadCount.value - 1)
         
         // 同时标记store中的通知为已读
