@@ -1734,7 +1734,7 @@ function handleBackToClientManage() {
             </div>
             <!-- 合同名称输入 -->
             <div class="flex items-start gap-3">
-              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">合同名称：</label>
+              <label class="mt-2 w-20 flex-shrink-0 text-sm text-gray-600 font-bold">合同名称：</label>
               <el-input
                 v-model="editForm.contractName"
                 placeholder="请输入合同名称"
@@ -1743,7 +1743,7 @@ function handleBackToClientManage() {
             </div>
             <!-- 合同编号输入 -->
             <div class="flex items-start gap-3">
-              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">合同编号：</label>
+              <label class="mt-2 w-20 flex-shrink-0 text-sm text-gray-600 font-bold">合同编号：</label>
               <el-input
                 v-model="editForm.contractNumber"
                 placeholder="请输入合同编号"
