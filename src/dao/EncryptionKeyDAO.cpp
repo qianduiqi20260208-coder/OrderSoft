@@ -250,7 +250,9 @@ std::vector<std::vector<std::string>> EncryptionKey::selectAllAuthInfoByClientEK
 bool EncryptionKey::deliveryOperation(const std::string& clientName,
                                      const std::string& shellNumber,
                                      const std::string& deviceType,
-                                     const std::string& deviceNote)
+                                     const std::string& deviceNote,
+                                     const std::string& contractName,
+                                     const std::string& contractNumber)
 {
     // 使用BaseDAO的优化连接管理
     if (!ensureConnection()) {
@@ -362,9 +364,9 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
 
     // 6. 向encryption_key_history表插入数据，status为"出库"，out_storage_time有值，in_storage_time为NULL
     snprintf(sql, SQL_MAX,
-             "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at) "
-             "VALUES('%s', NULL, '%s', '出库', '%s', '%s', '%s', NOW())",
-             shellNumber.c_str(), outStorageTime.c_str(), clientName.c_str(), deviceType.c_str(), deviceNote.c_str());
+             "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at, contract_name, contract_number) "
+             "VALUES('%s', NULL, '%s', '出库', '%s', '%s', '%s', NOW(), '%s', '%s')",
+             shellNumber.c_str(), outStorageTime.c_str(), clientName.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str());
 
     ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
@@ -763,7 +765,9 @@ bool EncryptionKey::updateAuthorizationEndDates(const std::string& clientName,
 bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
                                          const std::string& shellNumber,
                                          const std::string& deviceType,
-                                         const std::string& deviceNote)
+                                         const std::string& deviceNote,
+                                         const std::string& contractName,
+                                         const std::string& contractNumber)
 {
     char sql[SQL_MAX];
     int ret;
@@ -853,9 +857,9 @@ bool EncryptionKey::updateShellDeviceInfo(const std::string& clientName,
     // 5. 更新外壳号的设备信息
     snprintf(sql, SQL_MAX,
         "UPDATE encryption_key_history "
-        "SET customer_device_type = '%s', customer_pc_remark = '%s' "
+        "SET customer_device_type = '%s', customer_pc_remark = '%s', contract_name = '%s', contract_number = '%s' "
         "WHERE id = %s",
-        deviceType.c_str(), deviceNote.c_str(), historyId.c_str());
+        deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str(), historyId.c_str());
 
     ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
     if (ret) {

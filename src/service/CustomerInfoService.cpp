@@ -142,6 +142,8 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
         shellInfo["shellNumber"] = shellNumber.shellNumber;
         shellInfo["deviceType"] = shellNumber.deviceType;
         shellInfo["deviceNote"] = shellNumber.deviceNote;
+        shellInfo["contractName"] = shellNumber.contractName;
+        shellInfo["contractNumber"] = shellNumber.contractNumber;
         shellInfo["outTime"] = shellNumber.outTime;
         shellInfo["authCount"] = shellNumber.authCount;
         shellInfo["authorizationList"] = nlohmann::json::array();
@@ -500,7 +502,7 @@ nlohmann::json CustomerInfoService::getClientList()
 
             // 设置基本信息
             clientData["dongleCount"] = client.dongleCount;
-            clientData["clientinfo"] = ""; // 客户信息备注，当前数据结构中没有此字段
+            clientData["clientinfo"] = client.remarks; // 客户信息备注，当前数据结构中没有此字段
 
             // 统计模型和版本数量
             std::pair<int, int> modelStats = customerInfoDAO_->selectModelAndModelVersionCountByClient(clientName);

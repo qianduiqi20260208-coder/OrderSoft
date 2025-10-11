@@ -28,6 +28,9 @@ public:
 
     virtual bool alterClientInfo(std::string,std::string,std::string) = 0;
 
+    // 新增：执行客户名称迁移（跨表重命名并处理外键）
+    virtual bool migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo) = 0;
+
     // 获取指定客户和外壳号的授权信息
     virtual nlohmann::json getShellAuthorizationInfoJson(const std::string& clientName, const std::string& shellNumber) = 0;
 

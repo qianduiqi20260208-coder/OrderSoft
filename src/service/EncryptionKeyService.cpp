@@ -48,10 +48,12 @@ std::vector<std::pair<IEncryptionKeyService::EncryptionKeyHistory, std::vector<I
 bool EncryptionKeyService::deliveryOperation(const std::string& clientName,
                                            const std::string& shellNumber,
                                            const std::string& deviceType,
-                                           const std::string& deviceNote)
+                                           const std::string& deviceNote,
+                                           const std::string& contractName,
+                                           const std::string& contractNumber)
 {
     // 调用DAO层的交付操作方法
-    return encryptionKeyDAO_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote);
+    return encryptionKeyDAO_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
 }
 
 bool EncryptionKeyService::returnOperation(const std::string& clientName,
@@ -94,9 +96,11 @@ bool EncryptionKeyService::updateAuthorizationEndDates(const std::string& client
 bool EncryptionKeyService::updateShellDeviceInfo(const std::string& clientName,
                                                  const std::string& shellNumber,
                                                  const std::string& deviceType,
-                                                 const std::string& deviceNote)
+                                                 const std::string& deviceNote,
+                                                 const std::string& contractName,
+                                                 const std::string& contractNumber)
 {
-    return encryptionKeyDAO_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote);
+    return encryptionKeyDAO_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
 }
 
 EncryptionKeyService::~EncryptionKeyService()

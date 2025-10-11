@@ -56,7 +56,7 @@ export default {
     clientName: string // 新客户名称
     clientinfo?: string // 客户信息备注
   }) =>
-    api.put('client/update', data, {
+    api.post('client/migrate', data, {
       // baseURL: '/mock/',
     }),
 
@@ -110,6 +110,8 @@ export default {
     shellNumber: string // 外壳号
     deviceType: string // 设备类型 (lab/IPT/FTD/FFS)
     deviceNote: string // 设备备注
+    contractName: string // 合同名称
+    contractNumber: string // 合同编号
   }) =>
     api.post('shell/deliver', data, {
       // baseURL: '/mock/',
@@ -154,6 +156,8 @@ export default {
     shellNumber: string // 外壳号
     deviceType: string // 设备类型
     deviceNote: string // 设备备注
+    contractName: string // 合同名称
+    contractNumber: string // 合同编号
   }) =>
     api.put('shell/update', data, {
       // baseURL: '/mock/',

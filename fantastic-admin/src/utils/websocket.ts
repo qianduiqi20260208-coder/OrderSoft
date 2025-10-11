@@ -66,7 +66,7 @@ class WebSocketService {
   public currentUser = ref<{ userId: string; account: string; role?: string } | null>(null)
   private isInitialLoad = true // 标记是否为初始加载
 
-  // constructor(url: string = 'ws://localhost:18080/ws') {
+  // constructor(url: string = 'ws://172.16.22.253:18080/ws') {
   constructor(url: string = 'ws://10.20.28.63:18080/ws') {
     this.url = url
   }

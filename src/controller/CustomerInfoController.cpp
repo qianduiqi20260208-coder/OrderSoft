@@ -116,8 +116,8 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
         }));
 
-    // 编辑客户
-    CROW_ROUTE(app, "/client/update").methods("PUT"_method)
+    // 客户名称迁移（跨表重命名，处理外键）
+    CROW_ROUTE(app, "/client/migrate").methods("POST"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
@@ -127,7 +127,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         try {
             // 解析请求体
             nlohmann::json reqData = nlohmann::json::parse(req.body);
-            
+
             // 参数验证
             if (!reqData.contains("originalClientName") || !reqData.contains("clientName")) {
                 nlohmann::json resp = {
@@ -139,43 +139,37 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             }
 
             std::string originalClientName = reqData["originalClientName"];
-            std::string clientName = reqData["clientName"];
-            std::string clientInfo = reqData.value("clientinfo", ""); // 可选参数
+            std::string newClientName = reqData["clientName"];
+            std::string newClientInfo = reqData.value("clientinfo", "");
 
-             LOG_DEBUG("编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
-                   originalClientName.c_str(), clientName.c_str(), clientInfo.c_str());
+            LOG_DEBUG("迁移客户名称，originalClientName: %s, newClientName: %s, newClientInfo: %s\n", 
+                   originalClientName.c_str(), newClientName.c_str(), newClientInfo.c_str());
 
-            // TODO: 调用服务层更新客户信息
-            bool result = customerInfoService_->alterClientInfo(originalClientName, clientName, clientInfo);
+            bool result = customerInfoService_->migrateCustomerName(originalClientName, newClientName, newClientInfo);
 
-            if(result)
-            {
+            if (result) {
                 nlohmann::json resp = {
                     {"status", 1},
                     {"error", ""},
                     {"data", {
                         {"success", true},
-                        {"message", "客户信息更新成功"}
+                        {"message", "客户名称迁移成功"}
                     }}
                 };
-                
                 return crow::response{ resp.dump() };
-            }
-            else
-            {
+            } else {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "客户信息更新失败"},
+                    {"error", "客户名称迁移失败"},
                     {"data", {
                         {"success", false},
-                        {"message", "客户信息更新失败"}
+                        {"message", "客户名称迁移失败"}
                     }}
                 };
                 return crow::response{ resp.dump() };
             }
-
         } catch (const std::exception& e) {
-            LOG_ERROR("编辑客户失败: %s\n", e.what());
+            LOG_ERROR("客户名称迁移失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},

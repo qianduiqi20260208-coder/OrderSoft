@@ -95,7 +95,7 @@ function handleClickOutside(event: Event) {
   const button = document.querySelector('.notification-button')
 
   if (dropdown && button && !dropdown.contains(target) && !button.contains(target)) {
-    closeDropdown()
+    // closeDropdown()
   }
 }
 

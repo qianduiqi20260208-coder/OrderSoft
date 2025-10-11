@@ -186,7 +186,7 @@ const editRules = {
 
 // 编辑客户信息
 function handleEdit(client: Client) {
-  console.warn('编辑客户:', client.clientName)
+  console.warn('编辑客户:', client)
 
   // 保存原始客户名称
   originalClientName.value = client.clientName
@@ -577,7 +577,7 @@ onMounted(() => {
                 总授权：<span class="text-base text-black">{{ getTotalLicenseCount(client) }}</span>
               </span>
               <span v-if="client.clientinfo" class="max-w-[300px] truncate text-sm text-gray-500 font-normal">
-                备注：{{ client.clientinfo }}
+                客户备注：{{ client.clientinfo }}
               </span>
             </div>
           </div>

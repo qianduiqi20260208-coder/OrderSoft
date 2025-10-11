@@ -48,6 +48,9 @@ public:
     // 获取指定客户的模型版本历史记录（包括最新版本和历史版本）
     nlohmann::json selectCustomerModelVersionHistory(const std::string& clientName) override;
 
+    // 执行客户名称迁移（删除外键、批量更新、重建外键），确保原子性
+    bool migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo) override;
+
     ~CustomerInfoDAO();
 
 private:

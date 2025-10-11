@@ -574,6 +574,8 @@ struct ShellNumber
    std::string shellNumber;
    std::string deviceType;
    std::string deviceNote;
+   std::string contractName;
+   std::string contractNumber;
    std::string outTime;
    int authCount;
    std::vector<Authorization> authorizationList;
@@ -583,6 +585,7 @@ struct Client
 {
    int id;
    std::string clientName;
+   std::string remarks; // 客户信息备注
    int dongleCount;
    std::vector<ShellNumber> shellNumbers;
 };

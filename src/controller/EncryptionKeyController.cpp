@@ -261,10 +261,11 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote")) {
+                !reqData.contains("deviceType") || !reqData.contains("deviceNote") ||
+                !reqData.contains("contractName") || !reqData.contains("contractNumber")) {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
+                    {"error", "缺少必要参数：clientName、shellNumber、deviceType、deviceNote、contractName 或 contractNumber"},
                     {"data", {}}
                 };
                 return crow::response(400, resp.dump());
@@ -274,12 +275,14 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellNumber = reqData["shellNumber"];
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
+            std::string contractName = reqData["contractName"];
+            std::string contractNumber = reqData["contractNumber"];
 
-             LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
-                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str());
+             LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str());
 
             // 调用服务层交付外壳
-            bool success = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote);
+            bool success = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
 
             if(success)
             {
@@ -515,7 +518,8 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote")) {
+                !reqData.contains("deviceType") || !reqData.contains("deviceNote") ||
+                !reqData.contains("contractName") || !reqData.contains("contractNumber")) {
                 nlohmann::json resp = {
                     {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
@@ -528,12 +532,14 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellNumber = reqData["shellNumber"];
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
+            std::string contractName = reqData["contractName"];
+            std::string contractNumber = reqData["contractNumber"];
 
-             LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s\n", 
-                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str());
+             LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str());
 
             // 调用服务层更新外壳号信息
-            bool success = encryptionKeyService_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote);
+            bool success = encryptionKeyService_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
 
             if(success)
             {

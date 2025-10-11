@@ -34,6 +34,8 @@ interface ShellInfo {
   shellNumber: string // 外壳号
   deviceType: string // 客户设备类型 lab/IPT/FTD/FFS
   deviceNote: string // 客户设备备注
+  contractName: string // 合同名称
+  contractNumber: string // 合同编号
   authorizationList: AuthorizationInfo[] // 该外壳号下的授权信息列表
   authCount: number // 该外壳号下的总授权数量
   inTime: string // 入库时间
@@ -195,6 +197,8 @@ const deliverShellForm = ref({
   shellNumber: '', // 外壳号
   deviceType: '', // 设备类型
   deviceNote: '', // 设备备注
+  contractName: '', // 合同名称
+  contractNumber: '', // 合同编号
 })
 
 // 可交付外壳号列表相关状态
@@ -241,6 +245,8 @@ async function handleDeliverShell() {
     shellNumber: '',
     deviceType: '',
     deviceNote: '',
+    contractName: '',
+    contractNumber: '',
   }
 
   // 获取可交付外壳号列表
@@ -272,6 +278,8 @@ async function handleConfirmDeliverShell() {
       shellNumber: deliverShellForm.value.shellNumber, // 选中的外壳号
       deviceType: deliverShellForm.value.deviceType, // 设备类型
       deviceNote: deliverShellForm.value.deviceNote, // 设备备注
+      contractName: deliverShellForm.value.contractName, // 合同名称
+      contractNumber: deliverShellForm.value.contractNumber, // 合同编号
     })
 
     if (res?.data?.success) {
@@ -313,6 +321,8 @@ function handleCancelDeliverShell() {
     shellNumber: '',
     deviceType: '',
     deviceNote: '',
+    contractName: '',
+    contractNumber: '',
   }
 }
 
@@ -409,6 +419,8 @@ const getReturnableShells = computed(() => {
     value: shell.shellNumber,
     deviceType: shell.deviceType,
     deviceNote: shell.deviceNote,
+    contractName: shell.contractName,
+    contractNumber: shell.contractNumber,
     authCount: shell.authCount,
   }))
 })
@@ -586,6 +598,8 @@ const editingShell = ref<ShellInfo | null>(null)
 const editForm = ref({
   deviceType: '',
   deviceNote: '',
+  contractName: '',
+  contractNumber: '',
 })
 
 // 编辑外壳号信息处理函数
@@ -595,6 +609,8 @@ function handleEditShell(shellNumber: string) {
     editingShell.value = shell
     editForm.value.deviceType = shell.deviceType
     editForm.value.deviceNote = shell.deviceNote
+    editForm.value.contractName = shell.contractName
+    editForm.value.contractNumber = shell.contractNumber
     editDialogVisible.value = true
   }
 }
@@ -612,6 +628,8 @@ async function handleConfirmEdit() {
       shellNumber: editingShell.value.shellNumber, // 外壳号
       deviceType: editForm.value.deviceType, // 设备类型
       deviceNote: editForm.value.deviceNote, // 设备备注
+      contractName: editForm.value.contractName, // 合同名称
+      contractNumber: editForm.value.contractNumber, // 合同编号
     })
 
     // 更新本地数据
@@ -620,6 +638,8 @@ async function handleConfirmEdit() {
       if (shell) {
         shell.deviceType = editForm.value.deviceType
         shell.deviceNote = editForm.value.deviceNote
+        shell.contractName = editForm.value.contractName
+        shell.contractNumber = editForm.value.contractNumber
       }
     }
 
@@ -641,6 +661,8 @@ function handleCancelEdit() {
   editForm.value = {
     deviceType: '',
     deviceNote: '',
+    contractName: '',
+    contractNumber: '',
   }
 }
 
@@ -962,6 +984,8 @@ async function fetchAuthDetail(clientName: string) {
           shellNumber: shell.shellNumber || '', // 外壳号
           deviceType: shell.deviceType || '', // 客户设备类型 lab/IPT/FTD/FFS
           deviceNote: shell.deviceNote || '', // 客户设备备注
+          contractName: shell.contractName || '', // 合同名称
+          contractNumber: shell.contractNumber || '', // 合同编号
           authCount: shell.authCount || 0, // 该外壳号的总授权数量
           outTime: shell.outTime || 0, // 后端获取外壳号出库时间
           isFullyLoaded: false, // 初始状态为未完全加载
@@ -1142,6 +1166,12 @@ function handleBackToClientManage() {
                   <span class="text-base text-black">
                     <span class="font-bold">设备备注：</span>{{ shell.deviceNote }}
                   </span>
+                  <span v-if="shell.contractName" class="text-base text-black">
+                    <span class="font-bold">合同名称：</span>{{ shell.contractName }}
+                  </span>
+                  <span v-if="shell.contractNumber" class="text-base text-black">
+                    <span class="font-bold">合同编号：</span>{{ shell.contractNumber }}
+                  </span>
                 </div>
               </div>
             </template>
@@ -1313,6 +1343,38 @@ function handleBackToClientManage() {
                 </el-option>
               </el-select>
             </div>
+            <!-- 合同名称 -->
+            <div class="flex items-start gap-3">
+              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">
+                <!-- <span class="text-red-500">*</span> -->
+                合同名称：
+              </label>
+              <el-input
+                v-model="deliverShellForm.contractName"
+                type="text"
+                placeholder="请输入合同名称"
+                maxlength="200"
+                show-word-limit
+                resize="none"
+                class="flex-1"
+              />
+            </div>
+            <!-- 合同编号 -->
+            <div class="flex items-start gap-3">
+              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">
+                <!-- <span class="text-red-500">*</span> -->
+                合同编号：
+              </label>
+              <el-input
+                v-model="deliverShellForm.contractNumber"
+                type="text"
+                placeholder="请输入合同编号"
+                maxlength="200"
+                show-word-limit
+                resize="none"
+                class="flex-1"
+              />
+            </div>
 
             <!-- 设备备注输入 -->
             <div class="flex items-start gap-3">
@@ -1349,6 +1411,12 @@ function handleBackToClientManage() {
                 </div>
                 <div v-if="deliverShellForm.deviceNote">
                   <span class="font-medium">设备备注：</span>{{ deliverShellForm.deviceNote }}
+                </div>
+                <div v-if="deliverShellForm.contractName">
+                  <span class="font-medium">合同名称：</span>{{ deliverShellForm.contractName }}
+                </div>
+                <div v-if="deliverShellForm.contractNumber">
+                  <span class="font-medium">合同编号：</span>{{ deliverShellForm.contractNumber }}
                 </div>
               </div>
             </div>
@@ -1576,6 +1644,8 @@ function handleBackToClientManage() {
                     <div><span class="font-medium">设备类型：</span>{{ shell.deviceType }}</div>
                     <div><span class="font-medium">授权数量：</span>{{ shell.authCount }}个</div>
                     <div><span class="font-medium">设备备注：</span>{{ shell.deviceNote }}</div>
+                    <div><span class="font-medium">合同名称：</span>{{ shell.contractName }}</div>
+                    <div><span class="font-medium">合同编号：</span>{{ shell.contractNumber }}</div>
                   </template>
                 </div>
               </div>
@@ -1661,6 +1731,24 @@ function handleBackToClientManage() {
                   :value="option.value"
                 />
               </el-select>
+            </div>
+            <!-- 合同名称输入 -->
+            <div class="flex items-start gap-3">
+              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">合同名称：</label>
+              <el-input
+                v-model="editForm.contractName"
+                placeholder="请输入合同名称"
+                class="flex-1"
+              />
+            </div>
+            <!-- 合同编号输入 -->
+            <div class="flex items-start gap-3">
+              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">合同编号：</label>
+              <el-input
+                v-model="editForm.contractNumber"
+                placeholder="请输入合同编号"
+                class="flex-1"
+              />
             </div>
 
             <!-- 设备备注输入 -->

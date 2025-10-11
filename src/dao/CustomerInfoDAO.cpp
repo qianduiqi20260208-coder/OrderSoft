@@ -385,6 +385,9 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         "    ekh.customer_pc_remark, "
         "    ekh.in_storage_time, "
         "    ekh.out_storage_time, "
+        "    ci.remarks, " // 客户信息备注
+        "    ekh.contract_name, " // 合同名称
+        "    ekh.contract_number, " // 合同编号
         "    ekh.status "
         "FROM "
         "    customer_info ci "
@@ -416,7 +419,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
     while (local_row = mysql_fetch_row(local_res))
     {
         std::string shellNumber = local_row[0] ? local_row[0] : "";
-        
+        client.remarks = local_row[5] ? local_row[5] : ""; // 客户信息备注
         // 如果这个shell_number还没有处理过，则添加到map中
         if (shellNumberMap.find(shellNumber) == shellNumberMap.end())
         {
@@ -424,6 +427,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             shellInfo.shellNumber = shellNumber;
             shellInfo.deviceType = local_row[1] ? local_row[1] : "";
             shellInfo.deviceNote = local_row[2] ? local_row[2] : "";
+            shellInfo.contractName = local_row[6] ? local_row[6] : ""; // 合同名称
+            shellInfo.contractNumber = local_row[7] ? local_row[7] : ""; // 合同编号
             shellInfo.outTime = local_row[4] ? local_row[4] : "";
 
 
@@ -899,4 +904,66 @@ nlohmann::json CustomerInfoDAO::selectCustomerModelVersionHistory(const std::str
 CustomerInfoDAO::~CustomerInfoDAO()
 {
     DBConnectionManager::closeConnection(mysql);
+}
+
+bool CustomerInfoDAO::migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo)
+{
+    // 使用事务确保原子性
+    TransactionManager tm(this);
+    if (!tm.begin()) {
+        LOG_ERROR("function:migrateCustomerName 开始事务失败");
+        return false;
+    }
+
+    MYSQL* conn = tm.getConnection();
+    int local_ret;
+
+    auto exec = [&](const char* sql){
+        local_ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+        if (local_ret) {
+            LOG_ERROR("function:migrateCustomerName 执行SQL失败: %s, 错误: %s", sql, mysql_error(conn));
+            return false;
+        }
+        return true;
+    };
+
+    // 1. 删除外键约束（使用准确的约束名）
+    if (!exec("ALTER TABLE delivery_send DROP FOREIGN KEY delivery_send_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE package_send DROP FOREIGN KEY package_send_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE encryption_key_history DROP FOREIGN KEY encryption_key_history_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE product_authorization DROP FOREIGN KEY product_authorization_ibfk_2;")) { tm.rollback(); return false; }
+
+    // 2. 批量更新客户名称引用
+    char sqlBuf[SQL_MAX];
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `customer_info` SET `customer_name` = '%s' WHERE `customer_name` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `delivery_send` SET `target_customer` = '%s' WHERE `target_customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `package_send` SET `target_customer` = '%s' WHERE `target_customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `encryption_key_history` SET `customer` = '%s' WHERE `customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `product_authorization` SET `client` = '%s' WHERE `client` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    // 3. 重新添加外键约束，保持原有的 RESTRICT/CASCADE 规则
+    if (!exec("ALTER TABLE delivery_send ADD CONSTRAINT delivery_send_ibfk_2 FOREIGN KEY (target_customer) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE package_send ADD CONSTRAINT package_send_ibfk_2 FOREIGN KEY (target_customer) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE encryption_key_history ADD CONSTRAINT encryption_key_history_ibfk_2 FOREIGN KEY (customer) REFERENCES customer_info (customer_name) ON DELETE CASCADE ON UPDATE CASCADE;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE product_authorization ADD CONSTRAINT product_authorization_ibfk_2 FOREIGN KEY (client) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    // 4. 更新客户remarks(clientinfo)
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `customer_info` SET `remarks` = '%s' WHERE `customer_name` = '%s';", newClientInfo.c_str(), newName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }    
+    if (!tm.commit()) {
+        LOG_ERROR("function:migrateCustomerName 提交事务失败");
+        tm.rollback();
+        return false;
+    }
+
+    return true;
 }

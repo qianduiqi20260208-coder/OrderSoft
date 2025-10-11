@@ -45,5 +45,8 @@ public:
     // 获取客户的授权信息（按授权ID分组）
     virtual std::vector<std::vector<std::string>> getCustomerAuthorizationsByGroup(const std::string& clientName) = 0;
 
+    // 执行客户名称迁移（删除外键、批量更新、重建外键），确保原子性
+    virtual bool migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo) = 0;
+
     virtual ~ICustomerInfoDAO() = default;
 };
