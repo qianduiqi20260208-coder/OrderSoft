@@ -373,6 +373,18 @@ bool EncryptionKey::deliveryOperation(const std::string& clientName,
         return false;
     }
 
+    //更新ek表 当前客户的设置
+    snprintf(sql, SQL_MAX,
+            "update encryption_key set status = '出库', current_customer = '%s' where shell_number = '%s' "
+            ,clientName.c_str(),shellNumber.c_str());
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+
+        LOG_ERROR("function:deliveryOperation sql:%s", sql);
+        return false;
+    }
+
     // 提交事务
     if (mysql_real_query(conn, "COMMIT", strlen("COMMIT"))) {
         LOG_ERROR("function:deliveryOperation 提交事务失败！失败原因：%s", mysql_error(conn));
@@ -391,53 +403,55 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
                                    const std::string& outTime,
                                    const std::string& remark)
 {
-    // 检查数据库连接状态
-    if(!DBConnectionManager::ensureConnected(mysql))
-    {
+    // 使用BaseDAO的优化连接管理
+    if (!ensureConnection()) {
+        LOG_ERROR("function:deliveryOperation 获取数据库连接失败");
         return false;
     }
+    
+    MYSQL* conn = getConnection();
 
     // 开始事务
-    if (mysql_real_query(mysql, "START TRANSACTION", strlen("START TRANSACTION"))) {
-        LOG_ERROR("function:returnOperation 开始事务失败！失败原因：%s", mysql_error(mysql));
+    if (mysql_real_query(conn, "START TRANSACTION", strlen("START TRANSACTION"))) {
+        LOG_ERROR("function:returnOperation 开始事务失败！失败原因：%s", mysql_error(conn));
         return false;
     }
 
     // 1. 检查客户名称是否存在于customer_info表中
     snprintf(sql, SQL_MAX, "SELECT id FROM customer_info WHERE customer_name = '%s'", clientName.c_str());
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
-        LOG_ERROR("function:returnOperation 查询 customer_info 表失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        LOG_ERROR("function:returnOperation 查询 customer_info 表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    res = mysql_store_result(mysql);
+    res = mysql_store_result(conn);
     bool customerExists = (mysql_num_rows(res) > 0);
     mysql_free_result(res);
 
     if (!customerExists) {
         LOG_ERROR("function:returnOperation 客户名称 '%s' 不存在于 customer_info 表中！\n", clientName.c_str());
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
     // 2. 检查encryption_key表中是否存在该外壳号
     snprintf(sql, SQL_MAX, "SELECT id FROM encryption_key WHERE shell_number = '%s'", shellNumber.c_str());
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
-        LOG_ERROR("function:returnOperation 查询 encryption_key 表失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        LOG_ERROR("function:returnOperation 查询 encryption_key 表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    res = mysql_store_result(mysql);
+    res = mysql_store_result(conn);
     bool shellExists = (mysql_num_rows(res) > 0);
     mysql_free_result(res);
 
     if (!shellExists) {
         LOG_ERROR("function:returnOperation 外壳号 '%s' 不存在于 encryption_key 表中！\n", shellNumber.c_str());
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
@@ -445,18 +459,18 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     snprintf(sql, SQL_MAX,
              "SELECT id, customer_device_type, customer_pc_remark FROM encryption_key_history WHERE encryption_key = '%s' AND customer = '%s' AND status = '出库' ORDER BY created_at DESC LIMIT 1",
              shellNumber.c_str(), clientName.c_str());
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
-        LOG_ERROR("function:returnOperation 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        LOG_ERROR("function:returnOperation 查询 encryption_key_history 表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
-    res = mysql_store_result(mysql);
+    res = mysql_store_result(conn);
     if (mysql_num_rows(res) == 0) {
         LOG_ERROR("function:returnOperation 未找到对应的出库记录！客户：%s，外壳号：%s", clientName.c_str(), shellNumber.c_str());
         mysql_free_result(res);
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
@@ -471,18 +485,29 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
              "INSERT INTO encryption_key_history(encryption_key, in_storage_time, out_storage_time, status, customer, customer_device_type, customer_pc_remark, created_at) "
              "VALUES('%s','%s','%s', '%s', '%s', '%s', '%s', NOW())",
              shellNumber.c_str(), inTime.c_str(), outTime.c_str(), operationType.c_str(), clientName.c_str(), deviceType.c_str(), deviceRemark.c_str());
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
-        LOG_ERROR("function:returnOperation 插入 encryption_key_history 表失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        LOG_ERROR("function:returnOperation 插入 encryption_key_history 表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
+
+    //更新ek表 当前客户的设置
+    snprintf(sql, SQL_MAX,
+            "update encryption_key set status = '入库', current_customer = null where shell_number = '%s' "
+            ,shellNumber.c_str());
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+    if (ret) {
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
+        return false;
+    }
+
     // 5. 设置授权为归还
     snprintf(sql, SQL_MAX, "UPDATE `product_authorization` SET `return` = '1' WHERE `encryption_key` = '%s'", shellNumber.c_str());
-    ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+    ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
     if (ret) {
-        LOG_ERROR("function:returnOperation 更新 product_authorization 表失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+        LOG_ERROR("function:returnOperation 更新 product_authorization 表失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
     // 6.TODO设置授权的结束时间
@@ -490,19 +515,19 @@ bool EncryptionKey::returnOperation(const std::string& clientName,
     // 7. 如果操作类型为'损坏'或'丢失'，更新encryption_key表的remark字段
     if (operationType == "损坏" || operationType == "丢失") {
         snprintf(sql, SQL_MAX, "UPDATE encryption_key SET remark = '%s' WHERE shell_number = '%s'", remark.c_str(), shellNumber.c_str());
-        ret = mysql_real_query(mysql, sql, (unsigned long)strlen(sql));
+        ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
         if (ret) {
-            LOG_ERROR("function:returnOperation 更新 encryption_key 表 remark 字段失败！失败原因：%s", mysql_error(mysql));
-            mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+            LOG_ERROR("function:returnOperation 更新 encryption_key 表 remark 字段失败！失败原因：%s", mysql_error(conn));
+            mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
             return false;
         }
          LOG_INFO("function:returnOperation 外壳号 %s 因 %s 更新备注：%s", shellNumber.c_str(), operationType.c_str(), remark.c_str());
     }
 
     // 提交事务
-    if (mysql_real_query(mysql, "COMMIT", strlen("COMMIT"))) {
-        LOG_ERROR("function:returnOperation 提交事务失败！失败原因：%s", mysql_error(mysql));
-        mysql_real_query(mysql, "ROLLBACK", strlen("ROLLBACK"));
+    if (mysql_real_query(conn, "COMMIT", strlen("COMMIT"))) {
+        LOG_ERROR("function:returnOperation 提交事务失败！失败原因：%s", mysql_error(conn));
+        mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
 
