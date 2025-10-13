@@ -18,7 +18,9 @@ public:
     bool deliveryOperation(const std::string& clientName,
                           const std::string& shellNumber,
                           const std::string& deviceType,
-                          const std::string& deviceNote) override;
+                          const std::string& deviceNote,
+                          const std::string& contractName,
+                          const std::string& contractNumber) override;
     // 归还操作：更新encryption_key_history表中的归还时间和状态
     bool returnOperation(const std::string& clientName,
                          const std::string& shellNumber,
@@ -47,7 +49,9 @@ public:
     bool updateShellDeviceInfo(const std::string& clientName,
                                const std::string& shellNumber,
                                const std::string& deviceType,
-                               const std::string& deviceNote) override;
+                               const std::string& deviceNote,
+                               const std::string& contractName,
+                               const std::string& contractNumber) override;
 
     ~EncryptionKeyService();
 private:

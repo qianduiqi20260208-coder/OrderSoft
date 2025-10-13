@@ -12,6 +12,7 @@
 #include "DBConnectionManager.h"
 #include <sstream>
 #include <crow/json.h>
+#include "TicketDAO.h"
 
 struct Session {
     crow::websocket::connection* conn;
@@ -77,17 +78,20 @@ public:
 
 
     // 定时任务调用：发 ping 并清理超时连接
-    static void heartbeatSweep() {
+    static void heartbeatSweep(TicketDAO& ticketDAO) {
         std::lock_guard<std::mutex> lock(mtx);
             auto now = std::chrono::steady_clock::now();
 
             std::string timestamp = makeIso8601LocalNoMillis();
 
             for (auto it = sessions.begin(); it != sessions.end();) {
+                long userId = it->first;
+                // 调用getUserPendingWorkOrdersCount获取待处理工单数量
+                int pendingCount = ticketDAO.getUserPendingWorkOrdersCount(std::to_string(userId));
                 std::ostringstream json;
                 json << "{"
                     << "\"type\":\"ping\","
-                    << "\"data\":{},"
+                    << "\"data\":{\"pendingCount\":" << pendingCount << "},"
                     << "\"timestamp\":\"" << timestamp << "\""
                     << "}";
                 if(it->second.conn)

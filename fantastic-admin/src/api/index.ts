@@ -16,7 +16,7 @@ declare module 'axios' {
 }
 
 const api = axios.create({
-  baseURL: (import.meta.env.DEV && import.meta.env.VITE_OPEN_PROXY) ? '/proxy/' : import.meta.env.VITE_APP_API_BASEURL,
+  baseURL: (import.meta.env.DEV && import.meta.env.VITE_OPEN_PROXY) ? '/proxy/' : (import.meta.env.DEV ? '/mock/' : import.meta.env.VITE_APP_API_BASEURL),
   timeout: 1000 * 60,
   responseType: 'json',
 })
@@ -72,6 +72,11 @@ api.interceptors.response.use(
      * 规则是当 status 为 1 时表示请求成功，为 0 时表示接口需要登录或者登录状态失效，需要重新登录
      * 请求出错时 error 会返回错误信息
      */
+    // 检查是否是mock数据（mock数据直接返回response）
+    if (response.config.baseURL === '/mock/') {
+      return Promise.resolve(response)
+    }
+    
     if (response.data.status === 1) {
       if (response.data.error !== '') {
         toast.warning('Warning', {

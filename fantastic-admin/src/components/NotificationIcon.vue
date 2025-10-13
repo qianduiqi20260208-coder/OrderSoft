@@ -43,7 +43,7 @@ function saveSettings() {
 // 最近的待办事项（最多显示5个）
 const recentTodos = computed(() => {
   return todos
-    .filter(todo => todo.status !== 'completed').reverse()
+    .filter(todo => todo.status != 'completed').reverse()
     // .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     // .slice(0, 5)
 })
@@ -67,7 +67,9 @@ function goToTodoPage() {
 }
 
 // 点击待办事项列表项
-function handleTodoItemClick(todoId: string) {
+function handleTodoItemClick(todoId: any) {
+  console.log('handleTodoItemClick', todoId,processedTodoIds.value.has(todoId),processedTodoIds.value);
+  
   // 如果该待办事项已经处理过，则不再重复处理
   if (processedTodoIds.value.has(todoId)) {
     return
@@ -80,7 +82,7 @@ function handleTodoItemClick(todoId: string) {
   markAsRead(todoId)
   
   // 关闭下拉菜单
-  closeDropdown()
+  // closeDropdown()
   
   // 跳转到订单管理页面
   router.push('/order_manage')
@@ -93,7 +95,7 @@ function handleClickOutside(event: Event) {
   const button = document.querySelector('.notification-button')
 
   if (dropdown && button && !dropdown.contains(target) && !button.contains(target)) {
-    closeDropdown()
+    // closeDropdown()
   }
 }
 
@@ -159,6 +161,24 @@ function toggleBadgeCount() {
   saveSettings()
 }
 
+// 清除通知
+function clearNotifications() {
+  let processedIds = new Set<string>()
+  todos.map(todo => {
+    if (todo.messageId) {
+      processedIds.add(todo.messageId)
+    }
+  })
+  // 清除所有待办事项
+  processedIds.forEach(todoId => {
+    markAsRead(todoId)
+  })
+  // 重置未读数量
+  unreadCount.value = 0
+  // 关闭下拉菜单
+  closeDropdown()
+}
+
 
 // 开发模式判断
 const isDevMode = import.meta.env.DEV
@@ -197,6 +217,10 @@ const isDevMode = import.meta.env.DEV
       <button @click="toggleNotifications" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2">
         <FaIcon :name="showNotifications ? 'i-material-symbols:visibility' : 'i-material-symbols:visibility-off'" class="size-4" />
         {{ showNotifications ? '隐藏通知' : '显示通知' }}
+      </button>
+      <button @click="clearNotifications" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2">
+        <FaIcon name="i-material-symbols:delete-outline" class="size-4" />
+        清除通知
       </button>
     </div>
 
@@ -237,9 +261,9 @@ const isDevMode = import.meta.env.DEV
           </div>
 
           <div v-else class="divide-y divide-gray-100">
-            <div v-for="todo in recentTodos" :key="todo.id"
+            <div v-for="todo in recentTodos" :key="todo.messageId"
               class="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="handleTodoItemClick(todo.id)">
+              @click="handleTodoItemClick(todo.messageId)">
               <div class="flex items-start gap-3">
                 <!-- 优先级指示器 -->
                 <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="{

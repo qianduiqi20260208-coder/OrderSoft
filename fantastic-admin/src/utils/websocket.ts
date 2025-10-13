@@ -66,8 +66,8 @@ class WebSocketService {
   public currentUser = ref<{ userId: string; account: string; role?: string } | null>(null)
   private isInitialLoad = true // 标记是否为初始加载
 
-  // constructor(url: string = 'ws://localhost:18090/ws') {
-  constructor(url: string = 'ws://172.16.19.99:18080/ws') {
+  // constructor(url: string = 'ws://172.16.22.253:18080/ws') {
+  constructor(url: string = 'ws://10.20.28.63:18080/ws') {
     this.url = url
   }
 
@@ -148,8 +148,11 @@ class WebSocketService {
       case 'auth_failed':
         this.handleAuthFailed(message.data)
         break
-      case 'pong':
-        // 心跳响应，无需特殊处理
+      case 'ping':
+        // 心跳响应，设置用户待处理工单数量        
+        this.userStore.pendingWorkOrdersCount = message.data.pendingCount
+        console.log('收到心跳响应，待处理工单数量:', message.data.pendingCount);
+        
         break
       case 'todo_notification':
         console.log('收到待办事项通知:', message.data);
@@ -272,7 +275,7 @@ class WebSocketService {
 
   // 处理待办事项更新
   private handleTodoUpdate(data: TodoItem, message: WebSocketMessage) {
-    const index = this.todos.findIndex(todo => todo.id === data.id)
+    const index = this.todos.findIndex(todo => todo.id == data.id)
     if (index !== -1) {
       const oldTodo = this.todos[index]
       // 保留原有的messageId，如果更新数据中没有提供
@@ -313,7 +316,7 @@ class WebSocketService {
 
   // 处理待办事项删除
   private handleTodoDelete(data: { id: string }, message: WebSocketMessage) {
-    const index = this.todos.findIndex(todo => todo.id === data.id)
+    const index = this.todos.findIndex(todo => todo.id == data.id)
     if (index !== -1) {
       const todo = this.todos[index]
       this.todos.splice(index, 1)
@@ -366,9 +369,11 @@ class WebSocketService {
 
   // 标记待办事项为已读
   markAsRead(todoId?: string) {
+    console.log('markAsRead', todoId);
+    
     if (todoId) {
-      const todo = this.todos.find(t => t.id === todoId)
-      if (todo && todo.status === 'pending') {
+      const todo = this.todos.find(t => t.messageId == todoId)
+      if (todo) {
         this.unreadCount.value = Math.max(0, this.unreadCount.value - 1)
         
         // 同时标记store中的通知为已读
@@ -378,6 +383,11 @@ class WebSocketService {
           // 可选：从缓存中删除已读通知（避免存储过多已读通知）
           this.notificationStore.deleteNotification(todo.messageId) // 删除特定通知
           // this.notificationStore.clearReadNotifications() // 或者清除所有已读通知
+          // 从this.todos中删除
+          const index = this.todos.findIndex(t => t.messageId == todoId)
+          if (index !== -1) {
+            this.todos.splice(index, 1)
+          }
         }
       }
     } else {

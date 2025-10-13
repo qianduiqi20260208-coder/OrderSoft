@@ -25,7 +25,9 @@ public:
     bool deliveryOperation(const std::string& clientName,
                           const std::string& shellNumber,
                           const std::string& deviceType,
-                          const std::string& deviceNote) override;
+                          const std::string& deviceNote,
+                          const std::string& contractName,
+                          const std::string& contractNumber) override;
 
     // 入库操作：更新encryption_key_history表中的入库时间和状态
     bool returnOperation(const std::string& clientName,
@@ -55,7 +57,9 @@ public:
     bool updateShellDeviceInfo(const std::string& clientName,
                                const std::string& shellNumber,
                                const std::string& deviceType,
-                               const std::string& deviceNote) override;
+                               const std::string& deviceNote,
+                               const std::string& contractName,
+                               const std::string& contractNumber) override;
     ~EncryptionKey();
 private:
     MYSQL* mysql;

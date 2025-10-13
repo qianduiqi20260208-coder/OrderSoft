@@ -142,6 +142,8 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
         shellInfo["shellNumber"] = shellNumber.shellNumber;
         shellInfo["deviceType"] = shellNumber.deviceType;
         shellInfo["deviceNote"] = shellNumber.deviceNote;
+        shellInfo["contractName"] = shellNumber.contractName;
+        shellInfo["contractNumber"] = shellNumber.contractNumber;
         shellInfo["outTime"] = shellNumber.outTime;
         shellInfo["authCount"] = shellNumber.authCount;
         shellInfo["authorizationList"] = nlohmann::json::array();
@@ -200,6 +202,118 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
         }
 
         data["shellNumbers"].push_back(shellInfo);
+    }
+
+    return result;
+}
+
+nlohmann::json CustomerInfoService::getCustomerModelVersionHistory(const std::string& clientName)
+{
+    nlohmann::json result = {
+        {"status", 1},
+        {"error", ""},
+        {"data", {
+            {"clientName", clientName},
+            {"models", nlohmann::json::array()}
+        }}
+    };
+
+    try {
+        // 调用DAO层获取客户模型版本历史数据
+        nlohmann::json historyData = customerInfoDAO_->selectCustomerModelVersionHistory(clientName);
+        
+        // 构建返回数据结构
+        nlohmann::json& data = result["data"];
+        data["clientName"] = clientName;
+        data["models"] = nlohmann::json::array();
+        
+        // 转换数据格式以匹配前端期望的结构
+        if (!historyData.is_null() && historyData.is_array()) {
+            for (const auto& model : historyData) {
+                nlohmann::json transformedModel;
+                
+                // 映射基本字段（用于表格直接显示）
+                transformedModel["ata_code"] = model["model_ata_code"];
+                transformedModel["model_name"] = model["model_chinese_name"];
+                transformedModel["latest_version"] = model["latest_version"];
+                
+                // 处理版本数组 - 创建两种格式
+                if (model.contains("versions") && model["versions"].is_array()) {
+                    // 格式1：用于对话框显示的扁平数组
+                    transformedModel["versions"] = nlohmann::json::array();
+                    
+                    // 格式2：用于表格直接显示的version_info对象（每个版本一个键值）
+                    transformedModel["version_info"] = nlohmann::json::object();
+                    
+                    // 按日期分组统计版本数量
+                    std::map<std::string, int> dateGroupCount;
+                    
+                    // 第一遍：统计每个日期的版本数量
+                    for (const auto& version : model["versions"]) {
+                        std::string completedDate = version["completed_date"];
+                        size_t spacePos = completedDate.find(' ');
+                        std::string dateKey = (spacePos != std::string::npos) ? completedDate.substr(0, spacePos) : completedDate;
+                        dateGroupCount[dateKey]++;
+                    }
+                    
+                    // 第二遍：为每个版本创建唯一键值
+                    std::map<std::string, int> currentDateIndex;
+                    
+                    for (const auto& version : model["versions"]) {
+                        nlohmann::json transformedVersion;
+                        
+                        // 映射版本字段，使用前端期望的字段名
+                        transformedVersion["modelName"] = model["model_chinese_name"];
+                        transformedVersion["modelVersion"] = version["version"];
+                        transformedVersion["workOrderNo"] = version["work_order_id"];
+                        
+                        // 提取日期部分（去掉时间）
+                        std::string completedDate = version["completed_date"];
+                        size_t spacePos = completedDate.find(' ');
+                        std::string dateKey;
+                        if (spacePos != std::string::npos) {
+                            dateKey = completedDate.substr(0, spacePos);
+                            transformedVersion["deliveryDate"] = dateKey;
+                        } else {
+                            dateKey = completedDate;
+                            transformedVersion["deliveryDate"] = dateKey;
+                        }
+                        
+                        // 设置发送日期（这里使用完成日期作为发送日期）
+                        if (spacePos != std::string::npos) {
+                            transformedVersion["packageSendDate"] = completedDate.substr(0, spacePos);
+                        } else {
+                            transformedVersion["packageSendDate"] = completedDate;
+                        }
+                        
+                        transformedVersion["isLatest"] = version["is_latest"];
+                        
+                        // 添加到格式1数组
+                        transformedModel["versions"].push_back(transformedVersion);
+                        
+                        // 为每个版本创建唯一的键值：如果同一日期有多个版本，添加索引后缀
+                        int dateIndex = currentDateIndex[dateKey]++;
+                        std::string versionKey = (dateIndex == 0 && dateGroupCount[dateKey] == 1) ? dateKey : dateKey + "_" + std::to_string(dateIndex);
+                        
+                        nlohmann::json versionInfo;
+                        versionInfo["version_id"] = version["work_order_id"];
+                        versionInfo["version"] = version["version"];
+                        versionInfo["is_latest"] = version["is_latest"];
+                        versionInfo["delivery_date"] = dateKey; // 保存基础日期用于前端匹配
+                        versionInfo["date_index"] = dateIndex; // 保存日期内索引
+                        
+                        transformedModel["version_info"][versionKey] = versionInfo;
+                    }
+                }
+                
+                data["models"].push_back(transformedModel);
+            }
+        }
+        
+    } catch (const std::exception& e) {
+        result["error"] = std::string("获取客户模型版本历史失败: ") + e.what();
+        result["status"] = 0;
+        result["data"] = nlohmann::json::object();
     }
 
     return result;
@@ -388,7 +502,7 @@ nlohmann::json CustomerInfoService::getClientList()
 
             // 设置基本信息
             clientData["dongleCount"] = client.dongleCount;
-            clientData["clientinfo"] = ""; // 客户信息备注，当前数据结构中没有此字段
+            clientData["clientinfo"] = client.remarks; // 客户信息备注，当前数据结构中没有此字段
 
             // 统计模型和版本数量
             std::pair<int, int> modelStats = customerInfoDAO_->selectModelAndModelVersionCountByClient(clientName);

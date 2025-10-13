@@ -385,6 +385,9 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         "    ekh.customer_pc_remark, "
         "    ekh.in_storage_time, "
         "    ekh.out_storage_time, "
+        "    ci.remarks, " // 客户信息备注
+        "    ekh.contract_name, " // 合同名称
+        "    ekh.contract_number, " // 合同编号
         "    ekh.status "
         "FROM "
         "    customer_info ci "
@@ -416,7 +419,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
     while (local_row = mysql_fetch_row(local_res))
     {
         std::string shellNumber = local_row[0] ? local_row[0] : "";
-        
+        client.remarks = local_row[5] ? local_row[5] : ""; // 客户信息备注
         // 如果这个shell_number还没有处理过，则添加到map中
         if (shellNumberMap.find(shellNumber) == shellNumberMap.end())
         {
@@ -424,6 +427,8 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             shellInfo.shellNumber = shellNumber;
             shellInfo.deviceType = local_row[1] ? local_row[1] : "";
             shellInfo.deviceNote = local_row[2] ? local_row[2] : "";
+            shellInfo.contractName = local_row[6] ? local_row[6] : ""; // 合同名称
+            shellInfo.contractNumber = local_row[7] ? local_row[7] : ""; // 合同编号
             shellInfo.outTime = local_row[4] ? local_row[4] : "";
 
 
@@ -784,7 +789,181 @@ std::vector<std::vector<std::string>> CustomerInfoDAO::getCustomerAuthorizations
     return result;
 }
 
+nlohmann::json CustomerInfoDAO::selectCustomerModelVersionHistory(const std::string& clientName)
+{
+    nlohmann::json result = nlohmann::json::array();
+    
+    // 使用连接池获取连接
+    ConnectionGuard conn = DBConnectionManager::getPoolConnection();
+    if (!conn) {
+        LOG_ERROR("function:selectCustomerModelVersionHistory 获取数据库连接失败");
+        return result;
+    }
+    
+    char local_sql[SQL_MAX * 2]; // 使用更大的缓冲区
+    int local_ret;
+    MYSQL_RES* local_res;
+    MYSQL_ROW local_row;
+    
+    // 查询客户发送的所有模型版本历史，使用联合查询获取发送记录
+    snprintf(local_sql, SQL_MAX * 2, 
+        "SELECT wo.model, mv.version, wo.id as work_order_id, wo.completed_at, t.target_customer "
+        "FROM ("
+        "    SELECT wo.model, mv.version, wo.id, wo.completed_at, ds.target_customer "
+        "    FROM work_order AS wo "
+        "    INNER JOIN delivery_send AS ds ON ds.work_order_id = wo.id "
+        "    INNER JOIN model_version AS mv ON wo.model_version_id = mv.id "
+        "    WHERE wo.completed_at IS NOT NULL "
+        "    UNION "
+        "    SELECT wo.model, mv.version, wo.id, wo.completed_at, ps.target_customer "
+        "    FROM work_order AS wo "
+        "    INNER JOIN package_send AS ps ON ps.work_order_id = wo.id "
+        "    INNER JOIN model_version AS mv ON ps.new_model_version_id = mv.id "
+        "    WHERE wo.completed_at IS NOT NULL "
+        ") t "
+        "INNER JOIN work_order wo ON t.id = wo.id "
+        "INNER JOIN model_version mv ON t.version = mv.version AND t.model = mv.model "
+        "WHERE t.target_customer = '%s' "
+        "ORDER BY t.model, wo.completed_at DESC;",
+        clientName.c_str());
+    
+    local_ret = mysql_real_query(conn.get(), local_sql, (unsigned long)strlen(local_sql));
+    if (local_ret) {
+        LOG_ERROR("function:selectCustomerModelVersionHistory 查询失败！失败原因：%s", mysql_error(conn.get()));
+        return result;
+    }
+    
+    local_res = mysql_store_result(conn.get());
+    
+    std::string currentModel;
+    nlohmann::json currentModelObj;
+    
+    while ((local_row = mysql_fetch_row(local_res))) {
+        std::string modelAtaCode = local_row[0] ? local_row[0] : "";
+        std::string version = local_row[1] ? local_row[1] : "";
+        std::string workOrderId = local_row[2] ? local_row[2] : "";
+        std::string completedDate = local_row[3] ? local_row[3] : "";
+        std::string targetCustomer = local_row[4] ? local_row[4] : "";
+        
+        // 获取模型中文名（需要额外的查询，这里暂时使用ata_code作为名称）
+        std::string modelChineseName = modelAtaCode; // 临时解决方案
+        
+        // 如果是新模型，创建新的模型对象
+        if (currentModel != modelAtaCode) {
+            if (!currentModel.empty()) {
+                result.push_back(currentModelObj);
+            }
+            currentModel = modelAtaCode;
+            currentModelObj = nlohmann::json::object();
+            currentModelObj["model_ata_code"] = modelAtaCode;
+            currentModelObj["model_chinese_name"] = modelChineseName;
+            currentModelObj["latest_version"] = version; // 第一个记录就是最后发送的版本
+            currentModelObj["versions"] = nlohmann::json::array();
+        }
+        
+        // 添加版本信息
+        nlohmann::json versionObj;
+        versionObj["version"] = version;
+        versionObj["work_order_id"] = workOrderId;
+        versionObj["completed_date"] = completedDate;
+        versionObj["is_latest"] = (currentModelObj["latest_version"] == version); // 只有最后发送的版本设为true
+        
+        currentModelObj["versions"].push_back(versionObj);
+    }
+    
+    // 添加最后一个模型
+    if (!currentModel.empty()) {
+        result.push_back(currentModelObj);
+    }
+    
+    mysql_free_result(local_res);
+    
+    // 为每个模型获取中文名
+    for (auto& modelObj : result) {
+        std::string ataCode = modelObj["model_ata_code"];
+        snprintf(local_sql, SQL_MAX, 
+            "SELECT model_name FROM model WHERE ata_code = '%s' LIMIT 1;",
+            ataCode.c_str());
+        
+        local_ret = mysql_real_query(conn.get(), local_sql, (unsigned long)strlen(local_sql));
+        if (!local_ret) {
+            MYSQL_RES* name_res = mysql_store_result(conn.get());
+            if (name_res) {
+                MYSQL_ROW name_row = mysql_fetch_row(name_res);
+                if (name_row && name_row[0]) {
+                    modelObj["model_chinese_name"] = name_row[0];
+                }
+                mysql_free_result(name_res);
+            }
+        }
+    }
+    
+    return result;
+}
+
 CustomerInfoDAO::~CustomerInfoDAO()
 {
     DBConnectionManager::closeConnection(mysql);
+}
+
+bool CustomerInfoDAO::migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo)
+{
+    // 使用事务确保原子性
+    TransactionManager tm(this);
+    if (!tm.begin()) {
+        LOG_ERROR("function:migrateCustomerName 开始事务失败");
+        return false;
+    }
+
+    MYSQL* conn = tm.getConnection();
+    int local_ret;
+
+    auto exec = [&](const char* sql){
+        local_ret = mysql_real_query(conn, sql, (unsigned long)strlen(sql));
+        if (local_ret) {
+            LOG_ERROR("function:migrateCustomerName 执行SQL失败: %s, 错误: %s", sql, mysql_error(conn));
+            return false;
+        }
+        return true;
+    };
+
+    // 1. 删除外键约束（使用准确的约束名）
+    if (!exec("ALTER TABLE delivery_send DROP FOREIGN KEY delivery_send_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE package_send DROP FOREIGN KEY package_send_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE encryption_key_history DROP FOREIGN KEY encryption_key_history_ibfk_2;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE product_authorization DROP FOREIGN KEY product_authorization_ibfk_2;")) { tm.rollback(); return false; }
+
+    // 2. 批量更新客户名称引用
+    char sqlBuf[SQL_MAX];
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `customer_info` SET `customer_name` = '%s' WHERE `customer_name` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `delivery_send` SET `target_customer` = '%s' WHERE `target_customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `package_send` SET `target_customer` = '%s' WHERE `target_customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `encryption_key_history` SET `customer` = '%s' WHERE `customer` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `product_authorization` SET `client` = '%s' WHERE `client` = '%s';", newName.c_str(), oldName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }
+
+    // 3. 重新添加外键约束，保持原有的 RESTRICT/CASCADE 规则
+    if (!exec("ALTER TABLE delivery_send ADD CONSTRAINT delivery_send_ibfk_2 FOREIGN KEY (target_customer) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE package_send ADD CONSTRAINT package_send_ibfk_2 FOREIGN KEY (target_customer) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE encryption_key_history ADD CONSTRAINT encryption_key_history_ibfk_2 FOREIGN KEY (customer) REFERENCES customer_info (customer_name) ON DELETE CASCADE ON UPDATE CASCADE;")) { tm.rollback(); return false; }
+    if (!exec("ALTER TABLE product_authorization ADD CONSTRAINT product_authorization_ibfk_2 FOREIGN KEY (client) REFERENCES customer_info (customer_name) ON DELETE RESTRICT ON UPDATE RESTRICT;")) { tm.rollback(); return false; }
+    // 4. 更新客户remarks(clientinfo)
+    snprintf(sqlBuf, SQL_MAX, "UPDATE `customer_info` SET `remarks` = '%s' WHERE `customer_name` = '%s';", newClientInfo.c_str(), newName.c_str());
+    if (!exec(sqlBuf)) { tm.rollback(); return false; }    
+    if (!tm.commit()) {
+        LOG_ERROR("function:migrateCustomerName 提交事务失败");
+        tm.rollback();
+        return false;
+    }
+
+    return true;
 }

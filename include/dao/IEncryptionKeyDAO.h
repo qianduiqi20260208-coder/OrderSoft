@@ -20,7 +20,9 @@ public:
     virtual bool deliveryOperation(const std::string& clientName,
                                   const std::string& shellNumber,
                                   const std::string& deviceType,
-                                  const std::string& deviceNote) = 0;
+                                  const std::string& deviceNote,
+                                  const std::string& contractName,
+                                  const std::string& contractNumber) = 0;
 
     // 入库操作：更新encryption_key_history表中的入库时间和状态
     // 参数：客户名称、外壳号、操作类型、入库时间、出库时间、备注
@@ -55,7 +57,9 @@ public:
     virtual bool updateShellDeviceInfo(const std::string& clientName,
                                        const std::string& shellNumber,
                                        const std::string& deviceType,
-                                       const std::string& deviceNote) = 0;
+                                       const std::string& deviceNote,
+                                       const std::string& contractName,
+                                       const std::string& contractNumber) = 0;
 };
 
 inline IEncryptionKey::~IEncryptionKey() = default;

@@ -1036,25 +1036,6 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="协调单号">
-            <el-input v-model="problemOrderForm.coordinationId" placeholder="请输入协调单号" />
-          </el-form-item>
-          <el-form-item label="复现内容" required>
-            <el-input
-              v-model="problemOrderForm.description"
-              type="textarea"
-              :rows="4"
-              placeholder="请详细描述复现内容"
-            />
-          </el-form-item>
-          <el-form-item label="创建备注">
-            <el-input
-              v-model="problemOrderForm.create_remark"
-              type="textarea"
-              :rows="4"
-              placeholder="请输入备注"
-            />
-          </el-form-item>
           <!-- 问题复现工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1073,6 +1054,25 @@ async function fetchCustomerList() {
                 :value="item.id"
               />
             </el-select>
+          </el-form-item>
+          <el-form-item label="复现内容" required>
+            <el-input
+              v-model="problemOrderForm.description"
+              type="textarea"
+              :rows="8"
+              placeholder="请详细描述复现内容"
+            />
+          </el-form-item>
+          <el-form-item label="协调单号">
+            <el-input v-model="problemOrderForm.coordinationId" placeholder="请输入协调单号" />
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="problemOrderForm.create_remark"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入备注"
+            />
           </el-form-item>
           <el-form-item label="参考文件">
             <el-upload
@@ -1194,33 +1194,6 @@ async function fetchCustomerList() {
             </div>
           </el-form-item>
 
-          <el-form-item label="协调单号">
-            <el-input v-model="iterOrderForm.coordinationId" placeholder="请输入协调单号或NA" />
-          </el-form-item>
-          <el-form-item label="更新内容" required>
-            <el-input
-              v-model="iterOrderForm.updateNotes"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入更新内容"
-            />
-          </el-form-item>
-          <el-form-item label="封装要求">
-            <el-input
-              v-model="iterOrderForm.packageRequirement"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入封装要求"
-            />
-          </el-form-item>
-          <el-form-item label="创建备注">
-            <el-input
-              v-model="iterOrderForm.create_remark"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入备注"
-            />
-          </el-form-item>
           <el-form-item required :label="`接口与${iterOrderForm.modelVersionID || '基准版本'}是否变化`" label-width="200px">
             <el-select v-model="iterOrderForm.apiChanged" placeholder="请选择">
               <el-option label="是" value="是" />
@@ -1263,6 +1236,33 @@ async function fetchCustomerList() {
                 :value="item.id"
               />
             </el-select>
+          </el-form-item>
+          <el-form-item label="更新内容" required>
+            <el-input
+              v-model="iterOrderForm.updateNotes"
+              type="textarea"
+              :rows="6"
+              placeholder="请输入更新内容"
+            />
+          </el-form-item>
+          <el-form-item label="协调单号">
+            <el-input v-model="iterOrderForm.coordinationId" placeholder="请输入协调单号或NA" />
+          </el-form-item>
+          <el-form-item label="封装要求">
+            <el-input
+              v-model="iterOrderForm.packageRequirement"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入封装要求"
+            />
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="iterOrderForm.create_remark"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入备注"
+            />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -1354,14 +1354,6 @@ async function fetchCustomerList() {
               <el-option label="否" value="否" />
             </el-select>
           </el-form-item>
-          <el-form-item label="创建备注">
-            <el-input
-              v-model="deliverOrderForm.create_remark"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入备注"
-            />
-          </el-form-item>
           <!-- 交付发送工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1380,6 +1372,14 @@ async function fetchCustomerList() {
                 :value="item.id"
               />
             </el-select>
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="deliverOrderForm.create_remark"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入备注"
+            />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -1484,26 +1484,6 @@ async function fetchCustomerList() {
               </span>
             </div>
           </el-form-item>
-
-          <el-form-item label="协调单号">
-            <el-input v-model="iterDeliverOrderForm.coordinationId" placeholder="请输入协调单号或NA" />
-          </el-form-item>
-          <el-form-item label="更新内容" required>
-            <el-input
-              v-model="iterDeliverOrderForm.updateNotes"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入更新内容"
-            />
-          </el-form-item>
-          <el-form-item label="封装要求">
-            <el-input
-              v-model="iterDeliverOrderForm.packageRequirement"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入封装要求"
-            />
-          </el-form-item>
           <el-form-item required :label="`接口与${iterDeliverOrderForm.modelVersionID || '基准版本'}是否变化`" label-width="200px">
             <el-select v-model="iterDeliverOrderForm.apiChanged" placeholder="请选择">
               <el-option label="是" value="是" />
@@ -1548,14 +1528,6 @@ async function fetchCustomerList() {
               <el-option label="否" value="false" />
             </el-select>
           </el-form-item>
-          <el-form-item label="创建备注">
-            <el-input
-              v-model="iterDeliverOrderForm.create_remark"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入备注"
-            />
-          </el-form-item>
           <!-- 版本迭代+交付发送工单审批人ID -->
           <el-form-item label="审批人" required>
             <el-select
@@ -1574,6 +1546,34 @@ async function fetchCustomerList() {
                 :value="item.id"
               />
             </el-select>
+          </el-form-item>
+          <el-form-item label="更新内容" required>
+            <el-input
+              v-model="iterDeliverOrderForm.updateNotes"
+              type="textarea"
+              :rows="6"
+              placeholder="请输入更新内容"
+            />
+          </el-form-item>
+
+          <el-form-item label="协调单号">
+            <el-input v-model="iterDeliverOrderForm.coordinationId" placeholder="请输入协调单号或NA" />
+          </el-form-item>
+          <el-form-item label="封装要求">
+            <el-input
+              v-model="iterDeliverOrderForm.packageRequirement"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入封装要求"
+            />
+          </el-form-item>
+          <el-form-item label="创建备注">
+            <el-input
+              v-model="iterDeliverOrderForm.create_remark"
+              type="textarea"
+              :rows="6"
+              placeholder="请输入备注"
+            />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -1639,7 +1639,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="devOrderForm.featureDesc"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入功能描述"
             />
           </el-form-item>
@@ -1647,7 +1647,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="devOrderForm.create_remark"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入备注"
             />
           </el-form-item>
@@ -1744,7 +1744,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="otherOrderForm.contentDesc"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入内容描述"
             />
           </el-form-item>
@@ -1752,7 +1752,7 @@ async function fetchCustomerList() {
             <el-input
               v-model="otherOrderForm.create_remark"
               type="textarea"
-              :rows="3"
+              :rows="6"
               placeholder="请输入备注"
             />
           </el-form-item>

@@ -1088,7 +1088,14 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
             continue;
         }
 
-        if (!first) ss << " AND ";
+        if (!first) {
+            if(ele.first == "statusTodo") {
+                ss << " OR ";
+            }else
+            {
+                ss << " AND ";
+            }
+        }
         if (intSet.find(ele.first) != intSet.end()) {
             if (ele.first == "model" && ele.second.find(' ') != std::string::npos) {
                 std::istringstream iss(ele.second);
@@ -1120,6 +1127,55 @@ unsigned long long TicketDAO::getOrderCount(const std::map<std::string, std::str
                     if (i != values.size() - 1) ss << ",";
                 }
                 ss << ")";
+            } else if (ele.first == "type" && ele.second.find(',') != std::string::npos) {
+                // 处理以逗号分割的工单类型字符串，使用IN查询
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (std::getline(iss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \t"));
+                    token.erase(token.find_last_not_of(" \t") + 1);
+                    if (!token.empty()) {
+                        values.push_back(token);
+                    }
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << "'" << values[i] << "'";
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            } else if (ele.first == "status" && ele.second.find(',') != std::string::npos) {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                std::istringstream iss(ele.second);
+                std::string token;
+                std::vector<std::string> values;
+                while (std::getline(iss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \t"));
+                    token.erase(token.find_last_not_of(" \t") + 1);
+                    if (!token.empty()) {
+                        values.push_back(token);
+                    }
+                }
+                ss << ele.first << " IN (";
+                for (size_t i = 0; i < values.size(); ++i) {
+                    ss << "'" << values[i] << "'";
+                    if (i != values.size() - 1) ss << ",";
+                }
+                ss << ")";
+            } else if(ele.first == "statusTodo") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "(wo.status_todo IN (";
+                std::string statusTodoes = ele.second;
+                std::stringstream statusTodoStream(statusTodoes);
+                std::string statusTodo;
+                bool firststatusTodo = true;
+                while(std::getline(statusTodoStream, statusTodo, ',')) {
+                    if(!firststatusTodo) ss << ",";
+                    ss << "'" << statusTodo << "'";
+                    firststatusTodo = false;
+                }
+                ss << ")  and wo.status = '进行中')";
             } else {
                 if (ele.second.find(',') != std::string::npos) {
                     std::istringstream iss(ele.second);
@@ -2346,7 +2402,15 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             continue;
         }
         
-        if(!first) ss << " AND ";
+        if(!first) {
+            if(ele.first == "statusTodo") {
+                ss << " OR ";
+            }else
+            {
+                ss << " AND ";
+            }
+            
+        }
         
         if(intSet.find(ele.first) != intSet.end()) {
             if(ele.first == "executor_id") {
@@ -2379,6 +2443,45 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
                     firstModel = false;
                 }
                 ss << ")";
+            } else if(ele.first == "type") {
+                // 处理以逗号分割的工单类型字符串，使用IN查询
+                ss << "wo." << ele.first << " IN (";
+                std::string types = ele.second;
+                std::stringstream typeStream(types);
+                std::string type;
+                bool firstType = true;
+                while(std::getline(typeStream, type, ',')) {
+                    if(!firstType) ss << ",";
+                    ss << "'" << type << "'";
+                    firstType = false;
+                }
+                ss << ")";
+            } else if(ele.first == "status") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "wo." << ele.first << " IN (";
+                std::string statuses = ele.second;
+                std::stringstream statusStream(statuses);
+                std::string status;
+                bool firstStatus = true;
+                while(std::getline(statusStream, status, ',')) {
+                    if(!firstStatus) ss << ",";
+                    ss << "'" << status << "'";
+                    firstStatus = false;
+                }
+                ss << ")";
+            } else if(ele.first == "statusTodo") {
+                // 处理以逗号分割的工单状态字符串，使用IN查询
+                ss << "(wo.status_todo IN (";
+                std::string statusTodoes = ele.second;
+                std::stringstream statusTodoStream(statusTodoes);
+                std::string statusTodo;
+                bool firststatusTodo = true;
+                while(std::getline(statusTodoStream, statusTodo, ',')) {
+                    if(!firststatusTodo) ss << ",";
+                    ss << "'" << statusTodo << "'";
+                    firststatusTodo = false;
+                }
+                ss << ") and wo.status = '进行中')";
             } else if(ele.first == "startDate") {
                 // 添加目标交付时间的开始日期过滤
                 ss << "((ds.target_delivery_time IS NOT NULL AND ds.target_delivery_time >= '" << ele.second << "') ";
@@ -2998,6 +3101,116 @@ bool TicketDAO::completePackageSendEncryptedTicket(const TicketPackage& ticket)
         mysql_real_query(conn, "ROLLBACK", strlen("ROLLBACK"));
         return false;
     }
+}
+
+unsigned long long TicketDAO::getUserPendingWorkOrdersCount(const std::string& userId)
+{
+    if (!ensureConnection()) {
+        LOG_ERROR("function:getUserPendingWorkOrdersCount 数据库连接失败");
+        return 0ULL;
+    }
+
+    MYSQL* conn = getConnection();
+    unsigned long long count = 0ULL;
+
+    std::ostringstream sqlStream;
+    sqlStream << "SELECT COUNT(DISTINCT wo.id) "
+              << "FROM work_order wo "
+              << "LEFT JOIN model_version mv ON wo.model_version_id = mv.id "
+              << "LEFT JOIN user u_creator ON wo.creator_id = u_creator.username "
+              << "LEFT JOIN user u_approver ON wo.approver_id = u_approver.username "
+              << "LEFT JOIN user u_dispatcher ON wo.dispatcher_id = u_dispatcher.username "
+              << "LEFT JOIN user u_to_dispatcher ON wo.to_dispatcher_id = u_to_dispatcher.username "
+              << "LEFT JOIN ( "
+              << "    SELECT woe1.work_order_id, woe1.executor_id, woe1.status, woe1.encryption_status, woe1.transfer_type "
+              << "    FROM work_order_executor woe1 "
+              << "    INNER JOIN ( "
+              << "        SELECT work_order_id, MAX(id) as max_id "
+              << "        FROM work_order_executor "
+              << "        GROUP BY work_order_id "
+              << "    ) woe2 ON woe1.work_order_id = woe2.work_order_id AND woe1.id = woe2.max_id "
+              << ") woe_latest ON wo.id = woe_latest.work_order_id "
+              << "LEFT JOIN user u_executor ON woe_latest.executor_id = u_executor.username "
+              << "LEFT JOIN user_multi_role umr ON wo.id = umr.work_order_id "
+              << "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND wo.type = '问题复现' "
+              << "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND wo.type = '问题复现' "
+              << "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
+              << "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
+              << "LEFT JOIN ( "
+              << "    SELECT woe_enc.work_order_id, woe_enc.executor_id, woe_enc.create_at, woe_enc.update_version "
+              << "    FROM work_order_executor woe_enc "
+              << "    INNER JOIN ( "
+              << "        SELECT work_order_id, MAX(id) as max_id "
+              << "        FROM work_order_executor "
+              << "        WHERE status = '加密' OR transfer_type = '加密流转' "
+              << "        GROUP BY work_order_id "
+              << "    ) woe_enc_max ON woe_enc.work_order_id = woe_enc_max.work_order_id AND woe_enc.id = woe_enc_max.max_id "
+              << ") woe_encryptor ON wo.id = woe_encryptor.work_order_id AND wo.type in('交付发送','直接封装+发送') "
+              << "LEFT JOIN user u_encryptor ON woe_encryptor.executor_id = u_encryptor.username "
+              << "LEFT JOIN ( "
+              << "    SELECT woe_send.work_order_id, woe_send.executor_id, woe_send.finish_at "
+              << "    FROM work_order_executor woe_send "
+              << "    INNER JOIN ( "
+              << "        SELECT work_order_id, MAX(id) as max_id "
+              << "        FROM work_order_executor "
+              << "        WHERE status = '发送'  OR transfer_type = '发送流转' "
+              << "        GROUP BY work_order_id "
+              << "    ) woe_send_max ON woe_send.work_order_id = woe_send_max.work_order_id AND woe_send.id = woe_send_max.max_id "
+              << ") woe_sender ON wo.id = woe_sender.work_order_id AND wo.type in('交付发送','直接封装+发送') "
+              << "LEFT JOIN user u_sender ON woe_sender.executor_id = u_sender.username "
+              << "LEFT JOIN package_send ps ON wo.id = ps.work_order_id AND wo.type = '直接封装+发送' "
+              << "LEFT JOIN (  "
+              << "    SELECT woe_pkg.work_order_id, woe_pkg.update_version, woe_pkg.executor_id , woe_pkg.create_at , woe_pkg.create_id  "
+              << "    FROM work_order_executor woe_pkg  "
+              << "    INNER JOIN (  "
+              << "        SELECT work_order_id, MAX(id) as max_id  "
+              << "        FROM work_order_executor  "
+              << "        WHERE status = '封装' OR transfer_type = '封装流转'  "
+              << "        GROUP BY work_order_id  "
+              << "    ) woe_pkg_max ON woe_pkg.work_order_id = woe_pkg_max.work_order_id AND woe_pkg.id = woe_pkg_max.max_id  "
+              << ") woe_package ON wo.id = woe_package.work_order_id AND wo.type = '直接封装+发送' "
+              << "LEFT JOIN user u_encrypted_executor ON woe_package.executor_id = u_encrypted_executor.username "
+              << "LEFT JOIN user u_package_create ON woe_package.executor_id = u_package_create.username "
+              << "LEFT JOIN function_development fd ON wo.id = fd.work_order_id AND wo.type = '功能开发' "
+              << "LEFT JOIN other_work_order owo ON wo.id = owo.work_order_id AND wo.type = '其他' "
+              << "WHERE  "
+              << "    (  "
+              << "        (wo.status = '待审批' AND wo.approver_id = '" << userId << "')  "
+              << "        OR  "
+              << "        (wo.status = '待分发' AND wo.dispatcher_id = '" << userId << "')  "
+              << "        OR  "
+              << "        (wo.status = '进行中' AND wo.type != '直接封装+发送' AND woe_latest.executor_id = '" << userId << "')  "
+              << "        OR  "
+              << "        (wo.status = '进行中' AND wo.type = '直接封装+发送'  AND wo.status_todo= '待封装'  AND woe_package.executor_id = '" << userId << "')  "
+              << "        OR  "
+              << "        (wo.status = '进行中' AND wo.type = '直接封装+发送'  AND wo.status_todo= '待加密'  AND woe_encryptor.executor_id = '" << userId << "')  "
+              << "        OR  "
+              << "        (wo.status = '进行中' AND wo.type = '直接封装+发送'  AND wo.status_todo= '待发送'  AND woe_sender.executor_id = '" << userId << "')  "
+              << "    )";
+
+    std::string sqlString = sqlStream.str();
+    const char* sqlQuery = sqlString.c_str();
+    LOG_DEBUG("SQL执行: %s", sqlQuery);
+
+    int ret = mysql_real_query(conn, sqlQuery, (unsigned long)strlen(sqlQuery));
+    if (ret) {
+        LOG_ERROR("function:getUserPendingWorkOrdersCount SQL查询失败！失败原因：%s", mysql_error(conn));
+        return 0ULL;
+    }
+
+    MYSQL_RES* res = mysql_store_result(conn);
+    if (!res) {
+        LOG_ERROR("function:getUserPendingWorkOrdersCount 获取结果集失败！失败原因：%s", mysql_error(conn));
+        return 0ULL;
+    }
+
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row && row[0]) {
+        count = strtoull(row[0], nullptr, 10);
+    }
+    mysql_free_result(res);
+
+    return count;
 }
 
 TicketDAO::~TicketDAO()

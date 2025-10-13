@@ -15,6 +15,7 @@ export default {
     referencePriority?: string // 参考优先级（可选）
     taskPriority?: string // 任务优先级（可选）
     status?: string // 工单状态（可选）
+    statusTodo?: string // 详细状态（可选，用于筛选进行中的子状态）
     startDate?: string // 开始时间（筛选区间，可选）
     endDate?: string // 结束时间（筛选区间，可选）
     filterMineFlag?: boolean // 是否仅显示与当前用户相关的工单（可选，true/false）

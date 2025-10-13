@@ -56,7 +56,7 @@ export default {
     clientName: string // 新客户名称
     clientinfo?: string // 客户信息备注
   }) =>
-    api.put('client/update', data, {
+    api.post('client/migrate', data, {
       // baseURL: '/mock/',
     }),
 
@@ -110,6 +110,8 @@ export default {
     shellNumber: string // 外壳号
     deviceType: string // 设备类型 (lab/IPT/FTD/FFS)
     deviceNote: string // 设备备注
+    contractName: string // 合同名称
+    contractNumber: string // 合同编号
   }) =>
     api.post('shell/deliver', data, {
       // baseURL: '/mock/',
@@ -154,6 +156,8 @@ export default {
     shellNumber: string // 外壳号
     deviceType: string // 设备类型
     deviceNote: string // 设备备注
+    contractName: string // 合同名称
+    contractNumber: string // 合同编号
   }) =>
     api.put('shell/update', data, {
       // baseURL: '/mock/',
@@ -172,4 +176,18 @@ export default {
     api.put('auth/batch-update', data, {
       // baseURL: '/mock/',
     }),
+
+  // 获取客户模型版本历史信息
+  getCustomerModelVersionHistory: (clientName: string) => {
+    console.log(`API请求: 获取客户 ${clientName} 的版本历史`)
+    return api.get('client/model-version-history', {
+      params: { clientName },
+    }).then(response => {
+      console.log(`API响应: 客户 ${clientName} 的版本历史`, response)
+      return response
+    }).catch(error => {
+      console.error(`API错误: 客户 ${clientName} 的版本历史`, error)
+      throw error
+    })
+  },
 }

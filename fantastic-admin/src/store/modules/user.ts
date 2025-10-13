@@ -16,6 +16,8 @@ export const useUserStore = defineStore(
 
     // 用户账号（从本地存储读取，支持刷新后自动恢复）
     const account = ref(localStorage.account ?? '')
+    // 用户待处理工单数量
+    const pendingWorkOrdersCount = ref(0)
     // 修改：使用sessionStorage而不是localStorage存储token
     const token = ref(sessionStorage.token ?? '')
     // 用户头像（从本地存储读取）
@@ -176,6 +178,7 @@ export const useUserStore = defineStore(
       requestLogout,
       getPermissions,
       userModels,
+      pendingWorkOrdersCount,
       editPassword, // 已移除未使用的函数
     }
   },

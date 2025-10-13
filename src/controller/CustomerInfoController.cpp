@@ -116,8 +116,8 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         }
         }));
 
-    // 编辑客户
-    CROW_ROUTE(app, "/client/update").methods("PUT"_method)
+    // 客户名称迁移（跨表重命名，处理外键）
+    CROW_ROUTE(app, "/client/migrate").methods("POST"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
@@ -127,7 +127,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         try {
             // 解析请求体
             nlohmann::json reqData = nlohmann::json::parse(req.body);
-            
+
             // 参数验证
             if (!reqData.contains("originalClientName") || !reqData.contains("clientName")) {
                 nlohmann::json resp = {
@@ -139,43 +139,37 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
             }
 
             std::string originalClientName = reqData["originalClientName"];
-            std::string clientName = reqData["clientName"];
-            std::string clientInfo = reqData.value("clientinfo", ""); // 可选参数
+            std::string newClientName = reqData["clientName"];
+            std::string newClientInfo = reqData.value("clientinfo", "");
 
-             LOG_DEBUG("编辑客户，originalClientName: %s, clientName: %s, clientInfo: %s\n", 
-                   originalClientName.c_str(), clientName.c_str(), clientInfo.c_str());
+            LOG_DEBUG("迁移客户名称，originalClientName: %s, newClientName: %s, newClientInfo: %s\n", 
+                   originalClientName.c_str(), newClientName.c_str(), newClientInfo.c_str());
 
-            // TODO: 调用服务层更新客户信息
-            bool result = customerInfoService_->alterClientInfo(originalClientName, clientName, clientInfo);
+            bool result = customerInfoService_->migrateCustomerName(originalClientName, newClientName, newClientInfo);
 
-            if(result)
-            {
+            if (result) {
                 nlohmann::json resp = {
                     {"status", 1},
                     {"error", ""},
                     {"data", {
                         {"success", true},
-                        {"message", "客户信息更新成功"}
+                        {"message", "客户名称迁移成功"}
                     }}
                 };
-                
                 return crow::response{ resp.dump() };
-            }
-            else
-            {
+            } else {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "客户信息更新失败"},
+                    {"error", "客户名称迁移失败"},
                     {"data", {
                         {"success", false},
-                        {"message", "客户信息更新失败"}
+                        {"message", "客户名称迁移失败"}
                     }}
                 };
                 return crow::response{ resp.dump() };
             }
-
         } catch (const std::exception& e) {
-            LOG_ERROR("编辑客户失败: %s\n", e.what());
+            LOG_ERROR("客户名称迁移失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -225,6 +219,52 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         };
         
         return crow::response{ resp.dump() };
+        }));
+
+    // 获取客户模型版本历史信息
+    CROW_ROUTE(app, "/client/model-version-history").methods("GET"_method)
+        (withAspect([this](const crow::request& req) {
+        // JWT校验
+        // if (!checkToken(req)) {
+        //     return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+        // }
+
+        // 从查询参数中获取clientName
+        auto params = crow::query_string(req.url_params);
+        std::string clientName = "";
+        if (params.get("clientName") != nullptr) {
+            clientName = params.get("clientName");
+        }
+
+        // 参数验证
+        if (clientName.empty()) {
+            nlohmann::json resp = {
+                {"status", 1},
+                {"error", "缺少必要参数：clientName"},
+                {"data", {}}
+            };
+            return crow::response(400, resp.dump());
+        }
+
+        LOG_DEBUG("获取客户模型版本历史信息，clientName: %s\n", clientName.c_str());
+
+        try {
+            // 调用Service层获取客户模型版本历史信息
+            nlohmann::json result = customerInfoService_->getCustomerModelVersionHistory(clientName);
+            
+            // 设置响应头
+            crow::response response(200, result.dump());
+            response.add_header("Content-Type", "application/json; charset=utf-8");
+            return response;
+        }
+        catch (const std::exception& e) {
+            nlohmann::json errorResponse = {
+                {"status", 0},
+                {"error", std::string("获取客户模型版本历史失败: ") + e.what()},
+                {"data", nlohmann::json::object()}
+            };
+            return crow::response(500, errorResponse.dump());
+        }
         }));
 
     // 获取发送详情（分页版本）

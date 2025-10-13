@@ -14,6 +14,9 @@ public:
 
     bool alterClientInfo(std::string originClient,std::string newClient,std::string clientInfo) override { return customerInfoDAO_->updateClient(originClient,newClient,clientInfo); }
 
+    // 新增：执行客户名称迁移（跨表重命名并处理外键）
+    bool migrateCustomerName(std::string oldName, std::string newName, std::string newClientInfo) override { return customerInfoDAO_->migrateCustomerName(oldName, newName, newClientInfo); }
+
     //最外面vector中的元素是每一天的记录 pair.first里发送总览也是发送日期以及发送数量 pair.send里的信息是具体的发送记录（这是一个数组）
     std::vector<std::pair<SendOverview,std::vector<SendRecord>>> getSendRecordByClientPagedByDate(std::string,int,int) override;
 
@@ -61,6 +64,9 @@ public:
 
     // 获取指定客户的模型ATA章节号和发送模型数量
     std::pair<int,int> getModelAndModelVersionCountByClient(const std::string& clientName) override;
+
+    // 获取指定客户的模型版本历史记录（包括最新版本和历史版本）
+    nlohmann::json getCustomerModelVersionHistory(const std::string& clientName) override;
 
 private:
     std::shared_ptr<ICustomerInfoDAO> customerInfoDAO_;

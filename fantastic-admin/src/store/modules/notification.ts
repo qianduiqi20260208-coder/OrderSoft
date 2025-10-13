@@ -68,7 +68,7 @@ export const useNotificationStore = defineStore(
     // 标记通知为已读
     function markAsRead(notificationId: string) {
       try {
-        const notification = notifications.value.find(n => n.id === notificationId)
+        const notification = notifications.value.find(n => n.id == notificationId)
         if (notification) {
           notification.isRead = true
           console.log('通知已标记为已读:', notificationId)
@@ -123,7 +123,7 @@ export const useNotificationStore = defineStore(
     // 根据通知ID删除通知
     function deleteNotification(notificationId: string) {
       try {
-        const index = notifications.value.findIndex(n => n.id === notificationId)
+        const index = notifications.value.findIndex(n => n.id == notificationId)
         if (index !== -1) {
           notifications.value.splice(index, 1)
           console.log('通知已删除:', notificationId)
