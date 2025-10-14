@@ -20,7 +20,7 @@ public:
 
     // virtual bool alterClientInfo(std::string,std::string,std::string) = 0;
 
-    // 根据客户名称获取客户信息和加密狗授权信息，并转换为JSON格式
+    // 根据客户名称获取客户信息和加密锁授权信息，并转换为JSON格式
     virtual nlohmann::json getClientAuthInfoJson(const std::string& clientName) = 0;
 
     // 获取所有客户名称列表

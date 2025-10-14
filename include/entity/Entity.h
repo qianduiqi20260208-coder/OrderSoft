@@ -495,11 +495,11 @@ struct TicketOther :public Ticket{
 };
 
 struct DongleInfo {
-    std::string dongleId;           // 加密狗ID
+    std::string dongleId;           // 加密锁ID
     std::string shellCode;          // 外壳号
     std::string shellSerial;        // 外壳序列号
-    std::string dongleRemark;       // 加密狗备注
-    std::string dongleStatus;       // 加密狗状态
+    std::string dongleRemark;       // 加密锁备注
+    std::string dongleStatus;       // 加密锁状态
     std::string clientName;         // 客户名称
     std::string clientDeviceType;   // 客户设备类型（lab/IPT/FTD/FFS）
     std::string clientNote;         // 客户电脑备注
@@ -509,11 +509,11 @@ struct DongleInfo {
     // 序列化接口
     nlohmann::json to_json() const {
         nlohmann::json j;
-        j["dongleId"] = dongleId; // 加密狗ID
+        j["dongleId"] = dongleId; // 加密锁ID
         j["shellCode"] = shellCode; // 外壳号
         j["shellSerial"] = shellSerial; // 外壳序列号
-        j["dongleRemark"] = dongleRemark; // 加密狗备注
-        j["dongleStatus"] = dongleStatus; // 加密狗状态
+        j["dongleRemark"] = dongleRemark; // 加密锁备注
+        j["dongleStatus"] = dongleStatus; // 加密锁状态
         j["clientName"] = clientName; // 客户名称
         j["clientDeviceType"] = clientDeviceType; // 客户设备类型
         j["clientNote"] = clientNote; // 客户电脑备注
@@ -576,6 +576,7 @@ struct ShellNumber
    std::string deviceNote;
    std::string contractName;
    std::string contractNumber;
+   std::string pdfUrl; // 合同PDF URL
    std::string outTime;
    int authCount;
    std::vector<Authorization> authorizationList;

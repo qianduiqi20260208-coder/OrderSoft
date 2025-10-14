@@ -18,7 +18,7 @@ public:
     virtual std::pair<int,int> selectModelAndModelVersionCountByClient(std::string) = 0;
     virtual std::vector<int> selectAuthorizationCountByEncryptionKey(std::string) = 0;
 
-    // 根据客户名称获取客户信息和加密狗授权信息
+    // 根据客户名称获取客户信息和加密锁授权信息
     virtual Client getClientAuthInfo(const std::string& clientName) = 0;
 
     // 获取所有客户名称列表

@@ -63,7 +63,7 @@ interface OrderItem {
 // 定义客户信息数据结构
 interface Client {
   clientName: string // 客户名称
-  dongleCount: number // 加密狗数量
+  dongleCount: number // 加密锁数量
   modelCount: number // 发送模型数量
   modelVersionCount: number // 发送模型版本数量
   clientinfo?: string // 客户信息

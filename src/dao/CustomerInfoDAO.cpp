@@ -110,7 +110,7 @@ std::vector<std::string> CustomerInfoDAO::selectEncryptionKeyByClient(std::strin
     MYSQL_RES* local_res;
     MYSQL_ROW local_row;
     
-    // 参考getClientAuthInfo方法的写法，查询当前状态为"出库"的加密狗
+    // 参考getClientAuthInfo方法的写法，查询当前状态为"出库"的加密锁
     snprintf(local_sql, SQL_MAX, 
         "SELECT DISTINCT ek.shell_number "
         "FROM customer_info ci "
@@ -373,7 +373,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
     // 设置客户名称
     client.clientName = clientName;
     
-    // 查询该客户当前状态为"出库"的加密狗信息
+    // 查询该客户当前状态为"出库"的加密锁信息
     char local_sql[SQL_MAX];
     int local_ret;
     MYSQL_RES* local_res;
@@ -388,6 +388,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
         "    ci.remarks, " // 客户信息备注
         "    ekh.contract_name, " // 合同名称
         "    ekh.contract_number, " // 合同编号
+        "    ekh.pdf_url, " // 合同PDF URL
         "    ekh.status "
         "FROM "
         "    customer_info ci "
@@ -406,7 +407,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
     
     local_ret = mysql_real_query(conn.get(), local_sql, (unsigned long)strlen(local_sql));
     if (local_ret) {
-        LOG_ERROR("function:getClientAuthInfo() 查询加密狗信息失败！失败原因：%s", mysql_error(conn.get()));
+        LOG_ERROR("function:getClientAuthInfo() 查询加密锁信息失败！失败原因：%s", mysql_error(conn.get()));
         return client;
     }
     
@@ -429,6 +430,7 @@ Client CustomerInfoDAO::getClientAuthInfo(const std::string& clientName)
             shellInfo.deviceNote = local_row[2] ? local_row[2] : "";
             shellInfo.contractName = local_row[6] ? local_row[6] : ""; // 合同名称
             shellInfo.contractNumber = local_row[7] ? local_row[7] : ""; // 合同编号
+            shellInfo.pdfUrl = local_row[8] ? local_row[8] : ""; // 合同PDF URL
             shellInfo.outTime = local_row[4] ? local_row[4] : "";
 
 

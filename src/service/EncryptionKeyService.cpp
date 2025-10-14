@@ -25,7 +25,7 @@ bool EncryptionKeyService::updateEncryptionKey(int id, std::string s1, std::stri
 std::vector<std::pair<IEncryptionKeyService::EncryptionKeyHistory, std::vector<IEncryptionKeyService::AuthInfo>>> EncryptionKeyService::getEncryptionKeyHistoryWithAuthRecordByEK(std::string ek)
 {
     std::vector<std::pair<IEncryptionKeyService::EncryptionKeyHistory, std::vector<IEncryptionKeyService::AuthInfo>>> retVec;
-    //根据加密狗查出所有的历史记录 包括出库时间 入库时间 客户
+    //根据加密锁查出所有的历史记录 包括出库时间 入库时间 客户
     const auto& allEncryptionHistory =  encryptionKeyDAO_->selectAllEncryptionHistoryByEK(ek);
     //根据客户查找所有的所有的授权信息 
     for(const auto& singleEncryptionHis : allEncryptionHistory)
@@ -50,10 +50,10 @@ bool EncryptionKeyService::deliveryOperation(const std::string& clientName,
                                            const std::string& deviceType,
                                            const std::string& deviceNote,
                                            const std::string& contractName,
-                                           const std::string& contractNumber)
+                                           const std::string& contractNumber, const std::string& pdfUrl)
 {
     // 调用DAO层的交付操作方法
-    return encryptionKeyDAO_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
+    return encryptionKeyDAO_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber, pdfUrl);
 }
 
 bool EncryptionKeyService::returnOperation(const std::string& clientName,
@@ -98,9 +98,9 @@ bool EncryptionKeyService::updateShellDeviceInfo(const std::string& clientName,
                                                  const std::string& deviceType,
                                                  const std::string& deviceNote,
                                                  const std::string& contractName,
-                                                 const std::string& contractNumber)
+                                                 const std::string& contractNumber, const std::string& pdfUrl)
 {
-    return encryptionKeyDAO_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
+    return encryptionKeyDAO_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber, pdfUrl);
 }
 
 EncryptionKeyService::~EncryptionKeyService()

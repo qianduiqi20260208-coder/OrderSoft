@@ -22,7 +22,7 @@ std::vector<std::pair<std::vector<std::string>, std::vector<int>>> CustomerInfoS
         pr.second.push_back(modelAndModelVersionCount.second);
 
         const std::vector<std::string>& encryptionKeys = customerInfoDAO_->selectEncryptionKeyByClient(client.first);
-        //添加加密狗的数量
+        //添加加密锁的数量
         pr.second.push_back(encryptionKeys.size());
 
         int validAuthCount = 0;
@@ -123,7 +123,7 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     // 调用DAO层获取客户信息
     Client client = customerInfoDAO_->getClientAuthInfo(clientName);
 
-    // 如果没有找到客户信息或加密狗信息为空
+    // 如果没有找到客户信息或加密锁信息为空
     if (client.clientName.empty() || client.shellNumbers.empty())
     {
         return result;
@@ -135,7 +135,7 @@ nlohmann::json CustomerInfoService::getClientAuthInfoJson(const std::string& cli
     data["dongleCount"] = client.dongleCount;
     data["shellNumbers"] = nlohmann::json::array();
 
-    // 处理每个加密狗信息
+    // 处理每个加密锁信息
     for (const auto& shellNumber : client.shellNumbers)
     {
         nlohmann::json shellInfo;
@@ -559,7 +559,7 @@ std::vector<std::string> CustomerInfoService::getAllClientNames()
 
 std::vector<std::string> CustomerInfoService::getEncryptionKeyByClient(const std::string &clientName)
 {
-    // 调用DAO层获取指定客户的加密狗列表
+    // 调用DAO层获取指定客户的加密锁列表
     return customerInfoDAO_->selectEncryptionKeyByClient(clientName);
 }
 

@@ -1127,7 +1127,7 @@ export default defineFakeRoute([
     },
   },
 
-  // 获取加密狗列表信息
+  // 获取加密锁列表信息
   {
     url: '/mock/dongle/list',
     method: 'get',
@@ -1141,7 +1141,7 @@ export default defineFakeRoute([
               dongleId: '1',
               shellCode: 'A53000000001', // 修改为新格式
               shellSerial: '89172CAS240919239001890',
-              dongleRemark: 'CAE技术有限公司专用加密狗',
+              dongleRemark: 'CAE技术有限公司专用加密锁',
               dongleStatus: '出库',
               clientName: 'CAE',
               deviceType: 'lab',
@@ -1153,7 +1153,7 @@ export default defineFakeRoute([
               dongleId: '2',
               shellCode: 'A53000000002', // 修改为新格式
               shellSerial: '89172CAS240919239001891',
-              dongleRemark: '华模科技专用加密狗',
+              dongleRemark: '华模科技专用加密锁',
               dongleStatus: '出库',
               clientName: '华模科技',
               deviceType: 'IPT',
@@ -1165,7 +1165,7 @@ export default defineFakeRoute([
               dongleId: '3',
               shellCode: 'A53000000003', // 修改为新格式
               shellSerial: '89172CAS240919239001892',
-              dongleRemark: '测试环境专用加密狗',
+              dongleRemark: '测试环境专用加密锁',
               dongleStatus: '入库',
               clientName: 'CAE',
               deviceType: 'FTD',
@@ -1177,7 +1177,7 @@ export default defineFakeRoute([
               dongleId: '4',
               shellCode: 'A53000000004', // 修改为新格式
               shellSerial: '89172CAS240919239001893',
-              dongleRemark: '新入库加密狗，待分配',
+              dongleRemark: '新入库加密锁，待分配',
               dongleStatus: '入库',
               clientName: '暂无',
               deviceType: 'lab',
@@ -1213,7 +1213,7 @@ export default defineFakeRoute([
               dongleId: '7',
               shellCode: 'A53000000007',
               shellSerial: '89172CAS240919239001896',
-              dongleRemark: '备用加密狗',
+              dongleRemark: '备用加密锁',
               dongleStatus: '入库',
               clientName: '暂无',
               deviceType: 'lab',
@@ -1225,7 +1225,7 @@ export default defineFakeRoute([
               dongleId: '8',
               shellCode: 'A53000000008',
               shellSerial: '89172CAS240919239001897',
-              dongleRemark: '高级授权加密狗',
+              dongleRemark: '高级授权加密锁',
               dongleStatus: '出库',
               clientName: 'CAE',
               deviceType: 'IPT',
@@ -1240,7 +1240,7 @@ export default defineFakeRoute([
     },
   },
 
-  // 新增：获取加密狗历史记录
+  // 新增：获取加密锁历史记录
   {
     url: '/mock/dongle/:dongleId/history',
     method: 'get',
@@ -1487,7 +1487,7 @@ export default defineFakeRoute([
     },
   },
 
-  // 创建加密狗接口
+  // 创建加密锁接口
   {
     url: '/mock/dongle/create',
     method: 'post',
@@ -1533,13 +1533,13 @@ export default defineFakeRoute([
         status: 1,
         data: {
           success: true,
-          message: '创建加密狗成功',
+          message: '创建加密锁成功',
         },
       }
     },
   },
 
-  // 更新加密狗信息
+  // 更新加密锁信息
   {
     url: '/mock/delivery/dongles/update',
     method: 'put',
@@ -1556,17 +1556,17 @@ export default defineFakeRoute([
           status: 1,
           data: {
             success: true,
-            message: '更新加密狗信息成功',
+            message: '更新加密锁信息成功',
           },
         }
       }
 
       return {
-        error: '加密狗不存在',
+        error: '加密锁不存在',
         status: 1,
         data: {
           success: false,
-          message: '加密狗不存在',
+          message: '加密锁不存在',
         },
       }
     },

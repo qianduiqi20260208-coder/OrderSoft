@@ -10,7 +10,7 @@ EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyS
 }
 
 void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) {
-    // 获取加密狗列表
+    // 获取加密锁列表
     CROW_ROUTE(app, "/dongle/list").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
@@ -18,7 +18,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
-        // 调用加密狗服务获取加密狗列表
+        // 调用加密锁服务获取加密锁列表
         std::vector<DongleInfo> dongleList = encryptionKeyService_->getDongleInfo();
 
         // 构建返回的JSON数据
@@ -34,7 +34,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             {"error", ""},
             {"data", {
                 {"success", true},
-                {"message", "获取加密狗列表成功"},
+                {"message", "获取加密锁列表成功"},
                 {"list", dongleArray},
                 {"total", dongleArray.size()}
             }}
@@ -42,7 +42,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
         return crow::response{ resp.dump() };
         }));
 
-    // 获取特定加密狗的历史记录
+    // 获取特定加密锁的历史记录
     CROW_ROUTE(app, "/dongle/history").methods("GET"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
@@ -105,7 +105,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
         return crow::response{ resp.dump() };
     }));
 
-    // 创建加密狗
+    // 创建加密锁
     CROW_ROUTE(app, "/dongle/create").methods("POST"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
@@ -130,10 +130,10 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellCode = reqData["shellCode"];
             std::string shellSerial = reqData["shellSerial"];
 
-             LOG_DEBUG("创建加密狗，shellCode: %s, shellSerial: %s\n", 
+             LOG_DEBUG("创建加密锁，shellCode: %s, shellSerial: %s\n", 
                    shellCode.c_str(), shellSerial.c_str());
 
-            // 调用服务层创建加密狗
+            // 调用服务层创建加密锁
             bool success = encryptionKeyService_->createEncryptionKey(shellCode, shellSerial);
             if(success)
             {
@@ -142,7 +142,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
                     {"error", ""},
                     {"data", {
                         {"success", true},
-                        {"message", "加密狗创建成功"}
+                        {"message", "加密锁创建成功"}
                     }}
                 };
                 return crow::response{ resp.dump() };
@@ -150,17 +150,17 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             else{
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "加密狗创建失败"},
+                    {"error", "加密锁创建失败"},
                     {"data", {
                         {"success", false},
-                        {"message", "加密狗创建失败"}
+                        {"message", "加密锁创建失败"}
                     }}
                 };
                 return crow::response{ resp.dump() };
             }
 
         } catch (const std::exception& e) {
-            LOG_ERROR("创建加密狗失败: %s\n", e.what());
+            LOG_ERROR("创建加密锁失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -170,7 +170,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
         }
         }));
 
-    // 更新加密狗信息
+    // 更新加密锁信息
     CROW_ROUTE(app, "/delivery/dongles/update").methods("PUT"_method)
         (withAspect([this](const crow::request& req) {
         // JWT校验
@@ -203,10 +203,10 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
                 dongleIdInt = std::stoi(dongleId);
             }
 
-             LOG_DEBUG("更新加密狗信息，dongleId: %d, shellCode: %s, shellSerial: %s\n", 
+             LOG_DEBUG("更新加密锁信息，dongleId: %d, shellCode: %s, shellSerial: %s\n", 
                    dongleIdInt, shellCode.c_str(), shellSerial.c_str());
 
-            // 调用服务层更新加密狗信息
+            // 调用服务层更新加密锁信息
             bool success = encryptionKeyService_->updateEncryptionKey(dongleIdInt, shellCode, shellSerial);
             
             if(success)
@@ -216,7 +216,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
                 {"error", ""},
                 {"data", {
                     {"success", true},
-                    {"message", "加密狗信息更新成功"}
+                    {"message", "加密锁信息更新成功"}
                 }}
             };
             
@@ -226,10 +226,10 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "加密狗信息更新失败"},
+                    {"error", "加密锁信息更新失败"},
                     {"data", {
                         {"success", false},
-                        {"message", "加密狗信息更新失败"}
+                        {"message", "加密锁信息更新失败"}
                     }}
                 };
                 return crow::response{ resp.dump() };
@@ -237,7 +237,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
 
 
         } catch (const std::exception& e) {
-            LOG_ERROR("更新加密狗信息失败: %s\n", e.what());
+            LOG_ERROR("更新加密锁信息失败: %s\n", e.what());
             nlohmann::json resp = {
                 {"status", 1},
                 {"error", "参数解析失败或服务器内部错误"},
@@ -261,11 +261,11 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote") ||
-                !reqData.contains("contractName") || !reqData.contains("contractNumber")) {
+                !reqData.contains("deviceType") || !reqData.contains("deviceNote")
+                ) {
                 nlohmann::json resp = {
                     {"status", 1},
-                    {"error", "缺少必要参数：clientName、shellNumber、deviceType、deviceNote、contractName 或 contractNumber"},
+                    {"error", "缺少必要参数：clientName、shellNumber、deviceType、deviceNote、"},
                     {"data", {}}
                 };
                 return crow::response(400, resp.dump());
@@ -275,14 +275,15 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellNumber = reqData["shellNumber"];
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
-            std::string contractName = reqData["contractName"];
-            std::string contractNumber = reqData["contractNumber"];
+            std::string contractName = reqData.value("contractName", "");
+            std::string contractNumber = reqData.value("contractNumber", "");
+            std::string pdfUrl = reqData.value("pdfUrl", "");
 
-             LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s\n", 
-                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str());
+             LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s, pdfUrl: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str(), pdfUrl.c_str());
 
             // 调用服务层交付外壳
-            bool success = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
+            bool success = encryptionKeyService_->deliveryOperation(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber, pdfUrl);
 
             if(success)
             {
@@ -518,8 +519,8 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             
             // 参数验证
             if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote") ||
-                !reqData.contains("contractName") || !reqData.contains("contractNumber")) {
+                !reqData.contains("deviceType") || !reqData.contains("deviceNote")
+                ) {
                 nlohmann::json resp = {
                     {"status", 1},
                     {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
@@ -532,14 +533,15 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             std::string shellNumber = reqData["shellNumber"];
             std::string deviceType = reqData["deviceType"];
             std::string deviceNote = reqData["deviceNote"];
-            std::string contractName = reqData["contractName"];
-            std::string contractNumber = reqData["contractNumber"];
+            std::string contractName = reqData.value("contractName", "");
+            std::string contractNumber = reqData.value("contractNumber", "");
+            std::string pdfUrl = reqData.value("pdfUrl", "");
 
-             LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s\n", 
-                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str());
+             LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s, pdfUrl: %s\n", 
+                   clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str(), pdfUrl.c_str());
 
             // 调用服务层更新外壳号信息
-            bool success = encryptionKeyService_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber);
+            bool success = encryptionKeyService_->updateShellDeviceInfo(clientName, shellNumber, deviceType, deviceNote, contractName, contractNumber, pdfUrl);
 
             if(success)
             {
