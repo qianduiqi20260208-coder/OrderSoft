@@ -14,7 +14,7 @@ public:
 
     bool updateEncryptionKey(int id,std::string,std::string) override;
 
-    //根据加密狗筛选加密历史记录
+    //根据加密锁筛选加密历史记录
     std::vector<std::vector<std::string>> selectAllEncryptionHistoryByEK(std::string) override;
 
     //根据客户筛选授权信息
@@ -27,7 +27,7 @@ public:
                           const std::string& deviceType,
                           const std::string& deviceNote,
                           const std::string& contractName,
-                          const std::string& contractNumber) override;
+                          const std::string& contractNumber, const std::string& pdfUrl) override;
 
     // 入库操作：更新encryption_key_history表中的入库时间和状态
     bool returnOperation(const std::string& clientName,
@@ -59,7 +59,7 @@ public:
                                const std::string& deviceType,
                                const std::string& deviceNote,
                                const std::string& contractName,
-                               const std::string& contractNumber) override;
+                               const std::string& contractNumber, const std::string& pdfUrl) override;
     ~EncryptionKey();
 private:
     MYSQL* mysql;

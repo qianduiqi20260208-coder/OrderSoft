@@ -23,7 +23,7 @@ public:
     // 注册路由
     void registerRoutes(crow::App<crow::CORSHandler>& app);
 
-    // 根据客户名称获取客户信息和加密狗授权信息，并返回JSON格式
+    // 根据客户名称获取客户信息和加密锁授权信息，并返回JSON格式
     std::string getClientAuthInfo(const std::string& clientName);
 
     // 获取所有客户名称列表，并返回JSON格式

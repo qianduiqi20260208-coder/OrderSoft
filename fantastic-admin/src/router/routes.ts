@@ -7,7 +7,7 @@ import generatedRoutes from 'virtual:generated-pages'
 import { setupLayouts } from 'virtual:meta-layouts'
 
 import ClientManage from './delivery/tab.client.manage' // 客户管理路由
-import DongleManage from './delivery/tab.dongle.manage' // 加密狗管理路由
+import DongleManage from './delivery/tab.dongle.manage' // 加密锁管理路由
 import ATA00GroundHandling from './model/tab.ata00.groundhandling' // 地面操纵仿真模型路由
 import ATA04Aerodynamics from './model/tab.ata04.aerodynamics' // 气动仿真模型路由
 import ATA7xEngine from './model/tab.ata7x.engine' // 发动机模型路由
@@ -149,7 +149,7 @@ const asyncRoutes: Route.recordMainRaw[] = [
       auth: ['SuperUser', 'SoftwareEngineer'],
     },
     children: [
-      DongleManage, // 加密狗管理路由
+      DongleManage, // 加密锁管理路由
       ClientManage, // 客户管理路由
     ],
   },

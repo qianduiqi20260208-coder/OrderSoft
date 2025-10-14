@@ -14,17 +14,17 @@ import deliveryApi from '@/api/modules/delivery'
 // 添加路由实例
 const router = useRouter()
 const loading = ref(false) // loading变量定义
-// 动态数据：加密狗列表
+// 动态数据：加密锁列表
 const dongleList = ref<Dongle[]>([])
 
 // 定义加密管理数据结构
 interface Dongle {
   // -------------加密锁表-----------------
-  dongleId: string // 加密狗ID
+  dongleId: string // 加密锁ID
   shellCode: string // 外壳号
   shellSerial: string // 外壳序列号
   dongleRemark: string // 备注
-  dongleStatus: string // 加密狗状态 出库；入库；损坏；丢失
+  dongleStatus: string // 加密锁状态 出库；入库；损坏；丢失
 
   // -----------客户信息表-----------------
   clientName: string // 客户名称
@@ -93,7 +93,7 @@ function getStatusTime(dongle: Dongle): string {
   }
 }
 
-// 获取加密狗状态对应的颜色
+// 获取加密锁状态对应的颜色
 function getDongleStatusColor(dongle: Dongle): string {
   switch (dongle.dongleStatus) {
     case '出库':
@@ -108,7 +108,7 @@ function getDongleStatusColor(dongle: Dongle): string {
   }
 }
 
-// 获取加密狗状态对应的提示文字
+// 获取加密锁状态对应的提示文字
 function getDongleStatusTooltip(dongle: Dongle): string {
   switch (dongle.dongleStatus) {
     case '出库':
@@ -138,7 +138,7 @@ function getStatusTimeLabel(dongle: Dongle): string {
   }
 }
 // -------------后端事件处理函数---------------
-// 获取加密狗列表数据
+// 获取加密锁列表数据
 async function fetchDongles() {
   loading.value = true
   try {
@@ -148,11 +148,11 @@ async function fetchDongles() {
     if (res?.data) {
       // 数据映射处理，确保与前端接口一致
       const mappedData: Dongle[] = (res.data.list || []).map((dongle: any) => ({
-        dongleId: dongle.dongleId || '', // 加密狗ID
+        dongleId: dongle.dongleId || '', // 加密锁ID
         shellCode: dongle.shellCode || '', // 外壳号
         shellSerial: dongle.shellSerial || '', // 外壳序列号
         dongleRemark: dongle.dongleRemark || '', // 备注
-        dongleStatus: dongle.dongleStatus || '', // 加密狗状态
+        dongleStatus: dongle.dongleStatus || '', // 加密锁状态
         clientName: dongle.clientName || '', // 客户名称
         clientDeviceType: dongle.clientDeviceType || '', // 客户设备类型
         clientNote: dongle.clientNote || '', // 客户电脑备注
@@ -161,15 +161,15 @@ async function fetchDongles() {
       }))
 
       dongleList.value = mappedData
-      console.warn('获取加密狗列表成功:', mappedData)
+      console.warn('获取加密锁列表成功:', mappedData)
     }
     else {
       throw new Error('响应数据为空')
     }
   }
   catch (error) {
-    console.error('获取加密狗列表失败:', error)
-    ElMessage.error('获取加密狗列表失败，请稍后重试')
+    console.error('获取加密锁列表失败:', error)
+    ElMessage.error('获取加密锁列表失败，请稍后重试')
   }
   finally {
     loading.value = false
@@ -244,18 +244,18 @@ async function saveEdit() {
 
     if (res?.data?.success) {
       editDialogVisible.value = false
-      ElMessage.success(res.data.message || '更新加密狗信息成功')
+      ElMessage.success(res.data.message || '更新加密锁信息成功')
 
       // 重新获取列表数据
       await fetchDongles()
     }
     else {
-      ElMessage.error(res?.data?.message || '更新加密狗信息失败')
+      ElMessage.error(res?.data?.message || '更新加密锁信息失败')
     }
   }
   catch (error) {
     console.error('保存失败:', error)
-    ElMessage.error('更新加密狗信息失败')
+    ElMessage.error('更新加密锁信息失败')
   }
 }
 
@@ -295,7 +295,7 @@ interface Authorization {
 // 新增历史记录加载状态
 const historyLoading = ref(false)
 
-// 从后端获取特定加密狗的历史记录
+// 从后端获取特定加密锁的历史记录
 async function fetchDongleHistory(dongleId: string) {
   historyLoading.value = true
   try {
@@ -360,7 +360,7 @@ function closeHistoryDialog() {
   historyLoading.value = false
 }
 
-// -----------------创建加密狗相关-------------------
+// -----------------创建加密锁相关-------------------
 const createDialogVisible = ref(false)
 const createFormRef = ref()
 const createForm = ref({
@@ -441,7 +441,7 @@ async function saveCreate() {
       return
     }
 
-    // 调用后端API创建加密狗
+    // 调用后端API创建加密锁
     const res = await deliveryApi.createDongle({
       shellCode: createForm.value.shellCode,
       shellSerial: createForm.value.shellSerial,
@@ -449,18 +449,18 @@ async function saveCreate() {
 
     if (res?.data?.success) {
       createDialogVisible.value = false
-      ElMessage.success(res.data.message || '创建加密狗成功')
+      ElMessage.success(res.data.message || '创建加密锁成功')
 
       // 重新获取列表数据
       await fetchDongles()
     }
     else {
-      ElMessage.error(res?.data?.message || '创建加密狗失败')
+      ElMessage.error(res?.data?.message || '创建加密锁失败')
     }
   }
   catch (error) {
     console.error('创建失败:', error)
-    ElMessage.error('创建加密狗失败')
+    ElMessage.error('创建加密锁失败')
   }
 }
 
@@ -477,18 +477,18 @@ function cancelCreate() {
 function handleAuthDetail(dongle: Dongle) {
   // 检查是否有客户信息
   if (!dongle.clientName || dongle.clientName.trim() === '') {
-    ElMessage.warning('该加密狗尚未分配给客户，无法查看授权详情')
+    ElMessage.warning('该加密锁尚未分配给客户，无法查看授权详情')
     return
   }
 
-  // 跳转到客户管理页面，传递客户信息和加密狗信息用于高亮
+  // 跳转到客户管理页面，传递客户信息和加密锁信息用于高亮
   router.push({
     path: '/client_manage', // 跳转到客户管理页面
     query: {
       highlightClient: dongle.clientName, // 需要高亮的客户名称
-      fromDongleManage: 'true', // 标识来源于加密狗管理页面
-      dongleCode: dongle.shellCode, // 加密狗外壳号，用于额外信息展示
-      dongleId: dongle.dongleId, // 加密狗ID，用于后续操作
+      fromDongleManage: 'true', // 标识来源于加密锁管理页面
+      dongleCode: dongle.shellCode, // 加密锁外壳号，用于额外信息展示
+      dongleId: dongle.dongleId, // 加密锁ID，用于后续操作
     },
   })
 }
@@ -498,7 +498,7 @@ onMounted(() => {
   fetchDongles()
 })
 
-// 控制每个加密狗的展开/收起
+// 控制每个加密锁的展开/收起
 function expandDongle(shellCode: string, expand: boolean) {
   expandedMap.value[shellCode] = expand
 }
@@ -513,7 +513,7 @@ function expandDongle(shellCode: string, expand: boolean) {
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <h1 class="text-2xl text-gray-800 font-bold">
-                加密狗管理
+                加密锁管理
               </h1>
             </div>
             <div class="flex items-center">
@@ -521,17 +521,17 @@ function expandDongle(shellCode: string, expand: boolean) {
                 class="border border-green-500 rounded bg-green-300 px-5 py-2 text-black font-semibold transition-colors duration-150 hover:bg-green-400"
                 @click="handleCreate"
               >
-                创建加密狗
+                创建加密锁
               </FaButton>
             </div>
           </div>
 
           <!-- 文字提示行 -->
           <div class="mt-3 text-sm text-gray-600">
-            本页面为加密狗管理页面，提供加密狗的创建、编辑和历史记录查看功能
+            本页面为加密锁管理页面，提供加密锁的创建、编辑和历史记录查看功能
           </div>
         </div>
-        <!-- 动态渲染所有加密狗 -->
+        <!-- 动态渲染所有加密锁 -->
         <FaPageMain
           v-for="dongle in dongleList"
           :key="dongle.shellCode"
@@ -607,7 +607,7 @@ function expandDongle(shellCode: string, expand: boolean) {
 
           <!-- 展开内容 -->
           <div class="space-y-6">
-            <!-- 加密狗信息 -->
+            <!-- 加密锁信息 -->
             <div class="border border-blue-200 rounded-lg p-6">
               <h3 class="mb-4 text-lg text-black font-bold">
                 密钥信息
@@ -705,7 +705,7 @@ function expandDongle(shellCode: string, expand: boolean) {
         <!-- 编辑弹窗 -->
         <el-dialog
           v-model="editDialogVisible"
-          title="编辑加密狗信息"
+          title="编辑加密锁信息"
           width="50vw"
           :close-on-click-modal="false"
         >
@@ -950,10 +950,10 @@ function expandDongle(shellCode: string, expand: boolean) {
           </template>
         </el-dialog>
 
-        <!-- 创建加密狗弹窗 -->
+        <!-- 创建加密锁弹窗 -->
         <el-dialog
           v-model="createDialogVisible"
-          title="创建新的加密狗"
+          title="创建新的加密锁"
           width="60vw"
           :close-on-click-modal="false"
         >

@@ -760,7 +760,7 @@ void CustomerInfoController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
 std::string CustomerInfoController::getClientAuthInfo(const std::string& clientName)
 {
-    // 调用Service层获取客户信息和加密狗授权信息，并转换为JSON格式
+    // 调用Service层获取客户信息和加密锁授权信息，并转换为JSON格式
     nlohmann::json result = customerInfoService_->getClientAuthInfoJson(clientName);
     
     // 将JSON对象转换为字符串返回

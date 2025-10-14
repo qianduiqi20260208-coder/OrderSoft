@@ -1,21 +1,21 @@
 import api from '../index'
 
 export default {
-  // -----------加密狗管理页面-----------
-  // 获取加密狗列表信息
+  // -----------加密锁管理页面-----------
+  // 获取加密锁列表信息
   getDongleList: () =>
     api.get('dongle/list', {
       // baseURL: '/mock/',
     }),
 
-  // 获取特定加密狗的历史记录
+  // 获取特定加密锁的历史记录
   getDongleHistory: (dongleId: string) =>
     api.get(`dongle/history`, {
       // baseURL: '/mock/',
       params: { dongleId },
     }),
 
-  // 创建加密狗
+  // 创建加密锁
   createDongle: (data: {
     shellCode: string // 外壳号
     shellSerial: string // 序列号
@@ -24,7 +24,7 @@ export default {
       // baseURL: '/mock/',
     }),
 
-  // 更新加密狗信息
+  // 更新加密锁信息
   updateDongle: (data: {
     dongleId: string
     shellCode: string

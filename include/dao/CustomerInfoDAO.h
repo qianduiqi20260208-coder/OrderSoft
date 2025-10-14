@@ -25,7 +25,7 @@ public:
     std::vector<std::vector<std::string>> selectAllSendRecordByClient(std::string) override;
 
     std::vector<std::vector<std::string>> selectLatestModelVersionByClient(std::string client) override;
-    // 根据客户名称获取客户信息和加密狗授权信息
+    // 根据客户名称获取客户信息和加密锁授权信息
     Client getClientAuthInfo(const std::string& clientName) override;
 
     // 获取所有客户名称列表

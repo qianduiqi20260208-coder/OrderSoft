@@ -22,11 +22,11 @@ const clientList = ref<Client[]>([])
 // 获取唯一的日期列表（用于第一层表头）
 function getUniqueDates(client: Client): string[] {
   const dates = new Set<string>()
-  
+
   if (!client.versionHistoryData || client.versionHistoryData.length === 0) {
     return []
   }
-  
+
   client.versionHistoryData.forEach(row => {
     if (row.versions && Array.isArray(row.versions)) {
       row.versions.forEach((version: { deliveryDate?: string; packageSendDate?: string }) => {
@@ -37,9 +37,9 @@ function getUniqueDates(client: Client): string[] {
       })
     }
   })
-  
+
   // 按日期排序
-  return Array.from(dates).sort((a, b) => 
+  return Array.from(dates).sort((a, b) =>
     new Date(a).getTime() - new Date(b).getTime()
   )
 }
@@ -47,7 +47,7 @@ function getUniqueDates(client: Client): string[] {
 // 定义客户信息管理数据结构
 interface Client {
   clientName: string // 客户名称
-  dongleCount: number // 加密狗数量
+  dongleCount: number // 加密锁数量
   modelCount: number // 发送模型数量
   modelVersionCount: number // 发送模型总版本数量
   clientinfo?: string // 客户信息备注
@@ -274,7 +274,7 @@ function getTotalLicenseCount(client: Client): number {
 // 工单号点击跳转处理函数
 function handleOrderNumberClick(orderId: string) {
   console.warn('跳转到工单详情:', orderId)
-  
+
   // 跳转到工单列表页面，传递工单号参数
   router.push({
     path: '/order_list',
@@ -292,7 +292,7 @@ function handleAuthDetail(client: Client) {
     path: '/client_manage/auth_detail',
     query: {
       clientName: client.clientName, // 客户名称
-      dongleCount: client.dongleCount, // 加密狗数量
+      dongleCount: client.dongleCount, // 加密锁数量
       validCount: client.licenseStats.validCount, // 有效授权数量
       expiringCount: client.licenseStats.expiringCount, // 临期授权数量（5天内过期）
       expiredCount: client.licenseStats.expiredCount, // 过期授权数量
@@ -387,7 +387,7 @@ async function fetchClients() {
       // 数据映射处理，确保与前端接口一致
       const mappedData: Client[] = (res.data.list || []).map((client: any) => ({
         clientName: client.clientName || '', // 客户名称
-        dongleCount: client.dongleCount || 0, // 加密狗数量
+        dongleCount: client.dongleCount || 0, // 加密锁数量
         modelCount: client.modelCount || 0, // 发送模型数量
         modelVersionCount: client.modelVersionCount || 0, // 发送模型总版本数量
         clientinfo: client.clientinfo, // 客户信息备注
@@ -554,7 +554,7 @@ onMounted(() => {
           <div class="px-4 py-2">
             <div class="flex flex-wrap items-center gap-x-8 gap-y-2">
               <span class="text-sm text-blue-700 font-bold">
-                加密狗：<span class="text-base text-blue-600">{{ client.dongleCount }}</span>
+                加密锁：<span class="text-base text-blue-600">{{ client.dongleCount }}</span>
               </span>
               <span class="text-sm text-green-700 font-bold">
                 模型章节号：<span class="text-base text-green-600">{{ client.modelCount }}</span>
@@ -587,7 +587,7 @@ onMounted(() => {
             <el-divider content-position="left">
               <span class="text-lg font-bold text-gray-700">发送详情</span>
             </el-divider>
-            
+
             <el-table
               v-loading="client.versionHistoryLoading"
               :data="client.versionHistoryData"
@@ -600,7 +600,7 @@ onMounted(() => {
               <el-table-column prop="ata_code" fixed="left" label="系统" min-width="180" show-overflow-tooltip />
               <el-table-column prop="model_name"  fixed="left" label="模型" min-width="180" show-overflow-tooltip />
               <el-table-column prop="latest_version" fixed="left"  label="最后发送版本" min-width="120" align="center" />
-              
+
               <!-- 动态列：按日期分组的版本信息 -->
               <el-table-column
                 v-for="date in getUniqueDates(client)"
@@ -628,7 +628,7 @@ onMounted(() => {
                     <div v-else class="no-version text-gray-400 text-sm">-</div>
                   </template>
                 </el-table-column>
-                
+
                 <el-table-column
                   label="工单ID"
                   width="120"
@@ -639,7 +639,7 @@ onMounted(() => {
                       <div v-for="(version, _index) in row.versions" :key="version.workOrderNo">
                         <div v-if="(version.deliveryDate || version.packageSendDate) === date" class="version-cell">
                           <!-- 添加下划线和点击事件 -->
-                          <div 
+                          <div
                             class="p-1 border-b border-gray-300 last:border-b-0 mb-1 text-xs text-gray-600 underline cursor-pointer hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150"
                             @click="handleOrderNumberClick(version.workOrderNo)"
                           >
@@ -653,7 +653,7 @@ onMounted(() => {
                 </el-table-column>
               </el-table-column>
             </el-table>
-            
+
           </div>
         </FaPageMain>
       </template>

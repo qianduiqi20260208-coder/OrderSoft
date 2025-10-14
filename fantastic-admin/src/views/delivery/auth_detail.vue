@@ -12,7 +12,7 @@ import deliveryApi from '@/api/modules/delivery'
 const route = useRoute() // 获取当前路由信息
 const router = useRouter() // 获取路由实例
 const clientName_ = ref('') // 客户名称
-const dongleCount_ = ref('') // 加密狗数量
+const dongleCount_ = ref('') // 加密锁数量
 const validCount_ = ref('') // 有效授权数量
 const expiringCount_ = ref('') // 临期授权数量（5天内过期）
 const expiredCount_ = ref('') // 过期授权数量
@@ -25,7 +25,7 @@ const expandedMap = ref<Record<string, boolean>>({}) // 展开状态管理
 // 授权详情数据结构
 interface AuthDetail {
   clientName: string // 客户名称
-  dongleCount: number // 加密狗数量
+  dongleCount: number // 加密锁数量
   shellNumbers: ShellInfo[] // 外壳号信息列表
 }
 
@@ -979,7 +979,7 @@ async function fetchAuthDetail(clientName: string) {
     if (res?.data) {
       const mappedData: AuthDetail = {
         clientName: res.data.clientName || clientName, // 客户名称
-        dongleCount: res.data.dongleCount || 0, // 加密狗数量
+        dongleCount: res.data.dongleCount || 0, // 加密锁数量
         shellNumbers: (res.data.shellNumbers || []).map((shell: any) => ({
           shellNumber: shell.shellNumber || '', // 外壳号
           deviceType: shell.deviceType || '', // 客户设备类型 lab/IPT/FTD/FFS
@@ -1026,7 +1026,7 @@ async function fetchAuthDetail(clientName: string) {
 // 页面加载时获取客户名称并请求授权详情
 onMounted(() => {
   clientName_.value = route.query.clientName as string || '' // 获取客户名称
-  dongleCount_.value = route.query.dongleCount as string || '' // 获取客户加密狗数量
+  dongleCount_.value = route.query.dongleCount as string || '' // 获取客户加密锁数量
   validCount_.value = route.query.validCount as string || '' // 获取客户有效授权数量
   expiringCount_.value = route.query.expiringCount as string || '' // 获取客户临期授权数量
   expiredCount_.value = route.query.expiredCount as string || '' // 获取客户过期授权数量
@@ -1078,7 +1078,7 @@ function handleBackToClientManage() {
             <!-- 左边：统计信息 -->
             <div class="flex items-center gap-8">
               <div class="flex items-center gap-3">
-                <span class="text-sm text-gray-600 font-bold">加密狗数量：</span>
+                <span class="text-sm text-gray-600 font-bold">加密锁数量：</span>
                 <span class="text-xl text-blue-600 font-bold">{{ dongleCount_ }}</span>
               </div>
               <div class="flex items-center gap-3">
