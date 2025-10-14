@@ -85,8 +85,7 @@ inline std::string generateUniqueFileName(const std::string& originalFileName) {
 
     // 构建唯一文件名：原名_YYYYMMDD_HHMMSS.扩展名
     std::ostringstream oss;
-    oss << baseName << "_" 
-        << std::setfill('0') << std::setw(4) << (tm.tm_year + 1900)  // 年份
+    oss << std::setfill('0') << std::setw(4) << (tm.tm_year + 1900)  // 年份
         << std::setfill('0') << std::setw(2) << (tm.tm_mon + 1)      // 月份
         << std::setfill('0') << std::setw(2) << tm.tm_mday           // 日
         << "_"

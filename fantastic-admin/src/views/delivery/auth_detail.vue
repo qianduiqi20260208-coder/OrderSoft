@@ -36,6 +36,7 @@ interface ShellInfo {
   deviceNote: string // 客户设备备注
   contractName: string // 合同名称
   contractNumber: string // 合同编号
+  pdfUrl: string // 合同PDF链接
   authorizationList: AuthorizationInfo[] // 该外壳号下的授权信息列表
   authCount: number // 该外壳号下的总授权数量
   inTime: string // 入库时间
@@ -199,8 +200,22 @@ const deliverShellForm = ref({
   deviceNote: '', // 设备备注
   contractName: '', // 合同名称
   contractNumber: '', // 合同编号
+  pdfUrl: '', // 合同PDF链接
 })
+const fileListTar = ref<any[]>([])
 
+
+// 处理附件上传时的回调，更新表单中的文件列表
+function handleProblemFileChange(_file: any, fileList: any[]) {
+  // 只保留最新上传的文件
+  if (fileList.length > 1) {
+    // 只保留最后一个文件，重新赋值为新数组
+    fileListTar.value = [fileList[fileList.length - 1]]
+  }
+  else {
+    fileListTar.value = [...fileList]
+  }
+}
 // 可交付外壳号列表相关状态
 const availableShells = ref<string[]>([])
 const shellsLoading = ref(false)
@@ -247,6 +262,7 @@ async function handleDeliverShell() {
     deviceNote: '',
     contractName: '',
     contractNumber: '',
+    pdfUrl: '',
   }
 
   // 获取可交付外壳号列表
@@ -270,7 +286,7 @@ async function handleConfirmDeliverShell() {
     if (!deliverShellForm.value.deviceNote.trim()) {
       ElMessage.warning('请填写设备备注')
       return
-    }
+    }  
 
     // 调用交付外壳API - 简化数据结构
     const res = await deliveryApi.deliverShell({
@@ -280,12 +296,13 @@ async function handleConfirmDeliverShell() {
       deviceNote: deliverShellForm.value.deviceNote, // 设备备注
       contractName: deliverShellForm.value.contractName, // 合同名称
       contractNumber: deliverShellForm.value.contractNumber, // 合同编号
+      files: fileListTar.value, // 附件列表
     })
 
     if (res?.data?.success) {
       // 关闭弹窗
       deliverShellDialogVisible.value = false
-
+      fileListTar.value = []
       // 显示成功提示
       ElMessage.success(res.data.message || `外壳号 ${deliverShellForm.value.shellNumber} 交付成功`)
 
@@ -317,12 +334,14 @@ async function handleConfirmDeliverShell() {
 // 取消交付外壳
 function handleCancelDeliverShell() {
   deliverShellDialogVisible.value = false
+  fileListTar.value = []
   deliverShellForm.value = {
     shellNumber: '',
     deviceType: '',
     deviceNote: '',
     contractName: '',
     contractNumber: '',
+    pdfUrl: '', // 合同PDF链接
   }
 }
 
@@ -530,7 +549,6 @@ async function handleConfirmReturnShell() {
         default: return type
       }
     }
-
     // 调用操作API
     const res = await deliveryApi.returnShell({
       clientName: clientName_.value, // 客户名称
@@ -600,6 +618,7 @@ const editForm = ref({
   deviceNote: '',
   contractName: '',
   contractNumber: '',
+  pdfUrl: '', // 合同PDF链接
 })
 
 // 编辑外壳号信息处理函数
@@ -630,6 +649,7 @@ async function handleConfirmEdit() {
       deviceNote: editForm.value.deviceNote, // 设备备注
       contractName: editForm.value.contractName, // 合同名称
       contractNumber: editForm.value.contractNumber, // 合同编号
+      files: fileListTar.value,
     })
 
     // 更新本地数据
@@ -645,9 +665,12 @@ async function handleConfirmEdit() {
 
     // 关闭弹窗
     editDialogVisible.value = false
-
+    fileListTar.value = []
     // 显示成功提示
     ElMessage.success(res.data.message || '外壳号信息更新成功')
+    if (clientName_.value) {
+      await fetchAuthDetail(clientName_.value)
+    }
   }
   catch (error) {
     console.error('更新外壳号信息失败:', error)
@@ -658,11 +681,13 @@ async function handleConfirmEdit() {
 function handleCancelEdit() {
   editDialogVisible.value = false
   editingShell.value = null
+  fileListTar.value = []
   editForm.value = {
     deviceType: '',
     deviceNote: '',
     contractName: '',
     contractNumber: '',
+    pdfUrl: '', // 合同PDF链接
   }
 }
 
@@ -986,6 +1011,7 @@ async function fetchAuthDetail(clientName: string) {
           deviceNote: shell.deviceNote || '', // 客户设备备注
           contractName: shell.contractName || '', // 合同名称
           contractNumber: shell.contractNumber || '', // 合同编号
+          pdfUrl: shell.pdfUrl || '', // 合同PDF链接
           authCount: shell.authCount || 0, // 该外壳号的总授权数量
           outTime: shell.outTime || 0, // 后端获取外壳号出库时间
           isFullyLoaded: false, // 初始状态为未完全加载
@@ -1171,6 +1197,17 @@ function handleBackToClientManage() {
                   </span>
                   <span v-if="shell.contractNumber" class="text-base text-black">
                     <span class="font-bold">合同编号：</span>{{ shell.contractNumber }}
+                  </span>
+                  <!-- 提供打开新的标签页查看合同PDF -->
+                  <span v-if="shell.pdfUrl" class="ml-2 text-base text-black">
+                    <a
+                      :href="shell.pdfUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-500 underline"
+                    >
+                      加密锁交付签收单PDF
+                    </a>
                   </span>
                 </div>
               </div>
@@ -1375,6 +1412,25 @@ function handleBackToClientManage() {
                 class="flex-1"
               />
             </div>
+            <!-- 上传PDF -->
+             <div class="flex items-start gap-3">
+              <label class="mt-2 w-24 flex-shrink-0 text-sm text-gray-600 font-bold">
+                <!-- <span class="text-red-500">*</span> -->
+                加密锁交付签收单PDF：
+              </label>
+              <el-upload
+                v-model:file-list="fileListTar"
+                class="flex-1"
+                action="#"
+                :auto-upload="false"
+                list-type="text"
+                :limit="1"
+                :accept="'.pdf'"
+                :on-change="handleProblemFileChange"
+              >
+                <el-button size="small" type="primary">点击上传</el-button>
+              </el-upload>
+            </div>
 
             <!-- 设备备注输入 -->
             <div class="flex items-start gap-3">
@@ -1417,6 +1473,9 @@ function handleBackToClientManage() {
                 </div>
                 <div v-if="deliverShellForm.contractNumber">
                   <span class="font-medium">合同编号：</span>{{ deliverShellForm.contractNumber }}
+                </div>
+                <div v-if="deliverShellForm.pdfUrl">
+                  <span class="font-medium">加密锁交付签收单PDF：</span>{{ deliverShellForm.pdfUrl }}
                 </div>
               </div>
             </div>
@@ -1749,6 +1808,22 @@ function handleBackToClientManage() {
                 placeholder="请输入合同编号"
                 class="flex-1"
               />
+            </div>
+            <!-- 合同PDF上传 -->
+            <div class="flex items-center gap-3">
+              <label class="w-20 text-sm text-gray-600 font-bold">加密锁交付签收单PDF：</label>
+              <el-upload
+                v-model:file-list="fileListTar"
+                class="flex-1"
+                action="#"
+                :auto-upload="false"
+                list-type="text"
+                :limit="1"
+                :accept="'.pdf'"
+                :on-change="handleProblemFileChange"
+              >
+                <el-button size="small" type="primary">点击上传</el-button>
+              </el-upload>
             </div>
 
             <!-- 设备备注输入 -->
