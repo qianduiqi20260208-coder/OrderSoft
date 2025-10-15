@@ -1316,7 +1316,7 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
 
     // 工单附件文件下载接口
     CROW_ROUTE(app, "/files/ticket").methods("GET"_method)
-        (withAspect([this](const crow::request& req) {
+        ([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
@@ -1327,7 +1327,8 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         std::string decodedFilename = url_decode(filename);
         LOG_INFO("文件下载请求 - ticketId:%d, filename:%s\n", ticketId, decodedFilename.c_str());
         return downloadTicketFile(ticketId, decodedFilename);
-        }));
+        });
+    // 
 
 
     CROW_ROUTE(app, "/order/statisticsAll").methods("GET"_method)

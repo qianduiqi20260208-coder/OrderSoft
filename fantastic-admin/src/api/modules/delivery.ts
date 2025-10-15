@@ -112,9 +112,11 @@ export default {
     deviceNote: string // 设备备注
     contractName: string // 合同名称
     contractNumber: string // 合同编号
+    files: File[] // 附件列表
   }) =>
     api.post('shell/deliver', data, {
       // baseURL: '/mock/',
+      headers: { 'Content-Type': 'multipart/form-data; charset=UTF-8' },
     }),
 
   // 获取可交付的外壳号列表
@@ -158,9 +160,11 @@ export default {
     deviceNote: string // 设备备注
     contractName: string // 合同名称
     contractNumber: string // 合同编号
+    files: File[] // 附件列表
   }) =>
     api.put('shell/update', data, {
       // baseURL: '/mock/',
+      headers: { 'Content-Type': 'multipart/form-data; charset=UTF-8' },
     }),
 
   // 批量更新授权截止日期

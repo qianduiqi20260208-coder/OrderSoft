@@ -1,13 +1,121 @@
 #include "EncryptionKeyController.h"
 #include <nlohmann/json.hpp>
 #include <jwt_utils.h>
+#include "IniReader.h"
 #include "Log.h"
 #include "Logger.h"
+#include <string>
+#include <cstdio>
 
 EncryptionKeyController::EncryptionKeyController(std::shared_ptr<IEncryptionKeyService> service)
     : encryptionKeyService_(service)
 {
 }
+
+// 解析 multipart/form-data 格式的表单数据
+MultipartResult EncryptionKeyController::parseMultipartForm(const std::string& content_type, const std::string& body,TicketReproduce& ticketreproduce)
+{
+    MultipartResult result; // 用于保存解析结果，包括表单字段和已保存的文件路径
+
+    // 获取 boundary（分隔符），用于分割每个表单部分
+    size_t pos_boundary = content_type.find("boundary=");
+    std::string boundary = (pos_boundary != std::string::npos)
+        ? "--" + content_type.substr(pos_boundary + 9)
+        : "";
+
+    size_t pos = 0;
+    // 循环处理每个 part（表单项或文件）
+    while ((pos = body.find(boundary, pos)) != std::string::npos) {
+        size_t part_start = pos + boundary.length();
+        // 检查是否到达结尾
+        if (body.substr(part_start, 2) == "--") break;
+        part_start += 2;
+
+        // 查找下一个 boundary，确定当前 part 的结束位置
+        size_t part_end = body.find(boundary, part_start);
+        if (part_end == std::string::npos) break;
+
+        // 截取当前 part 内容
+        std::string part = body.substr(part_start, part_end - part_start);
+
+        // 查找头部和内容的分隔符
+        size_t header_end = part.find("\r\n\r\n");
+        if (header_end == std::string::npos) continue;
+
+        // 解析头部和内容
+        std::string headers = part.substr(0, header_end);
+        std::string content = part.substr(header_end + 4);
+        
+        // 对于文件内容，不要去除末尾字符，保持原始二进制数据
+        // 只有在非文件字段时才去除换行符
+
+        std::string name, filename;
+        std::istringstream header_stream(headers);
+        std::string line;
+        // 解析头部，获取字段名和文件名
+        while (std::getline(header_stream, line)) {
+            if (line.find("Content-Disposition") != std::string::npos) {
+                size_t name_pos = line.find("name=\"");
+                if (name_pos != std::string::npos) {
+                    size_t name_end = line.find("\"", name_pos + 6);
+                    name = line.substr(name_pos + 6, name_end - name_pos - 6);
+                }
+                size_t filename_pos = line.find("filename=\"");
+                if (filename_pos != std::string::npos) {
+                    size_t filename_end = line.find("\"", filename_pos + 10);
+                    filename = line.substr(filename_pos + 10, filename_end - filename_pos - 10);
+                }
+            }
+        }
+
+	    // TicketReproduce ticketreproduce; // 问题复现工单结构体
+        // 如果是文件，则保存到磁盘，并记录路径
+        if (!filename.empty()) {
+            std::string saved_path;
+            //if (saveFile(filename, content, saved_path)) {
+            //    result.saved_files.push_back(saved_path);
+            //}
+			// 文件内容存入 ticketreproduce.attachment（保持原始二进制数据）
+
+            // 生成唯一文件名
+            std::string uniqueFileName = generateUniqueFileName(filename);
+			ticketreproduce.attachment.file = content;
+			ticketreproduce.attachment.fileName = uniqueFileName;
+            LOG_DEBUG("function:parseMultipartForm 文件名:%s,唯一文件名:%s\n",ticketreproduce.attachment.fileName.c_str(),uniqueFileName.c_str());
+            //保存文件
+            IniReader config;
+            if (!config.load("config.ini")) {
+                    std::cerr << "无法读取 config.ini 文件\n";
+                // return false;
+            }
+            if(ticketreproduce.attachment.fileName != "")
+            {
+                std::string filePath = config.getString("storage","upload_dir_dongle_dir") + ticketreproduce.attachment.fileName;
+                std::fstream ofs(filePath.c_str(),std::ios::binary | std::ios::out);
+                if(!ofs.is_open())
+                {
+                    LOG_ERROR("function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
+                    ofs.close();
+                }else{
+                    ofs.write(ticketreproduce.attachment.file.c_str(),ticketreproduce.attachment.file.size());
+                    ofs.close();
+                }
+            }
+
+        }
+        // 如果是普通字段，则保存到 fields
+        else if (!name.empty()) {
+            // 对于普通表单字段，去除末尾的换行符
+            content.erase(content.find_last_not_of("\r\n") + 1);
+            result.fields[name].push_back(content);
+        }
+
+        // 移动到下一个 part
+        pos = part_end;
+    }
+    return result; // 返回解析结果
+}
+
 
 void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     // 获取加密锁列表
@@ -249,35 +357,40 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
 
     // 交付外壳
     CROW_ROUTE(app, "/shell/deliver").methods("POST"_method)
-        (withAspect([this](const crow::request& req) {
+        ([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
         }
 
         try {
+            // 解析请求体中的多部分表单数据
+            const std::string content_type = req.get_header_value("Content-Type");
+            
+            TicketReproduce ticketreproduce; // 问题复现工单结构体
+            MultipartResult result = parseMultipartForm(content_type, req.body,ticketreproduce);
             // 解析请求体
-            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            // nlohmann::json reqData = nlohmann::json::parse(req.body);
+
             
             // 参数验证
-            if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote")
-                ) {
-                nlohmann::json resp = {
-                    {"status", 1},
-                    {"error", "缺少必要参数：clientName、shellNumber、deviceType、deviceNote、"},
-                    {"data", {}}
-                };
-                return crow::response(400, resp.dump());
-            }
-
-            std::string clientName = reqData["clientName"];
-            std::string shellNumber = reqData["shellNumber"];
-            std::string deviceType = reqData["deviceType"];
-            std::string deviceNote = reqData["deviceNote"];
-            std::string contractName = reqData.value("contractName", "");
-            std::string contractNumber = reqData.value("contractNumber", "");
-            std::string pdfUrl = reqData.value("pdfUrl", "");
+            // if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+            //     !reqData.contains("deviceType") || !reqData.contains("deviceNote")
+            //     ) {
+            //     nlohmann::json resp = {
+            //         {"status", 1},
+            //         {"error", "缺少必要参数：clientName、shellNumber、deviceType、deviceNote、"},
+            //         {"data", {}}
+            //     };
+            //     return crow::response(400, resp.dump());
+            // }
+            std::string clientName = getField(result, "clientName");
+            std::string shellNumber = getField(result, "shellNumber");
+            std::string deviceType = getField(result, "deviceType");
+            std::string deviceNote = getField(result, "deviceNote");
+            std::string contractName = getField(result, "contractName");
+            std::string contractNumber = getField(result, "contractNumber");
+            std::string pdfUrl = ticketreproduce.attachment.fileName;
 
              LOG_DEBUG("交付外壳，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s, pdfUrl: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str(), pdfUrl.c_str());
@@ -319,11 +432,11 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             };
             return crow::response(500, resp.dump());
         }
-        }));
+        });
 
     // 归还外壳
     CROW_ROUTE(app, "/shell/return").methods("POST"_method)
-        (withAspect([this](const crow::request& req) {
+        ([this](const crow::request& req) {
         // JWT校验
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
@@ -395,7 +508,7 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
             };
             return crow::response(500, resp.dump());
         }
-        }));
+        });
 
     // 新建授权信息
     CROW_ROUTE(app, "/auth/create").methods("POST"_method)
@@ -514,28 +627,33 @@ void EncryptionKeyController::registerRoutes(crow::App<crow::CORSHandler>& app) 
         }
 
         try {
+            // 解析请求体中的多部分表单数据
+            const std::string content_type = req.get_header_value("Content-Type");
+            
+            TicketReproduce ticketreproduce; // 问题复现工单结构体
+            MultipartResult result = parseMultipartForm(content_type, req.body,ticketreproduce);
             // 解析请求体
-            nlohmann::json reqData = nlohmann::json::parse(req.body);
+            // nlohmann::json reqData = nlohmann::json::parse(req.body);
             
             // 参数验证
-            if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
-                !reqData.contains("deviceType") || !reqData.contains("deviceNote")
-                ) {
-                nlohmann::json resp = {
-                    {"status", 1},
-                    {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
-                    {"data", {}}
-                };
-                return crow::response(400, resp.dump());
-            }
+            // if (!reqData.contains("clientName") || !reqData.contains("shellNumber") || 
+            //     !reqData.contains("deviceType") || !reqData.contains("deviceNote")
+            //     ) {
+            //     nlohmann::json resp = {
+            //         {"status", 1},
+            //         {"error", "缺少必要参数：clientName、shellNumber、deviceType 或 deviceNote"},
+            //         {"data", {}}
+            //     };
+            //     return crow::response(400, resp.dump());
+            // }
 
-            std::string clientName = reqData["clientName"];
-            std::string shellNumber = reqData["shellNumber"];
-            std::string deviceType = reqData["deviceType"];
-            std::string deviceNote = reqData["deviceNote"];
-            std::string contractName = reqData.value("contractName", "");
-            std::string contractNumber = reqData.value("contractNumber", "");
-            std::string pdfUrl = reqData.value("pdfUrl", "");
+            std::string clientName = getField(result, "clientName");
+            std::string shellNumber = getField(result, "shellNumber");
+            std::string deviceType = getField(result, "deviceType");
+            std::string deviceNote = getField(result, "deviceNote");
+            std::string contractName = getField(result, "contractName");
+            std::string contractNumber = getField(result, "contractNumber");
+            std::string pdfUrl = ticketreproduce.attachment.fileName;
 
              LOG_DEBUG("更新外壳号信息，clientName: %s, shellNumber: %s, deviceType: %s, deviceNote: %s, contractName: %s, contractNumber: %s, pdfUrl: %s\n", 
                    clientName.c_str(), shellNumber.c_str(), deviceType.c_str(), deviceNote.c_str(), contractName.c_str(), contractNumber.c_str(), pdfUrl.c_str());
