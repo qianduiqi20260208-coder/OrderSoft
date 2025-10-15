@@ -1098,7 +1098,7 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          
+
                           'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
                           'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
                           'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
@@ -1143,7 +1143,7 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          
+
                           'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
                           'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
                           'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
@@ -1177,7 +1177,7 @@ function handleCopyOrder(order: OrderItem) {
                           'bg-yellow-100 text-yellow-700': order.status === '草稿',
                           'bg-orange-100 text-orange-700': order.status === '待审批',
                           'bg-purple-100 text-purple-700': order.status === '待分发',
-                          
+
                           'bg-indigo-100 text-indigo-700': order.status === '进行中' && order.statusTodo === '待封装',
                           'bg-teal-100 text-teal-700': order.status === '进行中' && order.statusTodo === '待加密',
                           'bg-blue-100 text-blue-700': order.status === '进行中' && order.statusTodo === '待发送',
@@ -1957,6 +1957,22 @@ function handleCopyOrder(order: OrderItem) {
                         class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         :value="order.approverID || 'NA'" readonly>
                     </div>
+
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">UpdateNotes：</span>
+                      <template v-if="order.files && order.files.length">
+                        <div class="flex flex-wrap gap-2">
+                          <span v-for="(file, idx) in order.files" :key="idx"
+                            class="flex cursor-pointer items-center text-blue-600 underline hover:text-blue-800"
+                            @click="downloadFile(file.fileUrl, file.fileName)">
+                            <i class="i-mdi-download mr-1" />
+                            {{ file.fileName }}
+                          </span>
+                        </div>
+                      </template>
+                      <span v-else class="text-gray-400">无</span>
+                    </div>
+
                   </template>
 
                   <!-- 版本迭代+交付发送类 -->
@@ -2011,6 +2027,22 @@ function handleCopyOrder(order: OrderItem) {
                         class="w-full border-0 border-b border-gray-300  bg-gray-50 py-2 text-sm text-black  focus:outline-none focus:border-blue-500"
                         :value="order.approverID || 'NA'" readonly>
                     </div>
+
+                    <div class="flex flex-col gap-2">
+                      <span class="text-black font-semibold">UpdateNotes: </span>
+                      <template v-if="order.files && order.files.length">
+                        <div class="flex flex-wrap gap-2">
+                          <span v-for="(file, idx) in order.files" :key="idx"
+                            class="flex cursor-pointer items-center text-blue-600 underline hover:text-blue-800"
+                            @click="downloadFile(file.fileUrl, file.fileName)">
+                            <i class="i-mdi-download mr-1" />
+                            {{ file.fileName }}
+                          </span>
+                        </div>
+                      </template>
+                      <span v-else class="text-gray-400">无</span>
+                    </div>
+
                   </template>
 
                   <!-- 功能开发类 -->

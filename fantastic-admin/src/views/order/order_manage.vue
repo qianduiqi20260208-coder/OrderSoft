@@ -766,8 +766,8 @@ async function fetchUserOrders() {
         description: order.issueReproduction?.description || '', // 问题描述 ======================
         // 先初始化为空数组，后面会处理文件
         files: [],
-        fileName: order.issueReproduction?.fileName || '', // 后端返回的文件名
-        fileUrl: order.issueReproduction?.referenceFile || '', // 后端返回的文件URL
+        fileName: order.issueReproduction?.fileName || order.deliverySend?.fileName || order.packageSend?.fileName || '', // 后端返回的文件名
+        fileUrl: order.issueReproduction?.referenceFile || order.deliverySend?.referenceFile || order.packageSend?.referenceFile || '', // 后端返回的文件URL
         hasAttachment: order.issueReproduction?.hasAttachment || false, // 是否有附件-------------------
 
         updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '', // 版本更新内容说明 =========================
@@ -1824,7 +1824,7 @@ onMounted(() => {
                             'border-blue-200 bg-blue-50/20 hover:border-blue-300': getActiveTab(order.orderID) === 'complete' && order.status !== '已完成',
                             'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed': order.status === '已完成'
                           }"
-                          rows="3" 
+                          rows="3"
                           :readonly="order.status === '已完成'"
                           placeholder="请详细描述复现的现象..." />
                       </div>
@@ -1839,7 +1839,7 @@ onMounted(() => {
                             'border-blue-200 bg-blue-50/20 hover:border-blue-300': getActiveTab(order.orderID) === 'complete' && order.status !== '已完成',
                             'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed': order.status === '已完成'
                           }"
-                          rows="3" 
+                          rows="3"
                           :readonly="order.status === '已完成'"
                           placeholder="请输入相关备注信息..." />
                       </div>
@@ -2459,13 +2459,13 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                
+
                 <!-- 内容区域 -->
                 <div class="p-6">
                   <div
                     class="relative border border-gray-200 rounded-xl transition-all duration-300"
                     :class="order.statusTodo === '待加密' ? 'bg-gradient-to-br from-green-50 to-emerald-50' : 'bg-gray-50'">
-                    
+
                     <!-- 编辑区，仅待加密时可填写 -->
                     <template v-if="order.statusTodo === '待加密'">
                       <div class="p-6 space-y-6">
@@ -2488,7 +2488,7 @@ onMounted(() => {
                               <span class="text-red-500">*</span>
                               是否加密：
                             </label>
-                            <el-select v-model="order.isEncrypted" placeholder="请选择是否加密" 
+                            <el-select v-model="order.isEncrypted" placeholder="请选择是否加密"
                               class="w-full" size="large"
                               :disabled="order.statusTodo !== '待加密'">
                               <el-option label="是" value="是" />
@@ -2503,7 +2503,7 @@ onMounted(() => {
                               授权ID：
                             </label>
                             <div class="flex items-center gap-3">
-                              <el-button type="primary" size="large" 
+                              <el-button type="primary" size="large"
                                 :disabled="order.statusTodo !== '待加密'"
                                 @click="handleAuthIdSelectClick(order)"
                                 class="px-6">
@@ -2523,11 +2523,11 @@ onMounted(() => {
                               <span class="text-red-500">*</span>
                               发送人：
                             </label>
-                            <el-select v-model="order.sendExecutorID" placeholder="请选择发送人" 
+                            <el-select v-model="order.sendExecutorID" placeholder="请选择发送人"
                               filterable clearable size="large" class="w-full"
                               :disabled="order.statusTodo !== '待加密'"
                               @visible-change="val => val && fetchExecutorList(order.modelID)">
-                              <el-option v-for="item in executor" :key="item.id" 
+                              <el-option v-for="item in executor" :key="item.id"
                                 :label="`${item.name} (${item.id})`" :value="item.id" />
                             </el-select>
                           </div>
@@ -2538,7 +2538,7 @@ onMounted(() => {
                           <label class="text-sm font-medium text-gray-700">加密备注：</label>
                           <textarea v-model="order.encryptedRemark"
                             class="w-full resize-none border border-gray-300 rounded-lg bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-opacity-50"
-                            rows="3" :readonly="order.statusTodo !== '待加密'" 
+                            rows="3" :readonly="order.statusTodo !== '待加密'"
                             placeholder="请输入加密相关备注信息" />
                         </div>
 
@@ -2570,7 +2570,7 @@ onMounted(() => {
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                               <div class="space-y-2">
                                 <label class="text-sm font-medium text-gray-700">流转负责人：</label>
-                                <el-select v-model="order.transferExecutorIDEdit" placeholder="请选择流转负责人" 
+                                <el-select v-model="order.transferExecutorIDEdit" placeholder="请选择流转负责人"
                                   filterable clearable size="large" class="w-full"
                                   :disabled="order.status === '已完成'"
                                   @visible-change="val => val && fetchTransferExecutorList(order.modelID)">
@@ -2585,7 +2585,7 @@ onMounted(() => {
                                 </label>
                                 <textarea v-model="order.transferReasonEdit"
                                   class="w-full resize-none border border-gray-300 rounded-lg bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-opacity-50"
-                                  rows="2" :readonly="order.status === '已完成'" 
+                                  rows="2" :readonly="order.status === '已完成'"
                                   placeholder="请输入工作记录" />
                               </div>
                             </div>
@@ -2602,7 +2602,7 @@ onMounted(() => {
                         </div>
                       </div>
                     </template>
-                    
+
                     <!-- 只读区，仅待发送时显示 -->
                     <template v-else-if="order.statusTodo === '待发送'">
                       <div class="p-6">
@@ -2616,7 +2616,7 @@ onMounted(() => {
                               {{ order.isEncrypted || '未填写' }}
                             </div>
                           </div>
-                          
+
                           <div v-if="order.isEncrypted === '是'" class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
                             <div class="flex items-center gap-2 mb-2">
                               <i class="i-mdi-key-outline text-blue-500"></i>
@@ -2626,7 +2626,7 @@ onMounted(() => {
                               {{ order.finishAuthId || '未填写' }}
                             </div>
                           </div>
-                          
+
                           <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
                             <div class="flex items-center gap-2 mb-2">
                               <i class="i-mdi-note-text-outline text-gray-500"></i>
@@ -2651,7 +2651,7 @@ onMounted(() => {
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                      
+
                       <span class="text-xl text-gray-800 font-bold">加密工单</span>
                       <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium" :class="{
                         'bg-yellow-100 text-yellow-800': order.status === '进行中',
@@ -2678,13 +2678,13 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                
+
                 <!-- 内容区域 -->
                 <div class="p-6">
                   <div
                     class="relative border border-gray-200 rounded-xl transition-all duration-300"
                     :class="order.statusTodo === '待加密' ? 'bg-gradient-to-br from-green-50 to-emerald-50' : 'bg-gray-50'">
-                    
+
                     <!-- 编辑区，仅待加密时可填写 -->
                     <template v-if="order.statusTodo === '待加密'">
                       <div class="p-6 space-y-6">
@@ -2756,7 +2756,7 @@ onMounted(() => {
                             <i class="i-mdi-note-text-outline text-gray-500"></i>
                             <span class="text-gray-800 font-semibold">加密备注</span>
                           </div>
-                          <textarea v-model="order.encryptedRemark" 
+                          <textarea v-model="order.encryptedRemark"
                             class="w-full resize-none border-2 border-gray-200 rounded-lg bg-white px-4 py-3 text-sm text-gray-800 transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-200 focus:ring-opacity-50 hover:border-gray-300"
                             rows="3" placeholder="请输入加密相关的备注信息..." />
                         </div>
@@ -2765,7 +2765,7 @@ onMounted(() => {
                         <div class="pt-4 border-t border-gray-200">
                           <div class="flex flex-col items-center space-y-6">
                             <!-- 提交按钮 -->
-                            <el-button type="primary" size="large" 
+                            <el-button type="primary" size="large"
                               :disabled="order.status === '已完成' || !isFinishOrderFilled(order)"
                               @click="handleFinishOrderClick(order)"
                               class="rounded-lg px-8 py-3 text-base font-semibold shadow-md transition-all duration-200 hover:shadow-lg">
@@ -2799,13 +2799,13 @@ onMounted(() => {
                                     <i class="i-mdi-file-document-edit-outline mr-2"></i>
                                     工作记录
                                   </label>
-                                  <textarea v-model="order.transferReasonEdit" 
+                                  <textarea v-model="order.transferReasonEdit"
                                     class="w-full resize-none border-2 border-gray-200 rounded-lg bg-white px-4 py-3 text-sm text-gray-800 transition-all duration-200 focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-200 focus:ring-opacity-50 hover:border-gray-300"
                                     rows="2" placeholder="请输入工作记录..." />
                                 </div>
                               </div>
                               <div class="flex justify-center">
-                                <el-button type="warning" size="large" 
+                                <el-button type="warning" size="large"
                                   :disabled="order.status === '已完成' || !order.transferExecutorIDEdit || !order.transferReasonEdit"
                                   @click="handleTransferOrder(order)"
                                   class="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl">
@@ -2818,7 +2818,7 @@ onMounted(() => {
                         </div>
                       </div>
                     </template>
-                    
+
                     <!-- 只读区，仅待发送时显示 -->
                     <template v-else-if="order.statusTodo === '待发送'">
                       <div class="p-6 space-y-4">
@@ -2833,7 +2833,7 @@ onMounted(() => {
                               {{ order.isEncrypted || '未填写' }}
                             </div>
                           </div>
-                          
+
                           <div v-if="order.isEncrypted === '是'" class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
                             <div class="flex items-center gap-3 mb-2">
                               <i class="i-mdi-key-variant text-blue-500"></i>
@@ -2843,7 +2843,7 @@ onMounted(() => {
                               {{ order.finishAuthId || '未填写' }}
                             </div>
                           </div>
-                          
+
                           <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm md:col-span-2">
                             <div class="flex items-center gap-3 mb-2">
                               <i class="i-mdi-note-text-outline text-blue-500"></i>
@@ -3081,12 +3081,12 @@ onMounted(() => {
                       </div>
                       <textarea v-model="order.packageRemark"
                         class="flex-1 resize-none border-2 border-gray-200 rounded-xl bg-white px-5 py-4 text-base text-gray-800 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50 hover:shadow-md"
-                        rows="4" :readonly="order.statusTodo !== '待封装'" 
+                        rows="4" :readonly="order.statusTodo !== '待封装'"
                         placeholder="请输入封装备注信息..." />
                     </div>
                     <!-- 只有待封装时显示提交按钮和流转区 -->
                     <div class="col-span-2 mt-8 flex flex-col items-center gap-8">
-                      <el-button type="primary" size="large" 
+                      <el-button type="primary" size="large"
                         class="px-10 py-5 text-lg font-bold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         :disabled="order.status === '已完成' || !order.encryptedExecutorIDEdit || !order.completeModelVersion || !order.finishModelVersionLetter || !order.finishModelVersionNumber"
                         @click="handleFinishOrderClick(order)">
@@ -3125,12 +3125,12 @@ onMounted(() => {
                             </label>
                             <textarea v-model="order.transferReasonEdit"
                               class="w-full resize-none border-2 border-gray-200 rounded-xl bg-white px-5 py-4 text-base text-gray-800 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50 hover:shadow-md"
-                              rows="4" :readonly="order.status === '已完成'" 
+                              rows="4" :readonly="order.status === '已完成'"
                               placeholder="请详细记录工作内容和流转原因..." />
                           </div>
                         </div>
                         <div class="mt-6 flex justify-center">
-                          <el-button type="primary" size="large" 
+                          <el-button type="primary" size="large"
                             class="px-10 py-5 text-lg font-bold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             :disabled="order.status === '已完成' || !order.transferExecutorIDEdit || !order.transferReasonEdit"
                             @click="handleTransferOrder(order)">
@@ -3325,7 +3325,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <!-- 封装备注 -->
                   <div class="col-span-2 w-full flex items-start gap-4">
                     <div class="flex items-center gap-2 mt-2">
@@ -3334,13 +3334,13 @@ onMounted(() => {
                     </div>
                     <textarea v-model="order.packageRemark"
                       class="flex-1 resize-none border-2 border-gray-200 rounded-xl bg-white px-5 py-4 text-base text-gray-800 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50 hover:shadow-md"
-                      rows="4" :readonly="order.status === '已完成'" 
+                      rows="4" :readonly="order.status === '已完成'"
                       placeholder="请输入封装备注信息..." />
                   </div>
 
                   <!-- 操作按钮区域 -->
                   <div class="col-span-2 mt-8 flex flex-col items-center gap-8">
-                    <el-button type="primary" size="large" 
+                    <el-button type="primary" size="large"
                       class="px-10 py-5 text-lg font-bold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       :disabled="order.status === '已完成' || !isFinishOrderFilled(order)"
                       @click="handleFinishOrderClick(order)">
@@ -3379,7 +3379,7 @@ onMounted(() => {
                           </label>
                           <textarea v-model="order.transferReasonEdit"
                             class="w-full resize-none border-2 border-gray-200 rounded-xl bg-white px-5 py-4 text-base text-gray-800 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50 hover:shadow-md"
-                            rows="4" :readonly="order.status === '已完成'" 
+                            rows="4" :readonly="order.status === '已完成'"
                             placeholder="请详细记录工作内容和流转原因..." />
                         </div>
                       </div>
@@ -3814,6 +3814,22 @@ onMounted(() => {
                       class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 text-sm text-black focus:border-blue-500 focus:outline-none"
                       :value="order.approverID || 'NA'" readonly>
                   </div>
+
+                  <div class="flex flex-col gap-2">
+                    <span class="text-black font-semibold">UpdateNotes: </span>
+                    <template v-if="order.files && order.files.length">
+                      <div class="flex flex-wrap gap-2">
+                        <span v-for="(file, idx) in order.files" :key="idx"
+                          class="flex cursor-pointer items-center text-blue-600 underline hover:text-blue-800"
+                          @click="downloadFile(file.fileUrl, file.fileName)">
+                          <i class="i-mdi-download mr-1" />
+                          {{ file.fileName }}
+                        </span>
+                      </div>
+                    </template>
+                    <span v-else class="text-gray-400">无</span>
+                  </div>
+
                 </template>
 
                 <!-- 版本迭代+交付发送类 -->
@@ -3879,6 +3895,21 @@ onMounted(() => {
                     <input
                       class="w-full border-0 border-b border-gray-300 bg-gray-50 py-2 text-sm text-black focus:border-blue-500 focus:outline-none"
                       :value="order.approverID || 'NA'" readonly>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <span class="text-black font-semibold">UpdateNotes: </span>
+                    <template v-if="order.files && order.files.length">
+                      <div class="flex flex-wrap gap-2">
+                        <span v-for="(file, idx) in order.files" :key="idx"
+                          class="flex cursor-pointer items-center text-blue-600 underline hover:text-blue-800"
+                          @click="downloadFile(file.fileUrl, file.fileName)">
+                          <i class="i-mdi-download mr-1" />
+                          {{ file.fileName }}
+                        </span>
+                      </div>
+                    </template>
+                    <span v-else class="text-gray-400">无</span>
                   </div>
                 </template>
 
