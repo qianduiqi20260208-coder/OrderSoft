@@ -32,7 +32,7 @@ public:
      * @struct MultipartResult
      * @brief multipart/form-data 解析结果结构体,专用于文件附件
      */
-    MultipartResult parseMultipartForm(const std::string& content_type, const std::string& body,TicketReproduce& ticketreproduce);
+    MultipartResult parseMultipartForm(const std::string& content_type, const std::string& body,Ticket& ticket);
 
     // 文件下载接口
     crow::response downloadTicketFile(int ticketId, const std::string& filename);

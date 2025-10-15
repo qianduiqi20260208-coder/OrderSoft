@@ -262,7 +262,20 @@ const deliverOrderForm = ref({
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
   create_remark: '', // 创建备注
+  files: [] as any[],
 })
+
+function handleDeliveryFileChange(_file: any, fileList: any[]) {
+  // 只保留最新上传的文件
+  if (fileList.length > 1) {
+    // 只保留最后一个文件，重新赋值为新数组
+    deliverOrderForm.value.files = [fileList[fileList.length - 1]]
+  }
+  else {
+    deliverOrderForm.value.files = [...fileList]
+  }
+}
+
 
 // 计算属性：获取交付发送工单选中客户的后缀列表
 const deliverCustomerSuffixes = computed(() => {
@@ -331,21 +344,27 @@ async function submitDeliverOrder() {
     ElMessage.error('请完整填写所有必填项')
     return
   }
+  // 构建FormData对象
+  const formData = new FormData()
+  formData.append('orderID', '')
+  formData.append('status', '待审批')
+  formData.append('promoterID', currentUserId)
+  formData.append('modelID', deliverOrderForm.value.modelId)
+  formData.append('modelVersionID', deliverOrderForm.value.modelVersionID)
+  formData.append('targetCustomer', deliverOrderForm.value.targetCustomer)
+  formData.append('isCAEChecked', deliverOrderForm.value.isCAEChecked)
+  formData.append('hasSensitiveInfo', deliverOrderForm.value.hasSensitiveInfo)
+  formData.append('approverID', deliverOrderForm.value.approverID)
+  formData.append('create_remark', deliverOrderForm.value.create_remark || '')
+  formData.append('startTime', new Date().toISOString().slice(0, 19).replace('T', ' '))
+
+  // 文件
+  deliverOrderForm.value.files.forEach((file) => {
+    formData.append('files', file.raw)
+  })
 
   // 提交到后端
-  const res = await orderApi.submitDeliverOrder({
-    orderID: '', // 新建时可为空或由后端生成
-    status: '待审批', // 初始状态为待审批
-    promoterID: String(currentUserId), // 当前用户ID
-    modelID: deliverOrderForm.value.modelId, // 模型ID
-    modelVersionID: deliverOrderForm.value.modelVersionID, // 模型版本ID
-    targetCustomer: deliverOrderForm.value.targetCustomer, // 目标客户
-    isCAEChecked: deliverOrderForm.value.isCAEChecked, // 是否CAE检查
-    hasSensitiveInfo: deliverOrderForm.value.hasSensitiveInfo, // 是否包含敏感信息
-    approverID: String(deliverOrderForm.value.approverID), // 审批人ID
-    create_remark: deliverOrderForm.value.create_remark, // 创建备注
-    startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
-  })
+  const res = await orderApi.submitDeliverOrder(formData)
   // 显示后端返回的 message
   if (res?.data?.message) {
     ElMessage.success(res.data.message)
@@ -361,6 +380,7 @@ async function submitDeliverOrder() {
     hasSensitiveInfo: '',
     approverID: '',
     create_remark: '',
+    files: [],
   }
 }
 
@@ -381,7 +401,19 @@ const iterDeliverOrderForm = ref({
   isCAEChecked: '', // 是否CAE检查
   hasSensitiveInfo: '', // 是否包含敏感信息
   approverID: '', // 审批人ID
+  files: [] as any[], // 附件列表
 })
+
+function handlePackageDeliveryFileChange(_file: any, fileList: any[]) {
+  // 只保留最新上传的文件
+  if (fileList.length > 1) {
+    // 只保留最后一个文件，重新赋值为新数组
+    iterDeliverOrderForm.value.files = [fileList[fileList.length - 1]]
+  }
+  else {
+    iterDeliverOrderForm.value.files = [...fileList]
+  }
+}
 
 // 计算属性：获取版本迭代+交付发送工单选中客户的后缀列表
 const iterDeliverCustomerSuffixes = computed(() => {
@@ -490,25 +522,32 @@ async function submitIterDeliverOrder() {
 // 新增：版本迭代+交付发送工单二次确认弹窗确认提交
 async function confirmIterDeliverOrderSubmit() {
   iterDeliverConfirmDialogVisible.value = false
-  // 提交到后端
-  const res = await orderApi.submitIterDeliverOrder({
-    orderID: '', // 新建时可为空或由后端生成
-    status: '待审批', // 初始状态为待审批
-    promoterID: String(currentUserId), // 当前用户ID
-    modelID: iterDeliverOrderForm.value.modelId, // 模型ID
-    modelVersionID: iterDeliverOrderForm.value.modelVersionID, // 模型版本ID
-    completeModelVersion: iterDeliverCompleteModelVersionDisplay.value, // 期望完成模型版本
-    coordinationID: iterDeliverOrderForm.value.coordinationId, // 协调单号
-    updateNotes: iterDeliverOrderForm.value.updateNotes, // 更新说明
-    packageRequirement: iterDeliverOrderForm.value.packageRequirement, // 封装要求
-    apiChanged: iterDeliverOrderForm.value.apiChanged, // 接口是否变化
-    targetCustomer: iterDeliverOrderForm.value.targetCustomer, // 目标客户
-    isCAEChecked: iterDeliverOrderForm.value.isCAEChecked, // 是否CAE检查
-    hasSensitiveInfo: iterDeliverOrderForm.value.hasSensitiveInfo, // 是否包含敏感信息
-    approverID: String(iterDeliverOrderForm.value.approverID), // 审批人ID
-    create_remark: iterDeliverOrderForm.value.create_remark, // 创建备注
-    startTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // 开始时间(自动获取)
+
+  const formData = new FormData()
+  formData.append('orderID', '') // 新建时为空或后端生成
+  formData.append('status', '待审批')
+  formData.append('promoterID', String(currentUserId))
+  formData.append('modelID', iterDeliverOrderForm.value.modelId)
+  formData.append('modelVersionID', iterDeliverOrderForm.value.modelVersionID)
+  formData.append('completeModelVersion', iterDeliverCompleteModelVersionDisplay.value)
+  formData.append('coordinationID', iterDeliverOrderForm.value.coordinationId)
+  formData.append('updateNotes', iterDeliverOrderForm.value.updateNotes)
+  formData.append('packageRequirement', iterDeliverOrderForm.value.packageRequirement)
+  formData.append('apiChanged', iterDeliverOrderForm.value.apiChanged)
+  formData.append('targetCustomer', iterDeliverOrderForm.value.targetCustomer)
+  formData.append('isCAEChecked', iterDeliverOrderForm.value.isCAEChecked)
+  formData.append('hasSensitiveInfo', iterDeliverOrderForm.value.hasSensitiveInfo)
+  formData.append('approverID', String(iterDeliverOrderForm.value.approverID))
+  formData.append('create_remark', iterDeliverOrderForm.value.create_remark || '')
+  formData.append('startTime', new Date().toISOString().slice(0, 19).replace('T', ' '))
+
+  // ✅ 处理文件上传
+  iterDeliverOrderForm.value.files.forEach((file) => {
+    formData.append('files', file.raw)
   })
+
+  // 提交到后端
+  const res = await orderApi.submitIterDeliverOrder(formData)
   if (res?.data?.message) {
     ElMessage.success(res.data.message)
   }
@@ -529,6 +568,7 @@ async function confirmIterDeliverOrderSubmit() {
     hasSensitiveInfo: '',
     approverID: '',
     create_remark: '', // 创建备注
+    files: [],
   }
 }
 
@@ -1373,6 +1413,22 @@ async function fetchCustomerList() {
               />
             </el-select>
           </el-form-item>
+
+          <el-form-item label="UpdateNotes">
+            <el-upload
+              v-model:file-list="deliverOrderForm.files"
+              action="#"
+              :auto-upload="false"
+              :limit="1"
+              list-type="text"
+              :on-change="handleDeliveryFileChange"
+            >
+              <el-button type="primary">
+                上传附件
+              </el-button>
+            </el-upload>
+          </el-form-item>
+
           <el-form-item label="创建备注">
             <el-input
               v-model="deliverOrderForm.create_remark"
@@ -1567,6 +1623,21 @@ async function fetchCustomerList() {
               placeholder="请输入封装要求"
             />
           </el-form-item>
+          <el-form-item label="UpdateNotes">
+            <el-upload
+              v-model:file-list="iterDeliverOrderForm.files"
+              action="#"
+              :auto-upload="false"
+              :limit="1"
+              list-type="text"
+              :on-change="handlePackageDeliveryFileChange"
+            >
+              <el-button type="primary">
+                上传附件
+              </el-button>
+            </el-upload>
+          </el-form-item>
+
           <el-form-item label="创建备注">
             <el-input
               v-model="iterDeliverOrderForm.create_remark"

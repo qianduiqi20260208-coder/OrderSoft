@@ -19,6 +19,7 @@ User UserService::getUserByJobNumber(int jobNumber)
     return user;
 }
 
+//已废弃
 std::vector<std::shared_ptr<Ticket>> UserService::getUserTodo(int jobNumber)
 {
     auto ret = userDAO_->getUserTodo(jobNumber);

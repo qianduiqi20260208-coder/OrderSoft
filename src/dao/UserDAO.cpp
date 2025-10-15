@@ -163,7 +163,7 @@ std::vector<std::string> UserDAO::getUserResponsibleModels(int userId)
     return responsibleModels;
 }
 
-
+//已废弃
 std::vector<std::shared_ptr<Ticket>> UserDAO::getUserTodo(int jobNumber)
 {
     //检查数据库连接状态
@@ -690,21 +690,22 @@ bool UserDAO::downloadAttachment(std::shared_ptr<TicketReproduce> tmp)
         return true; // 返回true，因为没有附件不算错误
     }
 
-    std::string filePath = config.getString("storage","upload_dir") + relativePath;
+    //文件下载位置已经发生变化
+    // std::string filePath = config.getString("storage","upload_dir") + relativePath;
 
-    std::ifstream ifs(filePath,std::ios::binary | std::ios::in);
-    if(!ifs.is_open())
-    {
-        printf("无法打开附件文件 %s\n",filePath.c_str());
-        return false;
-    }
-    ifs.seekg(0,std::ios::end);
-    std::streampos size = ifs.tellg();
-    ifs.seekg(0,std::ios::beg);
-    std::string content(size,'\0');
-    ifs.read(&content[0],size);
-    ifs.close();
-    tmp->attachment.file = std::move(content);
+    // std::ifstream ifs(filePath,std::ios::binary | std::ios::in);
+    // if(!ifs.is_open())
+    // {
+    //     printf("无法打开附件文件 %s\n",filePath.c_str());
+    //     return false;
+    // }
+    // ifs.seekg(0,std::ios::end);
+    // std::streampos size = ifs.tellg();
+    // ifs.seekg(0,std::ios::beg);
+    // std::string content(size,'\0');
+    // ifs.read(&content[0],size);
+    // ifs.close();
+    // tmp->attachment.file = std::move(content);
 
     DBConnectionManager::closeConnection(mysql);
     return true;

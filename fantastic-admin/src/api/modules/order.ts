@@ -63,43 +63,17 @@ export default {
     // baseURL: '/mock/',
   }),
 
+
   // 提交交付发送工单
-  submitDeliverOrder: (data: {
-    orderID?: string // 工单ID（新建时可为空或由后端生成）
-    status: string // 工单状态（待审批）
-    promoterID: string // 发起人工号（当前用户ID）
-    modelID: string // 模型ID
-    modelVersionID: string // 模型版本ID
-    targetCustomer: string // 目标客户
-    isCAEChecked: string // 是否CAE检查（是/否）
-    hasSensitiveInfo: string // 是否包含敏感信息
-    approverID: string // 审批人ID
-    startTime: string // 工单开始时间（提交时自动生成）
-    create_remark?: string // 创建备注
-  }) => api.post('order/deliver', data, {
+  submitDeliverOrder: (data: FormData) => api.post('order/deliver', data, {
     // baseURL: '/mock/',
+    headers: { 'Content-Type': 'multipart/form-data' }, // 明确指定上传格式
   }),
 
   // 提交模型迭代+交付发送工单
-  submitIterDeliverOrder: (data: {
-    orderID?: string // 工单ID（新建时可为空或由后端生成）
-    status: string // 工单状态（待审批）
-    promoterID: string // 发起人工号（当前用户ID）
-    modelID: string // 模型ID
-    modelVersionID: string // 模型版本ID
-    completeModelVersion: string // 期望完成模型版本（如1.0.0）
-    coordinationID?: string // 协调单号（可选）
-    updateNotes: string // 更新说明
-    packageRequirement?: string // 封装要求（可选）
-    apiChanged: string // 接口是否变化
-    targetCustomer: string // 目标客户
-    isCAEChecked: string // 是否CAE检查（是/否）
-    hasSensitiveInfo: string // 是否包含敏感信息
-    approverID: string // 审批人ID
-    startTime: string // 工单开始时间（提交时自动生成）
-    create_remark?: string // 创建备注
-  }) => api.post('order/iter-deliver', data, {
+  submitIterDeliverOrder: (data: FormData) => api.post('order/iter-deliver', data, {
     // baseURL: '/mock/',
+    headers: { 'Content-Type': 'multipart/form-data' }, // 明确指定上传格式
   }),
 
   // 提交功能开发工单

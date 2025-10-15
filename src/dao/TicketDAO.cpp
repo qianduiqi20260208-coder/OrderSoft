@@ -164,9 +164,9 @@ bool TicketDAO::completeConcreteTicket(const Ticket &ticket)
     return true;
 }
 
-bool TicketDAO::saveUploadFile(const TicketReproduce &ticket)
+//这里是上传文件本体的逻辑 下载文件本体的逻辑在contoller层 (其他部分的文件上传用的也是issue_reproduction_attachment表)
+bool TicketDAO::saveUploadFile(const Ticket &tct)
 {
-    
     MYSQL* conn = getConnection();
     char local_sql[SQL_MAX];
     int local_ret;
@@ -178,31 +178,96 @@ bool TicketDAO::saveUploadFile(const TicketReproduce &ticket)
         return false;
     }
 
-    if(ticket.attachment.fileName != "")
+    //判断是什么类型的工单
+    if(tct.ticketType == "问题复现")
     {
-        std::string relativePath = "/ticket/"+ticket.attachment.fileName;
-        std::string filePath = config.getString("storage","upload_dir") + relativePath;
-        std::fstream ofs(filePath,std::ios::binary | std::ios::out);
-        if(!ofs.is_open())
+        const TicketReproduce& ticket = dynamic_cast<const TicketReproduce&>(tct);
+        if(ticket.attachment.fileName != "")
         {
-            LOG_ERROR("function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
-            ofs.close();
-            return false;
-        }else{
-            ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
-            ofs.close();
-
-            //数据库存储
-            snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
-                "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
-            local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
-            if (local_ret) {
-                LOG_ERROR("function:saveUploadFile 插入附件信息表失败！失败原因：%s", mysql_error(conn));
-                mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+            std::string relativePath = "/ticket/"+ticket.attachment.fileName;
+            std::string filePath = config.getString("storage","upload_dir") + relativePath;
+            std::fstream ofs(filePath,std::ios::binary | std::ios::out);
+            if(!ofs.is_open())
+            {
+                LOG_ERROR("function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
+                ofs.close();
                 return false;
+            }else{
+                ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
+                ofs.close();
+
+                //数据库存储
+                snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
+                    "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
+                local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+                if (local_ret) {
+                    LOG_ERROR("function:saveUploadFile 插入附件信息表失败！失败原因：%s", mysql_error(conn));
+                    mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+                    return false;
+                }
+            }
+        }
+
+    }else if(tct.ticketType == "交付发送")
+    {
+        const TicketDelivery& ticket = dynamic_cast<const TicketDelivery&>(tct);
+        if(ticket.attachment.fileName != "")
+        {
+            std::string relativePath = "/ticket/"+ticket.attachment.fileName;
+            std::string filePath = config.getString("storage","upload_dir") + relativePath;
+            std::fstream ofs(filePath,std::ios::binary | std::ios::out);
+            if(!ofs.is_open())
+            {
+                LOG_ERROR("function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
+                ofs.close();
+                return false;
+            }else{
+                ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
+                ofs.close();
+
+                //数据库存储
+                snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
+                    "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
+                local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+                if (local_ret) {
+                    LOG_ERROR("function:saveUploadFile 插入附件信息表失败！失败原因：%s", mysql_error(conn));
+                    mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+                    return false;
+                }
+            }
+        }
+    }else if(tct.ticketType == "直接封装+发送")
+    {
+        const TicketPackage& ticket = dynamic_cast<const TicketPackage&>(tct);
+        if(ticket.attachment.fileName != "")
+        {
+            std::string relativePath = "/ticket/"+ticket.attachment.fileName;
+            std::string filePath = config.getString("storage","upload_dir") + relativePath;
+            std::fstream ofs(filePath,std::ios::binary | std::ios::out);
+            if(!ofs.is_open())
+            {
+                LOG_ERROR("function:saveUploadFile 文件打开失败!filePath:%s\n",filePath.c_str());
+                ofs.close();
+                return false;
+            }else{
+                ofs.write(ticket.attachment.file.c_str(),ticket.attachment.file.size());
+                ofs.close();
+
+                //数据库存储
+                snprintf(local_sql, SQL_MAX, "INSERT INTO issue_reproduction_attachment(ticket_id,file_path,file_name) "
+                    "VALUES(%d,'%s', '%s');", ticket.Ticket::id, relativePath.c_str(),ticket.attachment.fileName.c_str());	
+                local_ret = mysql_real_query(conn, local_sql, (unsigned long)strlen(local_sql));
+                if (local_ret) {
+                    LOG_ERROR("function:saveUploadFile 插入附件信息表失败！失败原因：%s", mysql_error(conn));
+                    mysql_real_query(conn, "ROLLBACK",strlen("ROLLBACK"));
+                    return false;
+                }
             }
         }
     }
+
+
+
 
     return true;
 }
@@ -296,11 +361,15 @@ bool TicketDAO::createTicket(Ticket &ticket)
         TicketDelivery& td = dynamic_cast<TicketDelivery&>(ticket);
         snprintf(local_sql, SQL_MAX, "INSERT INTO delivery_send(work_order_id,target_customer,validated_by_cae,sensitive_info) "
         "VALUES(%d,'%s',%d, '%s');", ticket.Ticket::id,td.targetClient.c_str(), td.validatedByCAE,td.sensitiveInfo.c_str());
+        if(!saveUploadFile(td))
+            return false;
     }else if(ticket.ticketType == "直接封装+发送")
     {
         TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
         snprintf(local_sql, SQL_MAX, "INSERT INTO package_send(work_order_id,coordination_id,update_content,packaging_requirements,interface_changed,target_customer,validated_by_cae,sensitive_info,matlab_version) "
-        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.matlab_version.c_str());        
+        "VALUES(%d,'%s','%s','%s',%d,'%s',%d,'%s','%s');", ticket.Ticket::id,tp.coordinationId.c_str(), tp.updateNote.c_str(),tp.packRequirement.c_str(),tp.interfaceChanged,tp.targetClient.c_str(),tp.validatedByCAE,tp.sensitiveInfo.c_str(),tp.matlab_version.c_str());   
+        if(!saveUploadFile(tp))
+            return false;    
     }else if(ticket.ticketType == "功能开发")
     {
         TicketFeature& tf = dynamic_cast<TicketFeature&>(ticket);

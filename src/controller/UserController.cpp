@@ -214,53 +214,53 @@ void UserController::registerRoutes(crow::App<crow::CORSHandler>& app) {
     }));
 
     // 获取当前用户工单列表（工单待办）
-    CROW_ROUTE(app, "/order/list").methods("GET"_method)
-        (withAspect([this](const crow::request& req) {
-        // JWT校验
-        if (!checkToken(req)) {
-            return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
-        }
-		// 解析查询参数，获取用户ID和角色
-        auto params = crow::query_string(req.url_params);
-        std::string userID = params.get("userID") ? params.get("userID") : "";
-        std::string role = params.get("role") ? params.get("role") : "";
+    // CROW_ROUTE(app, "/order/list").methods("GET"_method)
+    //     (withAspect([this](const crow::request& req) {
+    //     // JWT校验
+    //     if (!checkToken(req)) {
+    //         return crow::response(401, R"({"status":0,"error":"无效token","data":{}})");
+    //     }
+	// 	// 解析查询参数，获取用户ID和角色
+    //     auto params = crow::query_string(req.url_params);
+    //     std::string userID = params.get("userID") ? params.get("userID") : "";
+    //     std::string role = params.get("role") ? params.get("role") : "";
 
-        // 安全转换 userID
-        int userIdInt = safeStoi(userID, -1);
-        if (userIdInt <= 0) {
-            nlohmann::json errorResp = {
-                {"status", 1},
-                {"error", "无效的用户ID"},
-                {"data", nlohmann::json::object()}
-            };
-            return crow::response(400, errorResp.dump());
-        }
+    //     // 安全转换 userID
+    //     int userIdInt = safeStoi(userID, -1);
+    //     if (userIdInt <= 0) {
+    //         nlohmann::json errorResp = {
+    //             {"status", 1},
+    //             {"error", "无效的用户ID"},
+    //             {"data", nlohmann::json::object()}
+    //         };
+    //         return crow::response(400, errorResp.dump());
+    //     }
 
-        auto tickets = userService->getUserTodo(userIdInt);
+    //     auto tickets = userService->getUserTodo(userIdInt);
 
-        printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
+    //     printf("[info] function:getUserOrder() 查询用户工单列表成功！ tickets.size(): %zu\n", tickets.size());
 
-        nlohmann::json list = nlohmann::json::array();
+    //     nlohmann::json list = nlohmann::json::array();
 
-        for (const auto& ticketPtr : tickets) {
-            if (ticketPtr) {
-                // 多态调用 to_json_order_manage()
-                list.push_back(ticketPtr->to_json_order_manage());
-            }
-        }
+    //     for (const auto& ticketPtr : tickets) {
+    //         if (ticketPtr) {
+    //             // 多态调用 to_json_order_manage()
+    //             list.push_back(ticketPtr->to_json_order_manage());
+    //         }
+    //     }
 
-        // 构建响应
-        nlohmann::json resp = {
-            {"status", 1},
-            {"error", ""},
-            {"data", {
-                {"list", list},
-                {"total", tickets.size()},
-            }}
-        };
+    //     // 构建响应
+    //     nlohmann::json resp = {
+    //         {"status", 1},
+    //         {"error", ""},
+    //         {"data", {
+    //             {"list", list},
+    //             {"total", tickets.size()},
+    //         }}
+    //     };
         
-        return crow::response{ resp.dump() };
-        }));
+    //     return crow::response{ resp.dump() };
+    //     }));
 
     // 获取审批人信息列表
     CROW_ROUTE(app, "/approver/list").methods("GET"_method)

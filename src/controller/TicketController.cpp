@@ -6,7 +6,6 @@
 #include "Logger.h"
 
 
-
 std::string url_decode(const std::string& str) {
     std::string ret;
     char ch;
@@ -39,7 +38,7 @@ TicketController::TicketController(std::shared_ptr<ITicketService> sp):ticketSer
 }
 
 // 解析 multipart/form-data 格式的表单数据
-MultipartResult TicketController::parseMultipartForm(const std::string& content_type, const std::string& body,TicketReproduce& ticketreproduce)
+MultipartResult TicketController::parseMultipartForm(const std::string& content_type, const std::string& body,Ticket& ticket)
 {
     MultipartResult result; // 用于保存解析结果，包括表单字段和已保存的文件路径
 
@@ -105,8 +104,24 @@ MultipartResult TicketController::parseMultipartForm(const std::string& content_
 
             // 生成唯一文件名
             std::string uniqueFileName = generateUniqueFileName(filename);
-			ticketreproduce.attachment.file = content;
-			ticketreproduce.attachment.fileName = uniqueFileName;
+
+            //分三种情况讨论
+            if(ticket.ticketType == "问题复现")
+            {
+                TicketReproduce& tp = dynamic_cast<TicketReproduce&>(ticket);
+                tp.attachment.file = content;
+                tp.attachment.fileName = uniqueFileName;
+            }else if(ticket.ticketType == "交付发送"){
+                TicketDelivery& tp = dynamic_cast<TicketDelivery&>(ticket);
+                tp.attachment.file = content;
+                tp.attachment.fileName = uniqueFileName;
+            }else if(ticket.ticketType == "直接封装+发送")
+            {
+                TicketPackage& tp = dynamic_cast<TicketPackage&>(ticket);
+                tp.attachment.file = content;
+                tp.attachment.fileName = uniqueFileName;
+            }
+
         }
         // 如果是普通字段，则保存到 fields
         else if (!name.empty()) {
@@ -405,24 +420,25 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
-        auto body = nlohmann::json::parse(req.body, nullptr, false);
-        if (body.is_discarded()) {
-            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
-        }
 
         TicketDelivery ticketdelivery; // 定义本地ticketdelivery变量
-
+        const std::string content_type = req.get_header_value("Content-Type");
         ticketdelivery.ticketType = "交付发送"; // 工单类型
+
+        MultipartResult result = parseMultipartForm(content_type, req.body,ticketdelivery);
+
+
         ticketdelivery.status = "待审批"; // 工单状态
-        ticketdelivery.creatorId = (body.value("promoterID", "")); // 发起人ID
-        ticketdelivery.createTime = body.value("startTime", ""); // 发起时间
-        ticketdelivery.model = body.value("modelID", ""); // 关联模型
-        ticketdelivery.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
-        ticketdelivery.targetClient = body.value("targetCustomer", ""); // 目标客户
-        ticketdelivery.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
-        ticketdelivery.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
-        ticketdelivery.createRemark = body.value("create_remark", ""); // 创建备注
-        ticketdelivery.approverId = (body.value("approverID", "")); // 审批人ID
+        ticketdelivery.creatorId = getField(result, "promoterID");        // 发起人ID
+        ticketdelivery.createTime = getField(result, "startTime");        // 发起时间
+        ticketdelivery.model = getField(result, "modelID");               // 关联模型
+        ticketdelivery.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
+        ticketdelivery.targetClient = getField(result, "targetCustomer"); // 目标客户
+        ticketdelivery.validatedByCAE = (getField(result, "isCAEChecked") == "是"); // 是否经过CAE检查
+        ticketdelivery.sensitiveInfo = getField(result, "hasSensitiveInfo");        // 是否包含敏感信息
+        ticketdelivery.createRemark = getField(result, "create_remark");  // 创建备注
+        ticketdelivery.approverId = getField(result, "approverID");       // 审批人ID
+
 
         bool ok = ticketService->createTicketAndNotify(ticketdelivery);
         nlohmann::json resp;
@@ -450,32 +466,34 @@ void TicketController::registerRoutes(crow::App<crow::CORSHandler>& app) {
         if (!checkToken(req)) {
             return crow::response(401, R"({"status":1,"error":"无效token","data":{}})");
         }
-        auto body = nlohmann::json::parse(req.body, nullptr, false);
-        if (body.is_discarded()) {
-            return crow::response(400, R"({"status":1,"error":"Invalid JSON","data":{}})");
-        }
 
         // 定义本地ticketpackage变量
         TicketPackage ticketpackage;
+        
+        ticketpackage.ticketType = "直接封装+发送"; // 工单类型 
+        const std::string content_type = req.get_header_value("Content-Type");
 
+        MultipartResult result = parseMultipartForm(content_type, req.body,ticketpackage);
+        
         ticketpackage.ticketType = "直接封装+发送"; // 工单类型
         ticketpackage.status = "待审批"; // 工单状态
-        ticketpackage.creatorId = (body.value("promoterID", "")); // 发起人ID
-        ticketpackage.createTime = body.value("startTime", ""); // 发起时间
-        ticketpackage.model = body.value("modelID", ""); // 关联模型
-        ticketpackage.modelVersion = body.value("modelVersionID", ""); // 关联模型版本
-        // ticketpackage.remark = body.value("completeModelVersion", ""); // 期望完成后的模型版本
-        ticketpackage.matlab_version = body.value("completeModelVersion", ""); // Matlab版本
-        ticketpackage.coordinationId = body.value("coordinationID", ""); // 协调单ID
-        ticketpackage.updateNote = body.value("updateNotes", ""); // 更新内容
-        ticketpackage.packRequirement = body.value("packageRequirement", ""); // 封装要求
-        ticketpackage.interfaceChanged = (body.value("apiChanged", "") == "是"); // 接口是否变化
-        ticketpackage.targetClient = body.value("targetCustomer", ""); // 目标客户
-        ticketpackage.validatedByCAE = (body.value("isCAEChecked", "") == "是"); // 是否经过CAE检查
-        ticketpackage.sensitiveInfo = body.value("hasSensitiveInfo", ""); // 是否包含敏感信息
-        ticketpackage.createRemark = body.value("create_remark", ""); // 创建备注
-        ticketpackage.approverId = (body.value("approverID", "")); // 审批人ID
-        ticketpackage.ticketType = "直接封装+发送"; // 工单类型 
+
+        ticketpackage.creatorId = getField(result, "promoterID");        // 发起人ID
+        ticketpackage.createTime = getField(result, "startTime");        // 发起时间
+        ticketpackage.model = getField(result, "modelID");               // 关联模型
+        ticketpackage.modelVersion = getField(result, "modelVersionID"); // 关联模型版本
+        ticketpackage.matlab_version = getField(result, "completeModelVersion"); // Matlab版本（期望完成后的模型版本）
+        ticketpackage.coordinationId = getField(result, "coordinationID");       // 协调单ID
+        ticketpackage.updateNote = getField(result, "updateNotes");             // 更新内容
+        ticketpackage.packRequirement = getField(result, "packageRequirement"); // 封装要求
+        ticketpackage.interfaceChanged = (getField(result, "apiChanged") == "是"); // 接口是否变化
+        ticketpackage.targetClient = getField(result, "targetCustomer");          // 目标客户
+        ticketpackage.validatedByCAE = (getField(result, "isCAEChecked") == "是"); // 是否经过CAE检查
+        ticketpackage.sensitiveInfo = getField(result, "hasSensitiveInfo");        // 是否包含敏感信息
+        ticketpackage.createRemark = getField(result, "create_remark");            // 创建备注
+        ticketpackage.approverId = getField(result, "approverID");                 // 审批人ID
+
+
 
 
         bool ok = ticketService->createTicketAndNotify(ticketpackage);

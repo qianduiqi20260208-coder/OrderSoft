@@ -63,7 +63,7 @@ private:
     int ret;
 
     // 私有方法
-    bool saveUploadFile(const TicketReproduce& ticket);
+    bool saveUploadFile(const Ticket& ticket);
     void concreteTicketList(int work_order_id,std::shared_ptr<Ticket> vecElement,std::vector<std::shared_ptr<Ticket>>&);
 
 };

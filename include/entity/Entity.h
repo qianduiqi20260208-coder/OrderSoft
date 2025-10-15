@@ -326,6 +326,9 @@ struct TicketPackage :public Ticket{
 
     std::string matlab_version; // 备注 
     std::string targetDeliveryTime; // 备注 
+
+    Attachment attachment; // 附件信息
+
     // 多态序列化接口
 	nlohmann::json to_json() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
@@ -391,6 +394,7 @@ struct TicketDelivery :public Ticket{
     // 添加字段authorizationId_list
     std::string authorizationIdList;
 
+    Attachment attachment; // 附件信息
     // 多态序列化接口
 	nlohmann::json to_json() const override {
 		nlohmann::json j = Ticket::to_json(); // 先序列化基类字段
