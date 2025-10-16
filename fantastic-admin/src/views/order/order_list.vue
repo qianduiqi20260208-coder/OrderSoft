@@ -489,9 +489,9 @@ async function fetchUserOrders(page = 1) {
         coordinationID: order.issueReproduction?.coordinationId || order.versionIteration?.coordinationId || order.packageSend?.coordinationId || '', // 协调单号 ======================
         description: order.issueReproduction?.description || '', // 问题描述 ======================
         files: [], // 附件数组，后面处理
-        fileName: order.issueReproduction?.fileName || '', // 文件名 ======================
-        fileUrl: order.issueReproduction?.referenceFile || '', // 文件URL ======================
-        hasAttachment: order.issueReproduction?.hasAttachment || false, // 是否有附件-------------------
+        fileName: order.issueReproduction?.fileName || order.deliverySend?.fileName || order.packageSend?.fileName || '', // 后端返回的文件名
+        fileUrl: order.issueReproduction?.referenceFile || order.deliverySend?.referenceFile || order.packageSend?.referenceFile || '', // 后端返回的文件URL
+        hasAttachment: order.issueReproduction?.hasAttachment || order.deliverySend?.hasAttachment || order.packageSend?.hasAttachment || false, // 是否有附件-------------------
 
         updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '', // 版本更新内容说明 =========================
         packageRequirement: order.versionIteration?.packagingRequirements || order.packageSend?.packagingRequirements || '', // 封装要求 =======================
@@ -551,6 +551,7 @@ async function fetchUserOrders(page = 1) {
         createRemark: order.createRemark || '', // 创建备注
         targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || ''
       }
+
       // 文件数组处理
       if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
         mappedOrder.files = [{

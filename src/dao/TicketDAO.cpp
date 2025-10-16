@@ -1961,8 +1961,8 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
         << ") woe_latest ON wo.id = woe_latest.work_order_id "
         << "LEFT JOIN user u_executor ON woe_latest.executor_id = u_executor.username "
         << "LEFT JOIN user_multi_role umr ON wo.id = umr.work_order_id "
-        << "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND wo.type =  ('问题复现' OR '交付发送' OR '直接封装+发送') "
-        << "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND wo.type = ('问题复现' OR '交付发送' OR '直接封装+发送') "
+        << "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND (wo.type = '问题复现' OR wo.type = '交付发送' OR wo.type = '直接封装+发送') "
+        << "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND (wo.type = '问题复现' OR wo.type = '交付发送' OR wo.type = '直接封装+发送') "
         << "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
         << "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
         << "LEFT JOIN ( "
@@ -2138,6 +2138,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
                 deliveryInfo["referenceFile"] = "";
                 deliveryInfo["hasAttachment"] = false;
             }
+            deliveryInfo["fileName"] = row[23] ? row[23] : "";
 
             workOrder["deliverySend"] = deliveryInfo;
         }
@@ -2167,6 +2168,7 @@ std::vector<nlohmann::json> TicketDAO::getUserPendingWorkOrders(const std::strin
                 packageInfo["referenceFile"] = "";
                 packageInfo["hasAttachment"] = false;
             }
+            packageInfo["fileName"] = row[23] ? row[23] : "";
 
             workOrder["packageSend"] = packageInfo;
         }
@@ -2439,8 +2441,8 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
        << "        GROUP BY work_order_id "
        << "    ) woe_enc_dyn_max ON woe_enc_dyn.work_order_id = woe_enc_dyn_max.work_order_id AND woe_enc_dyn.id = woe_enc_dyn_max.max_id "
        << ") woe_encrypted_dynamic ON wo.id = woe_encrypted_dynamic.work_order_id "
-       << "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND wo.type = '问题复现' "
-       << "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND wo.type = '问题复现' "
+       << "LEFT JOIN issue_reproduction ir ON wo.id = ir.work_order_id AND (wo.type = '问题复现' OR wo.type = '交付发送' OR wo.type = '直接封装+发送') "
+       << "LEFT JOIN issue_reproduction_attachment ira ON wo.id = ira.ticket_id AND (wo.type = '问题复现' OR wo.type = '交付发送' OR wo.type = '直接封装+发送') "
        << "LEFT JOIN version_iteration vi ON wo.id = vi.work_order_id AND wo.type = '版本迭代' "
        << "LEFT JOIN model_version mv3 ON vi.new_model_version_id = mv3.id "
        << "LEFT JOIN delivery_send ds ON wo.id = ds.work_order_id AND wo.type = '交付发送' "
@@ -2701,6 +2703,18 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             deliveryInfo["senderName"] = row[28] ? row[28] : "";
             deliveryInfo["encryptorTime"] = row[29] ? row[29] : "";
             deliveryInfo["senderTime"] = row[30] ? row[30] : "";
+
+            // 处理附件文件路径
+            std::string fileName = row[39] ? row[39] : "";
+            if (!fileName.empty()) {
+                deliveryInfo["referenceFile"] = "/files/ticket/" + workOrderId + "/" + fileName;
+                deliveryInfo["hasAttachment"] = true;
+            } else {
+                deliveryInfo["referenceFile"] = "";
+                deliveryInfo["hasAttachment"] = false;
+            }
+            deliveryInfo["fileName"] = row[39] ? row[39] : "";
+
             workOrder["deliverySend"] = deliveryInfo;
         }
         else if (workOrderType == "直接封装+发送") {
@@ -2720,6 +2734,18 @@ std::vector<nlohmann::json> TicketDAO::selectOrderByConditionWithDetails(const s
             packageInfo["matlabVersion"] = row[70] ? row[70] : "";
             packageInfo["targetDeliveryTime"] = row[71] ? row[71] : "";
             packageInfo["newModelVersion"] = row[87] ? row[87] : "";
+
+            // 处理附件文件路径
+            std::string fileName = row[39] ? row[39] : "";
+            if (!fileName.empty()) {
+                packageInfo["referenceFile"] = "/files/ticket/" + workOrderId + "/" + fileName;
+                packageInfo["hasAttachment"] = true;
+            } else {
+                packageInfo["referenceFile"] = "";
+                packageInfo["hasAttachment"] = false;
+            }
+            packageInfo["fileName"] = row[39] ? row[39] : "";
+
             workOrder["packageSend"] = packageInfo;
         }
         else if (workOrderType == "功能开发") {

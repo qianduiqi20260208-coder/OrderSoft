@@ -768,7 +768,7 @@ async function fetchUserOrders() {
         files: [],
         fileName: order.issueReproduction?.fileName || order.deliverySend?.fileName || order.packageSend?.fileName || '', // 后端返回的文件名
         fileUrl: order.issueReproduction?.referenceFile || order.deliverySend?.referenceFile || order.packageSend?.referenceFile || '', // 后端返回的文件URL
-        hasAttachment: order.issueReproduction?.hasAttachment || false, // 是否有附件-------------------
+        hasAttachment: order.issueReproduction?.hasAttachment || order.deliverySend?.hasAttachment || order.packageSend?.hasAttachment || false, // 是否有附件-------------------
 
         updateNotes: order.versionIteration?.updateContent || order.packageSend?.updateContent || '', // 版本更新内容说明 =========================
         packageRequirement: order.versionIteration?.packagingRequirements || order.packageSend?.packagingRequirements || '', // 封装要求 =======================
@@ -828,7 +828,7 @@ async function fetchUserOrders() {
         createRemark: order.createRemark || '', // 创建备注
         targetPlatform: order.versionIteration?.targetPlatform || order.functionDevelopment?.targetPlatform || '',
       }
-
+      debugger
       // 处理文件信息，转换为 files 数组格式
       if (mappedOrder.hasAttachment && mappedOrder.fileName && mappedOrder.fileUrl) {
         mappedOrder.files = [{
