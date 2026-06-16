@@ -5,7 +5,6 @@
 #include "Log.h"
 #include "Logger.h"
 
-
 std::string url_decode(const std::string& str) {
     std::string ret;
     char ch;

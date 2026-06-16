@@ -276,7 +276,6 @@ bool TicketDAO::saveUploadFile(const Ticket &tct)
 
 bool TicketDAO::createTicket(Ticket &ticket)
 {
-        // 使用BaseDAO的优化连接管理
     if (!ensureConnection()) {
         return false;
     }

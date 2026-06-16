@@ -14,7 +14,10 @@ public:
 
     bool addModelVersion(const std::string& model,const std::string& modelVersion) override;
 
-    std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(const std::string& model,int page,int pageSize) override;
+    std::vector<std::vector<std::string>> getModelVersionInfoByModelPaged(
+        const std::string& model,
+        int page,
+        int pageSize) override;
 
     int getModelVersionCount(std::string model) override;
 

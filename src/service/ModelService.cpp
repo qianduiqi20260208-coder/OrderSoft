@@ -9,7 +9,6 @@ ModelService::ModelService(std::shared_ptr<IModelDAO> sp1,std::shared_ptr<ITicke
 std::vector<std::string> ModelService::getModel()
 {
     return modelDAO_->getModel();
-
 }
 
 std::vector<std::string> ModelService::getModelVersionByModel(std::string modelName)
